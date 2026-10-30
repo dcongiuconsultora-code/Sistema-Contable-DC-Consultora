@@ -132,3 +132,40 @@ describe("Mis Comprobantes formato detallado (XLSX)", async () => {
     expect(liq.saldoLibreDisponibilidad).toBe(186400);
   });
 });
+
+// Encabezados tal cual los exporta ARCA hoy ("Neto Grav. IVA 21%"), con datos ficticios.
+describe("Mis Comprobantes formato ARCA actual (encabezados abreviados)", async () => {
+  const libro = new ExcelJS.Workbook();
+  const hoja = libro.addWorksheet("Sheet1");
+  hoja.addRow(["Mis Comprobantes Emitidos - CUIT 30711111118"]);
+  hoja.addRow([
+    "Fecha", "Tipo", "Punto de Venta", "Número Desde", "Número Hasta", "Cód. Autorización",
+    "Tipo Doc. Receptor", "Nro. Doc. Receptor", "Denominación Receptor", "Tipo Cambio", "Moneda",
+    "Neto Grav. IVA 0%", "IVA 2,5%", "Neto Grav. IVA 2,5%", "IVA 5%", "Neto Grav. IVA 5%",
+    "IVA 10,5%", "Neto Grav. IVA 10,5%", "IVA 21%", "Neto Grav. IVA 21%", "IVA 27%", "Neto Grav. IVA 27%",
+    "Neto Gravado Total", "Neto No Gravado", "Op. Exentas", "Otros Tributos", "Total IVA", "Imp. Total",
+  ]);
+  const vacio = Array(10).fill(null);
+  hoja.addRow(["15/10/2026", "6 - Factura B", 2, 260, 260, 86400000000001, null, null, null, 1, "$",
+    ...vacio.slice(0, 7), 39575.63, 188455.38, null, null, 188455.38, 0, 0, 0, 39575.63, 228031]);
+  hoja.addRow(["22/10/2026", "1 - Factura A", 1, 54, 54, 86400000000002, "CUIT", 30722222229, "Cliente Ficticio SRL", 1, "$",
+    ...vacio.slice(0, 7), 731383.38, 3482778, null, null, 3482778, 0, 0, 0, 731383.38, 4214161.38]);
+  const r = importarMisComprobantes(await leerXlsx((await libro.xlsx.writeBuffer()) as ArrayBuffer));
+
+  it("lee neto e IVA por alícuota", () => {
+    expect(r.operacion).toBe("ventas");
+    expect(r.formato).toBe("detallado");
+    expect(r.errores).toEqual([]);
+    expect(r.avisos).toEqual([]);
+    expect(r.comprobantes.map((c) => c.alicuotas)).toEqual([
+      [{ tasa: 21, neto: 188455.38, iva: 39575.63 }],
+      [{ tasa: 21, neto: 3482778, iva: 731383.38 }],
+    ]);
+    expect(r.comprobantes.every((c) => c.advertencias.length === 0)).toBe(true);
+  });
+
+  it("factura B a consumidor final queda sin CUIT", () => {
+    expect(r.comprobantes[0].cuitContraparte).toBe("");
+    expect(r.comprobantes[0].contraparte).toBe("");
+  });
+});

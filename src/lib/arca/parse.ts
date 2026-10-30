@@ -82,7 +82,7 @@ function identificarColumnas(encabezados: Celda[]): Columnas {
     else if (h.includes("no gravado")) asignar("noGravado", i);
     else if (h.includes("exent")) asignar("exento", i);
     else if (h.includes("otros tributos")) asignar("otrosTributos", i);
-    else if (h.includes("neto gravado")) {
+    else if (h.includes("neto grav")) {
       if (tasa !== null) cols.netoPorTasa.set(tasa, i);
       else asignar("netoGravado", i);
     } else if (/^(imp )?iva\b/.test(h) || /^total iva/.test(h)) {
@@ -217,10 +217,6 @@ export function importarMisComprobantes(
   if (formato === "simple") {
     avisos.push("El archivo trae un solo importe de IVA por comprobante: la alícuota se deduce del cálculo y los casos dudosos quedan marcados.");
   }
-  if (campos.otrosTributos !== undefined) {
-    avisos.push("ARCA informa las percepciones juntas en \"Otros tributos\": hay que clasificarlas (IVA, IIBB, etc.) antes de liquidar.");
-  }
-
   const comprobantes: Comprobante[] = [];
   const errores: ErrorFila[] = [];
   const vistos = new Map<string, number>();
@@ -338,6 +334,10 @@ export function importarMisComprobantes(
     } catch (e) {
       errores.push({ fila: numeroFila, mensaje: e instanceof Error ? e.message : String(e) });
     }
+  }
+
+  if (comprobantes.some((c) => c.otrosTributos !== 0)) {
+    avisos.push("ARCA informa las percepciones juntas en \"Otros tributos\": hay que clasificarlas (IVA, IIBB, etc.) antes de liquidar.");
   }
 
   return {

@@ -59,7 +59,7 @@ export function LibroIva({ titulo, comprobantes }: Props) {
                     <div className="text-xs text-stone-500">{numeroComprobante(c)}</div>
                   </td>
                   <td className="px-3 py-2">
-                    <div className="max-w-56 truncate">{c.contraparte || "—"}</div>
+                    <div className="max-w-56 truncate">{c.contraparte || (c.cuitContraparte ? "—" : "Consumidor final")}</div>
                     <div className="text-xs text-stone-500">
                       {cuitConGuiones(c.cuitContraparte)}
                       {revisar && <span className="ml-2 font-medium text-amber-700">⚠ revisar</span>}
