@@ -10,7 +10,7 @@ Sistema contable interno de la consultora: los clientes cargan su operación y e
 - Facturas B y C recibidas: no computan crédito fiscal, todo va a no gravado (igual que la planilla).
 - Arma el Libro IVA Ventas, el Libro IVA Compras y la liquidación de IVA del período (misma lógica que la pestaña "Liq IVA" de la planilla).
 
-Por ahora no guarda nada: los archivos se leen en el navegador. En `ejemplos/` hay dos archivos de prueba.
+Por ahora no guarda nada: los archivos se leen en el navegador. En `public/ejemplos/` hay dos archivos de prueba.
 
 ## Cómo correrlo
 
@@ -27,4 +27,4 @@ npm test        # pruebas del importador y la liquidación
 | `src/lib/arca/` | Lectura de archivos y normalización de comprobantes de ARCA |
 | `src/lib/iva/` | Libros y liquidación de IVA |
 | `src/components/importador/` | Pantalla de importación |
-| `ejemplos/` | Archivos de ejemplo de Mis Comprobantes |
+| `public/ejemplos/` | Archivos de ejemplo de Mis Comprobantes |

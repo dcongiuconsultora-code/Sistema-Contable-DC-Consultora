@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { leerArchivo } from "@/lib/arca/leer-archivo";
 import { importarMisComprobantes } from "@/lib/arca/parse";
 import type { Operacion, ResultadoImportacion } from "@/lib/arca/tipos";
@@ -10,6 +10,8 @@ interface Props {
   operacion: Operacion;
   resultado: ResultadoImportacion | null;
   onResultado: (r: ResultadoImportacion | null) => void;
+  /** Archivo cargado desde afuera (por ejemplo, los archivos de ejemplo). */
+  archivoExterno?: File | null;
 }
 
 const TEXTOS: Record<Operacion, { titulo: string; ayuda: string }> = {
@@ -17,7 +19,7 @@ const TEXTOS: Record<Operacion, { titulo: string; ayuda: string }> = {
   compras: { titulo: "Comprobantes recibidos", ayuda: "Compras y gastos · Mis Comprobantes > Recibidos" },
 };
 
-export function ZonaArchivo({ operacion, resultado, onResultado }: Props) {
+export function ZonaArchivo({ operacion, resultado, onResultado, archivoExterno }: Props) {
   const input = useRef<HTMLInputElement>(null);
   const [nombre, setNombre] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -38,6 +40,11 @@ export function ZonaArchivo({ operacion, resultado, onResultado }: Props) {
       setCargando(false);
     }
   }
+
+  useEffect(() => {
+    if (archivoExterno) procesar(archivoExterno);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [archivoExterno]);
 
   const { titulo, ayuda } = TEXTOS[operacion];
   const conAdvertencias = resultado?.comprobantes.filter((c) => c.advertencias.length > 0).length ?? 0;
