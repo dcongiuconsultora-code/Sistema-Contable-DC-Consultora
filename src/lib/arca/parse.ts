@@ -1,3 +1,4 @@
+import { pesos } from "@/lib/formato";
 import { interpretarTipo } from "./tipos-comprobante";
 import type {
   Alicuota,
@@ -18,7 +19,11 @@ type Campo =
   | "numeroHasta"
   | "cae"
   | "nroDoc"
+  | "nroDocEmisor"
+  | "nroDocReceptor"
   | "denominacion"
+  | "denominacionEmisor"
+  | "denominacionReceptor"
   | "tipoCambio"
   | "moneda"
   | "netoGravado"
@@ -76,8 +81,12 @@ function identificarColumnas(encabezados: Celda[]): Columnas {
     else if (/^(numero|nro) hasta/.test(h)) asignar("numeroHasta", i);
     else if (/^(numero|nro) desde/.test(h) || h === "numero" || h === "nro") asignar("numeroDesde", i);
     else if (h.includes("autorizacion") || h === "cae") asignar("cae", i);
-    else if (/^(nro|numero) (doc|documento)/.test(h) || h.includes("cuit")) asignar("nroDoc", i);
-    else if (h.startsWith("denominacion")) asignar("denominacion", i);
+    else if (/^(nro|numero) (doc|documento)/.test(h) || h.includes("cuit")) {
+      // Los recibidos traen emisor y receptor: la contraparte se elige según la operación.
+      asignar(h.includes("emisor") ? "nroDocEmisor" : h.includes("receptor") ? "nroDocReceptor" : "nroDoc", i);
+    } else if (h.startsWith("denominacion")) {
+      asignar(h.includes("emisor") ? "denominacionEmisor" : h.includes("receptor") ? "denominacionReceptor" : "denominacion", i);
+    }
     else if (h === "moneda") asignar("moneda", i);
     else if (h.includes("no gravado")) asignar("noGravado", i);
     else if (h.includes("exent")) asignar("exento", i);
@@ -92,6 +101,16 @@ function identificarColumnas(encabezados: Celda[]): Columnas {
   });
 
   return cols;
+}
+
+/** El título del archivo de ARCA dice "Mis Comprobantes Emitidos" o "Recibidos". */
+function operacionDelTitulo(filas: Celda[][], hasta: number): Operacion | null {
+  for (let i = 0; i < hasta; i++) {
+    const texto = normalizarEncabezado(filas[i].map((c) => String(c ?? "")).join(" "));
+    if (texto.includes("emitidos")) return "ventas";
+    if (texto.includes("recibidos")) return "compras";
+  }
+  return null;
 }
 
 /** Busca la fila de encabezados: la primera que tenga columnas de fecha, tipo y total. */
@@ -198,6 +217,7 @@ export function importarMisComprobantes(
   const { indice, columnas } = encontrados;
   const { campos, netoPorTasa, ivaPorTasa } = columnas;
   const avisos: string[] = [];
+  columnas.operacion = operacionDelTitulo(filas, indice) ?? columnas.operacion;
 
   let operacion: Operacion;
   if (opciones.operacion) {
@@ -222,6 +242,10 @@ export function importarMisComprobantes(
   const vistos = new Map<string, number>();
   const leer = (fila: Celda[], campo: Campo) =>
     campos[campo] === undefined ? undefined : fila[campos[campo]!];
+  // La contraparte de una venta es el receptor; la de una compra, el emisor.
+  const lado = operacion === "ventas" ? "Receptor" : "Emisor";
+  const campoCuit: Campo = campos[`nroDoc${lado}`] !== undefined ? `nroDoc${lado}` : "nroDoc";
+  const campoNombre: Campo = campos[`denominacion${lado}`] !== undefined ? `denominacion${lado}` : "denominacion";
 
   for (let i = indice + 1; i < filas.length; i++) {
     const fila = filas[i];
@@ -282,21 +306,26 @@ export function importarMisComprobantes(
       // Factura B o C recibida: no genera crédito fiscal, todo el importe va a no gravado.
       const computaIva = operacion === "ventas" || tipo.letra === "A" || tipo.letra === "M";
       if (!computaIva) {
-        noGravado = redondear(noGravado + netoGravado + iva);
+        noGravado = redondear(total - exento - otrosTributos);
         netoGravado = 0;
         iva = 0;
         alicuotas = [];
+      } else if (netoGravado === 0 && iva === 0 && noGravado === 0 && exento === 0 && otrosTributos === 0) {
+        // Las facturas C emitidas solo informan el total.
+        noGravado = total;
       }
 
-      const suma = redondear(netoGravado + noGravado + exento + iva + otrosTributos);
-      if (Math.abs(suma - total) > 1) {
-        advertencias.push(`Los importes suman ${suma} pero el total es ${total}.`);
+      const diferencia = redondear(total - (netoGravado + noGravado + exento + iva + otrosTributos));
+      if (Math.abs(diferencia) > 1) {
+        advertencias.push(
+          `Hay ${pesos(diferencia)} del total que no figuran en ninguna columna (puede ser impuesto a los combustibles o impuestos internos): revisar.`,
+        );
       }
 
       const puntoVenta = Number(soloDigitos(leer(fila, "puntoVenta"))) || 0;
       const numeroDesde = Number(soloDigitos(leer(fila, "numeroDesde"))) || 0;
       const numeroHasta = Number(soloDigitos(leer(fila, "numeroHasta"))) || numeroDesde;
-      const cuitContraparte = soloDigitos(leer(fila, "nroDoc"));
+      const cuitContraparte = soloDigitos(leer(fila, campoCuit));
 
       const clave = `${tipo.codigo}-${puntoVenta}-${numeroDesde}-${cuitContraparte}`;
       if (vistos.has(clave)) {
@@ -318,7 +347,7 @@ export function importarMisComprobantes(
         numeroHasta,
         cae: soloDigitos(leer(fila, "cae")),
         cuitContraparte,
-        contraparte: String(leer(fila, "denominacion") ?? "").trim(),
+        contraparte: String(leer(fila, campoNombre) ?? "").trim(),
         moneda: esPesos ? "ARS" : monedaTexto,
         tipoCambio,
         alicuotas,

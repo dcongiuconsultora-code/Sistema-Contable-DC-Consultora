@@ -169,3 +169,51 @@ describe("Mis Comprobantes formato ARCA actual (encabezados abreviados)", async 
     expect(r.comprobantes[0].contraparte).toBe("");
   });
 });
+
+// Recibidos tal cual los exporta ARCA: traen emisor y receptor. Datos ficticios.
+describe("Mis Comprobantes recibidos formato ARCA actual", async () => {
+  const libro = new ExcelJS.Workbook();
+  const hoja = libro.addWorksheet("Sheet1");
+  hoja.addRow(["Mis Comprobantes Recibidos - CUIT 30711111118"]);
+  hoja.addRow([
+    "Fecha", "Tipo", "Punto de Venta", "Número Desde", "Número Hasta", "Cód. Autorización",
+    "Tipo Doc. Emisor", "Nro. Doc. Emisor", "Denominación Emisor", "Tipo Doc. Receptor", "Nro. Doc. Receptor",
+    "Tipo Cambio", "Moneda", "Neto Grav. IVA 0%", "IVA 2,5%", "Neto Grav. IVA 2,5%", "IVA 5%", "Neto Grav. IVA 5%",
+    "IVA 10,5%", "Neto Grav. IVA 10,5%", "IVA 21%", "Neto Grav. IVA 21%", "IVA 27%", "Neto Grav. IVA 27%",
+    "Neto Gravado Total", "Neto No Gravado", "Op. Exentas", "Otros Tributos", "Total IVA", "Imp. Total",
+  ]);
+  const vacio = (n: number) => Array(n).fill(null);
+  const receptor = ["CUIT", 30711111118, 1, "$"];
+  hoja.addRow(["01/10/2026", "1 - Factura A", 7, 746401, 746401, 86400000000003, "CUIT", 30733333331, "Proveedor Uno SA",
+    ...receptor, ...vacio(7), 8334.38, 39687.54, null, null, 39687.54, 0, 0, 1428.75, 8334.38, 49450.67]);
+  hoja.addRow(["03/10/2026", "3 - Nota de Crédito A", 7, 120, 120, 86400000000004, "CUIT", 30733333331, "Proveedor Uno SA",
+    ...receptor, ...vacio(7), 2100, 10000, null, null, 10000, 0, 0, 0, 2100, 12100]);
+  hoja.addRow(["05/10/2026", "11 - Factura C", 2, 201, 201, 86400000000005, "CUIT", 27344444445, "Monotributista Ficticia",
+    ...receptor, ...vacio(14), 0, null, 385000]);
+  hoja.addRow(["11/10/2026", "81 - Tique Factura A", 193, 41856, 41856, null, "CUIT", 30755555557, "Estación Ficticia SRL",
+    ...receptor, 0, 0, 0, 0, 0, 0, 0, 15429.78, 73475.14, 0, 0, 73475.14, 0, 0, 0, 15429.78, 100000.01]);
+  const r = importarMisComprobantes(await leerXlsx((await libro.xlsx.writeBuffer()) as ArrayBuffer));
+  const [fa, nc, fc, tique] = r.comprobantes;
+
+  it("toma al emisor como contraparte, no al receptor", () => {
+    expect(r.operacion).toBe("compras");
+    expect(fa.cuitContraparte).toBe("30733333331");
+    expect(fa.contraparte).toBe("Proveedor Uno SA");
+  });
+
+  it("nota de crédito en negativo", () => {
+    expect(nc.alicuotas).toEqual([{ tasa: 21, neto: -10000, iva: -2100 }]);
+    expect(nc.total).toBe(-12100);
+  });
+
+  it("factura C que solo trae el total va entera a no gravado", () => {
+    expect(fc.computaIva).toBe(false);
+    expect(fc.noGravado).toBe(385000);
+    expect(fc.advertencias).toEqual([]);
+  });
+
+  it("marca la diferencia que no figura en ninguna columna", () => {
+    expect(tique.computaIva).toBe(true);
+    expect(tique.advertencias).toEqual([expect.stringContaining("11.095,09")]);
+  });
+});
