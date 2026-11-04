@@ -1,4 +1,5 @@
 import ExcelJS from "exceljs";
+import { leerXls } from "./leer-xls";
 import type { Celda } from "./tipos";
 
 /** Separa una línea CSV respetando comillas. */
@@ -61,22 +62,27 @@ export async function leerXlsx(datos: ArrayBuffer): Promise<Celda[][]> {
   return Array.from(filas, (f) => f ?? []);
 }
 
-/** Lee un archivo descargado de Mis Comprobantes (.xlsx o .csv) y devuelve sus filas. */
+/** ARCA suele exportar en Latin-1; si no es UTF-8 válido, lo leemos así. */
+export async function leerTexto(archivo: File): Promise<string> {
+  const bytes = new Uint8Array(await archivo.arrayBuffer());
+  try {
+    return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+  } catch {
+    return new TextDecoder("windows-1252").decode(bytes);
+  }
+}
+
+/** Lee un archivo descargado de ARCA (.xlsx, .xls o .csv) y devuelve sus filas. */
 export async function leerArchivo(archivo: File): Promise<Celda[][]> {
   const nombre = archivo.name.toLowerCase();
   if (nombre.endsWith(".csv") || nombre.endsWith(".txt")) {
-    const bytes = new Uint8Array(await archivo.arrayBuffer());
-    // ARCA suele exportar en Latin-1; si no es UTF-8 válido, lo leemos así.
-    let texto: string;
-    try {
-      texto = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
-    } catch {
-      texto = new TextDecoder("windows-1252").decode(bytes);
-    }
-    return leerCsv(texto);
+    return leerCsv(await leerTexto(archivo));
   }
   if (nombre.endsWith(".xlsx")) {
     return leerXlsx(await archivo.arrayBuffer());
   }
-  throw new Error("Formato no soportado. Subí el archivo .xlsx o .csv que descargás de Mis Comprobantes.");
+  if (nombre.endsWith(".xls")) {
+    return leerXls(await archivo.arrayBuffer());
+  }
+  throw new Error("Formato no soportado. Subí el archivo .xlsx, .xls o .csv que descargás de ARCA.");
 }

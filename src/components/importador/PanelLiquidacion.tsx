@@ -9,6 +9,8 @@ interface Props {
   compras: Comprobante[];
   manual: DatosManualesIva;
   onManual: (m: DatosManualesIva) => void;
+  /** Percepciones y retenciones de IVA tomadas de Mis Retenciones; reemplazan a las cargadas a mano. */
+  desdeArchivos?: { percepciones: number; retenciones: number } | null;
 }
 
 const CAMPOS_MANUALES: [keyof DatosManualesIva, string][] = [
@@ -27,17 +29,29 @@ function Fila({ etiqueta, valor, fuerte, sangria }: { etiqueta: string; valor: n
   );
 }
 
-export function PanelLiquidacion({ ventas, compras, manual, onManual }: Props) {
-  const liq = liquidarIva(ventas, compras, manual);
+export function PanelLiquidacion({ ventas, compras, manual, onManual, desdeArchivos }: Props) {
+  const datos = desdeArchivos ? { ...manual, ...desdeArchivos } : manual;
+  const liq = liquidarIva(ventas, compras, datos);
   const percepcionesEnArchivo = compras.reduce((s, c) => s + c.otrosTributos, 0);
 
   return (
     <div className="grid gap-4 lg:grid-cols-[1fr_1.2fr]">
       <div className="rounded-xl border border-stone-200 bg-white p-5 shadow-sm">
         <h3 className="mb-1 font-semibold">Datos a completar</h3>
-        <p className="mb-4 text-sm text-stone-500">No vienen en los archivos de ARCA. Más adelante se van a arrastrar solos del mes anterior.</p>
+        <p className="mb-4 text-sm text-stone-500">
+          Los saldos del mes anterior se van a arrastrar solos cuando el sistema guarde las liquidaciones.
+        </p>
         <div className="space-y-3">
-          {CAMPOS_MANUALES.map(([campo, etiqueta]) => (
+          {CAMPOS_MANUALES.map(([campo, etiqueta]) =>
+            desdeArchivos && (campo === "percepciones" || campo === "retenciones") ? (
+              <div key={campo} className="text-sm">
+                <span className="text-stone-700">{etiqueta}</span>
+                <div className="mt-1 flex items-center justify-between rounded-md bg-stone-100 px-3 py-2">
+                  <span className="text-xs text-stone-500">De Mis Retenciones</span>
+                  <span className="cifra font-medium">{pesos(desdeArchivos[campo])}</span>
+                </div>
+              </div>
+            ) : (
             <label key={campo} className="block text-sm">
               <span className="text-stone-700">{etiqueta}</span>
               <input
@@ -51,11 +65,13 @@ export function PanelLiquidacion({ ventas, compras, manual, onManual }: Props) {
               />
               {campo === "percepciones" && percepcionesEnArchivo !== 0 && (
                 <span className="mt-1 block text-xs text-stone-500">
-                  Los recibidos traen {pesos(percepcionesEnArchivo)} en &quot;Otros tributos&quot;: separá la parte de IVA.
+                  Los recibidos traen {pesos(percepcionesEnArchivo)} en &quot;Otros tributos&quot;: separá la parte de IVA,
+                  o subí Mis Retenciones para que se complete solo.
                 </span>
               )}
             </label>
-          ))}
+            ),
+          )}
         </div>
       </div>
 
