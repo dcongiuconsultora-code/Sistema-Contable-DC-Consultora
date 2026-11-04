@@ -19,7 +19,7 @@ const js = await esbuild.build({
   platform: "browser",
   jsx: "automatic",
   alias: { "@": path.join(raiz, "src") },
-  define: { "process.env.NODE_ENV": '"production"' },
+  define: { "process.env.NODE_ENV": '"production"', "import.meta.url": '"about:blank"' },
   logLevel: "warning",
 });
 
@@ -33,12 +33,17 @@ const ejemplos = Object.fromEntries(
   fs.readdirSync(carpetaEjemplos).map((f) => [f, fs.readFileSync(path.join(carpetaEjemplos, f)).toString("base64")]),
 );
 
+// El worker de pdf.js va embebido y se carga desde un blob, porque la página no puede pedir otros archivos.
+const worker = fs.readFileSync(path.join(raiz, "node_modules/pdfjs-dist/build/pdf.worker.min.mjs"), "utf8");
+const scriptSeguro = (codigo) => codigo.replace(/<\/script/gi, "<\\/script");
+
 const html = `<title>Sistema Contable DC</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <style>:root{color-scheme:light}${css.css}</style>
 <div id="app"></div>
 <script>window.__EJEMPLOS__=${JSON.stringify(ejemplos)}</script>
-<script>${js.outputFiles[0].text.replace(/<\/script/gi, "<\\/script")}</script>
+<script>window.__PDF_WORKER_SRC__=URL.createObjectURL(new Blob([${scriptSeguro(JSON.stringify(worker))}],{type:"text/javascript"}))</script>
+<script>${scriptSeguro(js.outputFiles[0].text)}</script>
 `;
 
 fs.mkdirSync(salida, { recursive: true });

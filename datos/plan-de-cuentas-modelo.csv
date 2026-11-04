@@ -1,0 +1,324 @@
+﻿codigo,nombre,nivel,codigo_padre,imputable,tipo,estado,naturaleza,regularizadora,corriente,rubro,partida_rt6
+1,ACTIVO,1,,N,ACTIVO,ESP,Deudora,N,-,,
+1.1,ACTIVO CORRIENTE,2,1,N,ACTIVO,ESP,Deudora,N,S,,
+1.1.01,Caja y Bancos,3,1.1,N,ACTIVO,ESP,Deudora,N,S,Caja y Bancos,
+1.1.01.001,Caja en pesos,4,1.1.01,S,ACTIVO,ESP,Deudora,N,S,Caja y Bancos,Monetaria
+1.1.01.002,Caja en moneda extranjera,4,1.1.01,S,ACTIVO,ESP,Deudora,N,S,Caja y Bancos,No monetaria
+1.1.01.003,Fondo fijo,4,1.1.01,S,ACTIVO,ESP,Deudora,N,S,Caja y Bancos,Monetaria
+1.1.01.004,Valores a depositar,4,1.1.01,S,ACTIVO,ESP,Deudora,N,S,Caja y Bancos,Monetaria
+1.1.01.005,Recaudaciones a depositar,4,1.1.01,S,ACTIVO,ESP,Deudora,N,S,Caja y Bancos,Monetaria
+1.1.01.006,Banco cuenta corriente en pesos,4,1.1.01,S,ACTIVO,ESP,Deudora,N,S,Caja y Bancos,Monetaria
+1.1.01.007,Banco caja de ahorro en pesos,4,1.1.01,S,ACTIVO,ESP,Deudora,N,S,Caja y Bancos,Monetaria
+1.1.01.008,Banco cuenta en moneda extranjera,4,1.1.01,S,ACTIVO,ESP,Deudora,N,S,Caja y Bancos,No monetaria
+1.1.01.009,Billeteras virtuales (Mercado Pago y otras),4,1.1.01,S,ACTIVO,ESP,Deudora,N,S,Caja y Bancos,Monetaria
+1.1.02,Inversiones,3,1.1,N,ACTIVO,ESP,Deudora,N,S,Inversiones,
+1.1.02.001,Plazos fijos en pesos,4,1.1.02,S,ACTIVO,ESP,Deudora,N,S,Inversiones,Monetaria
+1.1.02.002,Plazos fijos en moneda extranjera,4,1.1.02,S,ACTIVO,ESP,Deudora,N,S,Inversiones,No monetaria
+1.1.02.003,Fondos comunes de inversión,4,1.1.02,S,ACTIVO,ESP,Deudora,N,S,Inversiones,No monetaria
+1.1.02.004,Títulos públicos,4,1.1.02,S,ACTIVO,ESP,Deudora,N,S,Inversiones,No monetaria
+1.1.02.005,Acciones con cotización,4,1.1.02,S,ACTIVO,ESP,Deudora,N,S,Inversiones,No monetaria
+1.1.02.006,Cauciones bursátiles,4,1.1.02,S,ACTIVO,ESP,Deudora,N,S,Inversiones,Monetaria
+1.1.02.007,Intereses a devengar inversiones,4,1.1.02,S,ACTIVO,ESP,Acreedora,S,S,Inversiones,Monetaria
+1.1.03,Créditos por Ventas,3,1.1,N,ACTIVO,ESP,Deudora,N,S,Créditos por Ventas,
+1.1.03.001,Deudores por ventas,4,1.1.03,S,ACTIVO,ESP,Deudora,N,S,Créditos por Ventas,Monetaria
+1.1.03.002,Documentos a cobrar,4,1.1.03,S,ACTIVO,ESP,Deudora,N,S,Créditos por Ventas,Monetaria
+1.1.03.003,Cheques de terceros diferidos (valores a cobrar),4,1.1.03,S,ACTIVO,ESP,Deudora,N,S,Créditos por Ventas,Monetaria
+1.1.03.004,Tarjetas de crédito a cobrar,4,1.1.03,S,ACTIVO,ESP,Deudora,N,S,Créditos por Ventas,Monetaria
+1.1.03.005,Liquidaciones de plataformas a cobrar,4,1.1.03,S,ACTIVO,ESP,Deudora,N,S,Créditos por Ventas,Monetaria
+1.1.03.006,Deudores morosos,4,1.1.03,S,ACTIVO,ESP,Deudora,N,S,Créditos por Ventas,Monetaria
+1.1.03.007,Deudores en gestión judicial,4,1.1.03,S,ACTIVO,ESP,Deudora,N,S,Créditos por Ventas,Monetaria
+1.1.03.008,Intereses a devengar créditos por ventas,4,1.1.03,S,ACTIVO,ESP,Acreedora,S,S,Créditos por Ventas,Monetaria
+1.1.03.009,Previsión para deudores incobrables,4,1.1.03,S,ACTIVO,ESP,Acreedora,S,S,Créditos por Ventas,Monetaria
+1.1.04,Otros Créditos,3,1.1,N,ACTIVO,ESP,Deudora,N,S,Otros Créditos,
+1.1.04.001,Anticipos a proveedores,4,1.1.04,S,ACTIVO,ESP,Deudora,N,S,Otros Créditos,No monetaria
+1.1.04.002,Anticipos al personal,4,1.1.04,S,ACTIVO,ESP,Deudora,N,S,Otros Créditos,Monetaria
+1.1.04.003,Préstamos al personal,4,1.1.04,S,ACTIVO,ESP,Deudora,N,S,Otros Créditos,Monetaria
+1.1.04.004,IVA crédito fiscal,4,1.1.04,S,ACTIVO,ESP,Deudora,N,S,Otros Créditos,Monetaria
+1.1.04.005,IVA saldo a favor técnico,4,1.1.04,S,ACTIVO,ESP,Deudora,N,S,Otros Créditos,Monetaria
+1.1.04.006,IVA saldo de libre disponibilidad,4,1.1.04,S,ACTIVO,ESP,Deudora,N,S,Otros Créditos,Monetaria
+1.1.04.007,IVA retenciones sufridas,4,1.1.04,S,ACTIVO,ESP,Deudora,N,S,Otros Créditos,Monetaria
+1.1.04.008,IVA percepciones sufridas,4,1.1.04,S,ACTIVO,ESP,Deudora,N,S,Otros Créditos,Monetaria
+1.1.04.009,Impuesto a las ganancias - anticipos,4,1.1.04,S,ACTIVO,ESP,Deudora,N,S,Otros Créditos,Monetaria
+1.1.04.010,Impuesto a las ganancias - retenciones sufridas,4,1.1.04,S,ACTIVO,ESP,Deudora,N,S,Otros Créditos,Monetaria
+1.1.04.011,Impuesto a las ganancias - percepciones sufridas,4,1.1.04,S,ACTIVO,ESP,Deudora,N,S,Otros Créditos,Monetaria
+1.1.04.012,Impuesto a las ganancias - saldo a favor,4,1.1.04,S,ACTIVO,ESP,Deudora,N,S,Otros Créditos,Monetaria
+1.1.04.013,Ingresos brutos - anticipos,4,1.1.04,S,ACTIVO,ESP,Deudora,N,S,Otros Créditos,Monetaria
+1.1.04.014,Ingresos brutos - retenciones sufridas (incl. SIRCREB),4,1.1.04,S,ACTIVO,ESP,Deudora,N,S,Otros Créditos,Monetaria
+1.1.04.015,Ingresos brutos - percepciones sufridas,4,1.1.04,S,ACTIVO,ESP,Deudora,N,S,Otros Créditos,Monetaria
+1.1.04.016,Ingresos brutos - saldo a favor,4,1.1.04,S,ACTIVO,ESP,Deudora,N,S,Otros Créditos,Monetaria
+1.1.04.017,Impuesto s/débitos y créditos bancarios a computar,4,1.1.04,S,ACTIVO,ESP,Deudora,N,S,Otros Créditos,Monetaria
+1.1.04.018,Percepciones impuesto PAIS/RG a computar,4,1.1.04,S,ACTIVO,ESP,Deudora,N,S,Otros Créditos,Monetaria
+1.1.04.019,Seguros pagados por adelantado,4,1.1.04,S,ACTIVO,ESP,Deudora,N,S,Otros Créditos,No monetaria
+1.1.04.020,Alquileres pagados por adelantado,4,1.1.04,S,ACTIVO,ESP,Deudora,N,S,Otros Créditos,No monetaria
+1.1.04.021,Otros gastos pagados por adelantado,4,1.1.04,S,ACTIVO,ESP,Deudora,N,S,Otros Créditos,No monetaria
+1.1.04.022,Depósitos en garantía,4,1.1.04,S,ACTIVO,ESP,Deudora,N,S,Otros Créditos,Monetaria
+1.1.04.023,Créditos con socios/accionistas,4,1.1.04,S,ACTIVO,ESP,Deudora,N,S,Otros Créditos,Monetaria
+1.1.04.024,Cuenta particular socios,4,1.1.04,S,ACTIVO,ESP,Deudora,N,S,Otros Créditos,Monetaria
+1.1.04.025,Créditos con sociedades relacionadas,4,1.1.04,S,ACTIVO,ESP,Deudora,N,S,Otros Créditos,Monetaria
+1.1.04.026,Deudores varios,4,1.1.04,S,ACTIVO,ESP,Deudora,N,S,Otros Créditos,Monetaria
+1.1.04.027,Previsión para otros créditos incobrables,4,1.1.04,S,ACTIVO,ESP,Acreedora,S,S,Otros Créditos,Monetaria
+1.1.05,Bienes de Cambio,3,1.1,N,ACTIVO,ESP,Deudora,N,S,Bienes de Cambio,
+1.1.05.001,Mercaderías de reventa,4,1.1.05,S,ACTIVO,ESP,Deudora,N,S,Bienes de Cambio,No monetaria
+1.1.05.002,Materias primas,4,1.1.05,S,ACTIVO,ESP,Deudora,N,S,Bienes de Cambio,No monetaria
+1.1.05.003,Productos en proceso,4,1.1.05,S,ACTIVO,ESP,Deudora,N,S,Bienes de Cambio,No monetaria
+1.1.05.004,Productos terminados,4,1.1.05,S,ACTIVO,ESP,Deudora,N,S,Bienes de Cambio,No monetaria
+1.1.05.005,"Materiales, insumos y envases",4,1.1.05,S,ACTIVO,ESP,Deudora,N,S,Bienes de Cambio,No monetaria
+1.1.05.006,Mercaderías en tránsito,4,1.1.05,S,ACTIVO,ESP,Deudora,N,S,Bienes de Cambio,No monetaria
+1.1.05.007,Previsión por desvalorización de bienes de cambio,4,1.1.05,S,ACTIVO,ESP,Acreedora,S,S,Bienes de Cambio,No monetaria
+1.1.06,Otros Activos,3,1.1,N,ACTIVO,ESP,Deudora,N,S,Otros Activos,
+1.1.06.001,Bienes destinados a la venta,4,1.1.06,S,ACTIVO,ESP,Deudora,N,S,Otros Activos,No monetaria
+1.2,ACTIVO NO CORRIENTE,2,1,N,ACTIVO,ESP,Deudora,N,N,,
+1.2.01,Créditos por Ventas no corrientes,3,1.2,N,ACTIVO,ESP,Deudora,N,N,Créditos por Ventas no corrientes,
+1.2.01.001,Deudores por ventas a largo plazo,4,1.2.01,S,ACTIVO,ESP,Deudora,N,N,Créditos por Ventas no corrientes,Monetaria
+1.2.01.002,Documentos a cobrar a largo plazo,4,1.2.01,S,ACTIVO,ESP,Deudora,N,N,Créditos por Ventas no corrientes,Monetaria
+1.2.01.003,Intereses a devengar créditos LP,4,1.2.01,S,ACTIVO,ESP,Acreedora,S,N,Créditos por Ventas no corrientes,Monetaria
+1.2.02,Otros Créditos no corrientes,3,1.2,N,ACTIVO,ESP,Deudora,N,N,Otros Créditos no corrientes,
+1.2.02.001,Activo por impuesto diferido,4,1.2.02,S,ACTIVO,ESP,Deudora,N,N,Otros Créditos no corrientes,No monetaria
+1.2.02.002,Depósitos en garantía a largo plazo,4,1.2.02,S,ACTIVO,ESP,Deudora,N,N,Otros Créditos no corrientes,Monetaria
+1.2.02.003,Créditos con sociedades relacionadas LP,4,1.2.02,S,ACTIVO,ESP,Deudora,N,N,Otros Créditos no corrientes,Monetaria
+1.2.02.004,Créditos fiscales LP,4,1.2.02,S,ACTIVO,ESP,Deudora,N,N,Otros Créditos no corrientes,Monetaria
+1.2.03,Inversiones no corrientes,3,1.2,N,ACTIVO,ESP,Deudora,N,N,Inversiones no corrientes,
+1.2.03.001,Plazos fijos a largo plazo,4,1.2.03,S,ACTIVO,ESP,Deudora,N,N,Inversiones no corrientes,Monetaria
+1.2.03.002,Propiedades de inversión (inmuebles de renta),4,1.2.03,S,ACTIVO,ESP,Deudora,N,N,Inversiones no corrientes,No monetaria
+1.2.03.003,Amortización acumulada propiedades de inversión,4,1.2.03,S,ACTIVO,ESP,Acreedora,S,N,Inversiones no corrientes,No monetaria
+1.2.03.004,Títulos y bonos LP,4,1.2.03,S,ACTIVO,ESP,Deudora,N,N,Inversiones no corrientes,No monetaria
+1.2.04,Participaciones permanentes en sociedades,3,1.2,N,ACTIVO,ESP,Deudora,N,N,Participaciones permanentes en sociedades,
+1.2.04.001,Participación en sociedades controladas,4,1.2.04,S,ACTIVO,ESP,Deudora,N,N,Participaciones permanentes en sociedades,No monetaria
+1.2.04.002,Participación en sociedades vinculadas,4,1.2.04,S,ACTIVO,ESP,Deudora,N,N,Participaciones permanentes en sociedades,No monetaria
+1.2.04.003,Otras participaciones,4,1.2.04,S,ACTIVO,ESP,Deudora,N,N,Participaciones permanentes en sociedades,No monetaria
+1.2.05,Bienes de Uso,3,1.2,N,ACTIVO,ESP,Deudora,N,N,Bienes de Uso,
+1.2.05.001,Terrenos,4,1.2.05,S,ACTIVO,ESP,Deudora,N,N,Bienes de Uso,No monetaria
+1.2.05.002,Edificios,4,1.2.05,S,ACTIVO,ESP,Deudora,N,N,Bienes de Uso,No monetaria
+1.2.05.003,Amortización acumulada edificios,4,1.2.05,S,ACTIVO,ESP,Acreedora,S,N,Bienes de Uso,No monetaria
+1.2.05.004,Instalaciones,4,1.2.05,S,ACTIVO,ESP,Deudora,N,N,Bienes de Uso,No monetaria
+1.2.05.005,Amortización acumulada instalaciones,4,1.2.05,S,ACTIVO,ESP,Acreedora,S,N,Bienes de Uso,No monetaria
+1.2.05.006,Maquinarias y equipos,4,1.2.05,S,ACTIVO,ESP,Deudora,N,N,Bienes de Uso,No monetaria
+1.2.05.007,Amortización acumulada maquinarias y equipos,4,1.2.05,S,ACTIVO,ESP,Acreedora,S,N,Bienes de Uso,No monetaria
+1.2.05.008,Rodados,4,1.2.05,S,ACTIVO,ESP,Deudora,N,N,Bienes de Uso,No monetaria
+1.2.05.009,Amortización acumulada rodados,4,1.2.05,S,ACTIVO,ESP,Acreedora,S,N,Bienes de Uso,No monetaria
+1.2.05.010,Muebles y útiles,4,1.2.05,S,ACTIVO,ESP,Deudora,N,N,Bienes de Uso,No monetaria
+1.2.05.011,Amortización acumulada muebles y útiles,4,1.2.05,S,ACTIVO,ESP,Acreedora,S,N,Bienes de Uso,No monetaria
+1.2.05.012,Equipos de computación,4,1.2.05,S,ACTIVO,ESP,Deudora,N,N,Bienes de Uso,No monetaria
+1.2.05.013,Amortización acumulada equipos de computación,4,1.2.05,S,ACTIVO,ESP,Acreedora,S,N,Bienes de Uso,No monetaria
+1.2.05.014,Herramientas,4,1.2.05,S,ACTIVO,ESP,Deudora,N,N,Bienes de Uso,No monetaria
+1.2.05.015,Amortización acumulada herramientas,4,1.2.05,S,ACTIVO,ESP,Acreedora,S,N,Bienes de Uso,No monetaria
+1.2.05.016,Mejoras en inmuebles de terceros,4,1.2.05,S,ACTIVO,ESP,Deudora,N,N,Bienes de Uso,No monetaria
+1.2.05.017,Amortización acumulada mejoras en inmuebles de terceros,4,1.2.05,S,ACTIVO,ESP,Acreedora,S,N,Bienes de Uso,No monetaria
+1.2.05.018,Obras en curso,4,1.2.05,S,ACTIVO,ESP,Deudora,N,N,Bienes de Uso,No monetaria
+1.2.05.019,Anticipos para compra de bienes de uso,4,1.2.05,S,ACTIVO,ESP,Deudora,N,N,Bienes de Uso,No monetaria
+1.2.06,Activos Intangibles,3,1.2,N,ACTIVO,ESP,Deudora,N,N,Activos Intangibles,
+1.2.06.001,Marcas y patentes,4,1.2.06,S,ACTIVO,ESP,Deudora,N,N,Activos Intangibles,No monetaria
+1.2.06.002,Amortización acumulada marcas y patentes,4,1.2.06,S,ACTIVO,ESP,Acreedora,S,N,Activos Intangibles,No monetaria
+1.2.06.003,Software y licencias,4,1.2.06,S,ACTIVO,ESP,Deudora,N,N,Activos Intangibles,No monetaria
+1.2.06.004,Amortización acumulada software y licencias,4,1.2.06,S,ACTIVO,ESP,Acreedora,S,N,Activos Intangibles,No monetaria
+1.2.06.005,Gastos de organización,4,1.2.06,S,ACTIVO,ESP,Deudora,N,N,Activos Intangibles,No monetaria
+1.2.06.006,Amortización acumulada gastos de organización,4,1.2.06,S,ACTIVO,ESP,Acreedora,S,N,Activos Intangibles,No monetaria
+1.2.06.007,Gastos de desarrollo,4,1.2.06,S,ACTIVO,ESP,Deudora,N,N,Activos Intangibles,No monetaria
+1.2.06.008,Amortización acumulada gastos de desarrollo,4,1.2.06,S,ACTIVO,ESP,Acreedora,S,N,Activos Intangibles,No monetaria
+1.2.07,Llave de Negocio,3,1.2,N,ACTIVO,ESP,Deudora,N,N,Llave de Negocio,
+1.2.07.001,Llave de negocio,4,1.2.07,S,ACTIVO,ESP,Deudora,N,N,Llave de Negocio,No monetaria
+1.2.07.002,Amortización acumulada llave de negocio,4,1.2.07,S,ACTIVO,ESP,Acreedora,S,N,Llave de Negocio,No monetaria
+2,PASIVO,1,,N,PASIVO,ESP,Acreedora,N,-,,
+2.1,PASIVO CORRIENTE,2,2,N,PASIVO,ESP,Acreedora,N,S,,
+2.1.01,Deudas Comerciales,3,2.1,N,PASIVO,ESP,Acreedora,N,S,Deudas Comerciales,
+2.1.01.001,Proveedores,4,2.1.01,S,PASIVO,ESP,Acreedora,N,S,Deudas Comerciales,Monetaria
+2.1.01.002,Documentos a pagar,4,2.1.01,S,PASIVO,ESP,Acreedora,N,S,Deudas Comerciales,Monetaria
+2.1.01.003,Cheques diferidos emitidos (valores diferidos a pagar),4,2.1.01,S,PASIVO,ESP,Acreedora,N,S,Deudas Comerciales,Monetaria
+2.1.01.004,Tarjetas de crédito a pagar,4,2.1.01,S,PASIVO,ESP,Acreedora,N,S,Deudas Comerciales,Monetaria
+2.1.01.005,Provisión facturas a recibir,4,2.1.01,S,PASIVO,ESP,Acreedora,N,S,Deudas Comerciales,Monetaria
+2.1.01.006,Acreedores comerciales varios,4,2.1.01,S,PASIVO,ESP,Acreedora,N,S,Deudas Comerciales,Monetaria
+2.1.01.007,Intereses a devengar deudas comerciales,4,2.1.01,S,PASIVO,ESP,Deudora,S,S,Deudas Comerciales,Monetaria
+2.1.02,Préstamos,3,2.1,N,PASIVO,ESP,Acreedora,N,S,Préstamos,
+2.1.02.001,Adelantos en cuenta corriente (descubierto bancario),4,2.1.02,S,PASIVO,ESP,Acreedora,N,S,Préstamos,Monetaria
+2.1.02.002,Préstamos bancarios,4,2.1.02,S,PASIVO,ESP,Acreedora,N,S,Préstamos,Monetaria
+2.1.02.003,Préstamos de terceros,4,2.1.02,S,PASIVO,ESP,Acreedora,N,S,Préstamos,Monetaria
+2.1.02.004,Préstamos de socios,4,2.1.02,S,PASIVO,ESP,Acreedora,N,S,Préstamos,Monetaria
+2.1.02.005,Obligaciones negociables,4,2.1.02,S,PASIVO,ESP,Acreedora,N,S,Préstamos,Monetaria
+2.1.02.006,Intereses a pagar,4,2.1.02,S,PASIVO,ESP,Acreedora,N,S,Préstamos,Monetaria
+2.1.02.007,Intereses a devengar préstamos,4,2.1.02,S,PASIVO,ESP,Deudora,S,S,Préstamos,Monetaria
+2.1.03,Remuneraciones y Cargas Sociales,3,2.1,N,PASIVO,ESP,Acreedora,N,S,Remuneraciones y Cargas Sociales,
+2.1.03.001,Sueldos y jornales a pagar,4,2.1.03,S,PASIVO,ESP,Acreedora,N,S,Remuneraciones y Cargas Sociales,Monetaria
+2.1.03.002,SAC a pagar,4,2.1.03,S,PASIVO,ESP,Acreedora,N,S,Remuneraciones y Cargas Sociales,Monetaria
+2.1.03.003,Provisión SAC,4,2.1.03,S,PASIVO,ESP,Acreedora,N,S,Remuneraciones y Cargas Sociales,Monetaria
+2.1.03.004,Provisión vacaciones,4,2.1.03,S,PASIVO,ESP,Acreedora,N,S,Remuneraciones y Cargas Sociales,Monetaria
+2.1.03.005,Cargas sociales a pagar (F.931),4,2.1.03,S,PASIVO,ESP,Acreedora,N,S,Remuneraciones y Cargas Sociales,Monetaria
+2.1.03.006,Aportes y contribuciones obra social a pagar,4,2.1.03,S,PASIVO,ESP,Acreedora,N,S,Remuneraciones y Cargas Sociales,Monetaria
+2.1.03.007,Cuota sindical y aportes sindicales a pagar,4,2.1.03,S,PASIVO,ESP,Acreedora,N,S,Remuneraciones y Cargas Sociales,Monetaria
+2.1.03.008,ART a pagar,4,2.1.03,S,PASIVO,ESP,Acreedora,N,S,Remuneraciones y Cargas Sociales,Monetaria
+2.1.03.009,Seguro de vida obligatorio a pagar,4,2.1.03,S,PASIVO,ESP,Acreedora,N,S,Remuneraciones y Cargas Sociales,Monetaria
+2.1.03.010,Indemnizaciones a pagar,4,2.1.03,S,PASIVO,ESP,Acreedora,N,S,Remuneraciones y Cargas Sociales,Monetaria
+2.1.03.011,Retenciones al personal a depositar,4,2.1.03,S,PASIVO,ESP,Acreedora,N,S,Remuneraciones y Cargas Sociales,Monetaria
+2.1.04,Cargas Fiscales,3,2.1,N,PASIVO,ESP,Acreedora,N,S,Cargas Fiscales,
+2.1.04.001,IVA débito fiscal,4,2.1.04,S,PASIVO,ESP,Acreedora,N,S,Cargas Fiscales,Monetaria
+2.1.04.002,IVA a pagar,4,2.1.04,S,PASIVO,ESP,Acreedora,N,S,Cargas Fiscales,Monetaria
+2.1.04.003,IVA retenciones a depositar,4,2.1.04,S,PASIVO,ESP,Acreedora,N,S,Cargas Fiscales,Monetaria
+2.1.04.004,IVA percepciones a depositar,4,2.1.04,S,PASIVO,ESP,Acreedora,N,S,Cargas Fiscales,Monetaria
+2.1.04.005,Impuesto a las ganancias a pagar (provisión),4,2.1.04,S,PASIVO,ESP,Acreedora,N,S,Cargas Fiscales,Monetaria
+2.1.04.006,Ganancias retenciones a depositar,4,2.1.04,S,PASIVO,ESP,Acreedora,N,S,Cargas Fiscales,Monetaria
+2.1.04.007,Ingresos brutos a pagar,4,2.1.04,S,PASIVO,ESP,Acreedora,N,S,Cargas Fiscales,Monetaria
+2.1.04.008,Ingresos brutos retenciones a depositar,4,2.1.04,S,PASIVO,ESP,Acreedora,N,S,Cargas Fiscales,Monetaria
+2.1.04.009,Ingresos brutos percepciones a depositar,4,2.1.04,S,PASIVO,ESP,Acreedora,N,S,Cargas Fiscales,Monetaria
+2.1.04.010,Tasas municipales a pagar,4,2.1.04,S,PASIVO,ESP,Acreedora,N,S,Cargas Fiscales,Monetaria
+2.1.04.011,Bienes personales acciones y participaciones a pagar,4,2.1.04,S,PASIVO,ESP,Acreedora,N,S,Cargas Fiscales,Monetaria
+2.1.04.012,Autónomos/monotributo a pagar,4,2.1.04,S,PASIVO,ESP,Acreedora,N,S,Cargas Fiscales,Monetaria
+2.1.04.013,Planes de facilidades de pago ARCA,4,2.1.04,S,PASIVO,ESP,Acreedora,N,S,Cargas Fiscales,Monetaria
+2.1.04.014,Planes de facilidades de pago provinciales (DGR),4,2.1.04,S,PASIVO,ESP,Acreedora,N,S,Cargas Fiscales,Monetaria
+2.1.04.015,Otros impuestos a pagar,4,2.1.04,S,PASIVO,ESP,Acreedora,N,S,Cargas Fiscales,Monetaria
+2.1.05,Anticipos de Clientes,3,2.1,N,PASIVO,ESP,Acreedora,N,S,Anticipos de Clientes,
+2.1.05.001,Anticipos de clientes,4,2.1.05,S,PASIVO,ESP,Acreedora,N,S,Anticipos de Clientes,No monetaria
+2.1.05.002,Señas recibidas,4,2.1.05,S,PASIVO,ESP,Acreedora,N,S,Anticipos de Clientes,No monetaria
+2.1.06,Dividendos y Honorarios a Pagar,3,2.1,N,PASIVO,ESP,Acreedora,N,S,Dividendos y Honorarios a Pagar,
+2.1.06.001,Dividendos/utilidades a pagar,4,2.1.06,S,PASIVO,ESP,Acreedora,N,S,Dividendos y Honorarios a Pagar,Monetaria
+2.1.06.002,Honorarios de directores y síndicos a pagar,4,2.1.06,S,PASIVO,ESP,Acreedora,N,S,Dividendos y Honorarios a Pagar,Monetaria
+2.1.07,Otras Deudas,3,2.1,N,PASIVO,ESP,Acreedora,N,S,Otras Deudas,
+2.1.07.001,Deudas con socios/accionistas,4,2.1.07,S,PASIVO,ESP,Acreedora,N,S,Otras Deudas,Monetaria
+2.1.07.002,Cuenta particular socios (saldo acreedor),4,2.1.07,S,PASIVO,ESP,Acreedora,N,S,Otras Deudas,Monetaria
+2.1.07.003,Deudas con sociedades relacionadas,4,2.1.07,S,PASIVO,ESP,Acreedora,N,S,Otras Deudas,Monetaria
+2.1.07.004,Acreedores varios,4,2.1.07,S,PASIVO,ESP,Acreedora,N,S,Otras Deudas,Monetaria
+2.1.07.005,Ingresos cobrados por adelantado,4,2.1.07,S,PASIVO,ESP,Acreedora,N,S,Otras Deudas,No monetaria
+2.1.08,Previsiones,3,2.1,N,PASIVO,ESP,Acreedora,N,S,Previsiones,
+2.1.08.001,Previsión para juicios laborales,4,2.1.08,S,PASIVO,ESP,Acreedora,N,S,Previsiones,Monetaria
+2.1.08.002,Previsión para contingencias fiscales,4,2.1.08,S,PASIVO,ESP,Acreedora,N,S,Previsiones,Monetaria
+2.1.08.003,Previsión para otras contingencias,4,2.1.08,S,PASIVO,ESP,Acreedora,N,S,Previsiones,Monetaria
+2.2,PASIVO NO CORRIENTE,2,2,N,PASIVO,ESP,Acreedora,N,N,,
+2.2.01,Deudas Comerciales no corrientes,3,2.2,N,PASIVO,ESP,Acreedora,N,N,Deudas Comerciales no corrientes,
+2.2.01.001,Proveedores a largo plazo,4,2.2.01,S,PASIVO,ESP,Acreedora,N,N,Deudas Comerciales no corrientes,Monetaria
+2.2.01.002,Documentos a pagar a largo plazo,4,2.2.01,S,PASIVO,ESP,Acreedora,N,N,Deudas Comerciales no corrientes,Monetaria
+2.2.02,Préstamos no corrientes,3,2.2,N,PASIVO,ESP,Acreedora,N,N,Préstamos no corrientes,
+2.2.02.001,Préstamos bancarios a largo plazo,4,2.2.02,S,PASIVO,ESP,Acreedora,N,N,Préstamos no corrientes,Monetaria
+2.2.02.002,Préstamos de terceros a largo plazo,4,2.2.02,S,PASIVO,ESP,Acreedora,N,N,Préstamos no corrientes,Monetaria
+2.2.02.003,Préstamos de socios a largo plazo,4,2.2.02,S,PASIVO,ESP,Acreedora,N,N,Préstamos no corrientes,Monetaria
+2.2.02.004,Leasing a pagar,4,2.2.02,S,PASIVO,ESP,Acreedora,N,N,Préstamos no corrientes,Monetaria
+2.2.03,Cargas Fiscales no corrientes,3,2.2,N,PASIVO,ESP,Acreedora,N,N,Cargas Fiscales no corrientes,
+2.2.03.001,Planes de facilidades de pago ARCA LP,4,2.2.03,S,PASIVO,ESP,Acreedora,N,N,Cargas Fiscales no corrientes,Monetaria
+2.2.03.002,Planes de facilidades de pago provinciales LP,4,2.2.03,S,PASIVO,ESP,Acreedora,N,N,Cargas Fiscales no corrientes,Monetaria
+2.2.03.003,Pasivo por impuesto diferido,4,2.2.03,S,PASIVO,ESP,Acreedora,N,N,Cargas Fiscales no corrientes,No monetaria
+2.2.04,Otras Deudas no corrientes,3,2.2,N,PASIVO,ESP,Acreedora,N,N,Otras Deudas no corrientes,
+2.2.04.001,Deudas con sociedades relacionadas LP,4,2.2.04,S,PASIVO,ESP,Acreedora,N,N,Otras Deudas no corrientes,Monetaria
+2.2.04.002,Otras deudas LP,4,2.2.04,S,PASIVO,ESP,Acreedora,N,N,Otras Deudas no corrientes,Monetaria
+2.2.05,Previsiones no corrientes,3,2.2,N,PASIVO,ESP,Acreedora,N,N,Previsiones no corrientes,
+2.2.05.001,Previsión para juicios LP,4,2.2.05,S,PASIVO,ESP,Acreedora,N,N,Previsiones no corrientes,Monetaria
+2.2.05.002,Previsión para contingencias LP,4,2.2.05,S,PASIVO,ESP,Acreedora,N,N,Previsiones no corrientes,Monetaria
+3,PATRIMONIO NETO,1,,N,PATRIMONIO_NETO,ESP,Acreedora,N,-,,
+3.1,APORTES DE LOS PROPIETARIOS,2,3,N,PATRIMONIO_NETO,ESP,Acreedora,N,-,,
+3.1.01,Capital,3,3.1,N,PATRIMONIO_NETO,ESP,Acreedora,N,-,Capital,
+3.1.01.001,Capital social suscripto,4,3.1.01,S,PATRIMONIO_NETO,ESP,Acreedora,N,-,Capital,PN
+3.1.01.002,Ajuste de capital,4,3.1.01,S,PATRIMONIO_NETO,ESP,Acreedora,N,-,Capital,PN
+3.1.01.003,Aportes irrevocables a cuenta de futuras suscripciones,4,3.1.01,S,PATRIMONIO_NETO,ESP,Acreedora,N,-,Capital,PN
+3.1.01.004,Primas de emisión,4,3.1.01,S,PATRIMONIO_NETO,ESP,Acreedora,N,-,Capital,PN
+3.1.01.005,Capital suscripto pendiente de integración,4,3.1.01,S,PATRIMONIO_NETO,ESP,Deudora,S,-,Capital,PN
+3.2,RESULTADOS ACUMULADOS,2,3,N,PATRIMONIO_NETO,ESP,Acreedora,N,-,,
+3.2.01,Ganancias Reservadas,3,3.2,N,PATRIMONIO_NETO,ESP,Acreedora,N,-,Ganancias Reservadas,
+3.2.01.001,Reserva legal,4,3.2.01,S,PATRIMONIO_NETO,ESP,Acreedora,N,-,Ganancias Reservadas,PN
+3.2.01.002,Reserva estatutaria,4,3.2.01,S,PATRIMONIO_NETO,ESP,Acreedora,N,-,Ganancias Reservadas,PN
+3.2.01.003,Reserva facultativa,4,3.2.01,S,PATRIMONIO_NETO,ESP,Acreedora,N,-,Ganancias Reservadas,PN
+3.2.02,Resultados no Asignados,3,3.2,N,PATRIMONIO_NETO,ESP,Acreedora,N,-,Resultados no Asignados,
+3.2.02.001,Resultados no asignados,4,3.2.02,S,PATRIMONIO_NETO,ESP,Acreedora,N,-,Resultados no Asignados,PN
+3.2.02.002,Resultado del ejercicio,4,3.2.02,S,PATRIMONIO_NETO,ESP,Acreedora,N,-,Resultados no Asignados,PN
+3.2.02.003,Ajuste de resultados de ejercicios anteriores (AREA),4,3.2.02,S,PATRIMONIO_NETO,ESP,Acreedora,N,-,Resultados no Asignados,PN
+3.2.03,Otros Resultados Integrales,3,3.2,N,PATRIMONIO_NETO,ESP,Acreedora,N,-,Otros Resultados Integrales,
+3.2.03.001,Saldo por revaluación de bienes de uso,4,3.2.03,S,PATRIMONIO_NETO,ESP,Acreedora,N,-,Otros Resultados Integrales,PN
+3.2.03.002,Diferencias de conversión,4,3.2.03,S,PATRIMONIO_NETO,ESP,Acreedora,N,-,Otros Resultados Integrales,PN
+4,INGRESOS,1,,N,RESULTADO_POSITIVO,ER,Acreedora,N,-,,
+4.1,INGRESOS OPERATIVOS,2,4,N,RESULTADO_POSITIVO,ER,Acreedora,N,-,,
+4.1.01,Ventas y Servicios,3,4.1,N,RESULTADO_POSITIVO,ER,Acreedora,N,-,Ventas y Servicios,
+4.1.01.001,Ventas de mercaderías,4,4.1.01,S,RESULTADO_POSITIVO,ER,Acreedora,N,-,Ventas y Servicios,Resultado
+4.1.01.002,Ventas de productos elaborados,4,4.1.01,S,RESULTADO_POSITIVO,ER,Acreedora,N,-,Ventas y Servicios,Resultado
+4.1.01.003,Prestación de servicios,4,4.1.01,S,RESULTADO_POSITIVO,ER,Acreedora,N,-,Ventas y Servicios,Resultado
+4.1.01.004,Honorarios profesionales,4,4.1.01,S,RESULTADO_POSITIVO,ER,Acreedora,N,-,Ventas y Servicios,Resultado
+4.1.01.005,Ventas exentas/no gravadas,4,4.1.01,S,RESULTADO_POSITIVO,ER,Acreedora,N,-,Ventas y Servicios,Resultado
+4.1.01.006,Exportaciones,4,4.1.01,S,RESULTADO_POSITIVO,ER,Acreedora,N,-,Ventas y Servicios,Resultado
+4.1.01.007,Devoluciones sobre ventas,4,4.1.01,S,RESULTADO_POSITIVO,ER,Deudora,S,-,Ventas y Servicios,Resultado
+4.1.01.008,Bonificaciones y descuentos sobre ventas,4,4.1.01,S,RESULTADO_POSITIVO,ER,Deudora,S,-,Ventas y Servicios,Resultado
+4.2,OTROS INGRESOS,2,4,N,RESULTADO_POSITIVO,ER,Acreedora,N,-,,
+4.2.01,Resultados Financieros y por Tenencia (positivos),3,4.2,N,RESULTADO_POSITIVO,ER,Acreedora,N,-,Resultados Financieros y por Tenencia (positivos),
+4.2.01.001,Intereses ganados,4,4.2.01,S,RESULTADO_POSITIVO,ER,Acreedora,N,-,Resultados Financieros y por Tenencia (positivos),Resultado
+4.2.01.002,"Rendimiento de inversiones (FCI, plazos fijos)",4,4.2.01,S,RESULTADO_POSITIVO,ER,Acreedora,N,-,Resultados Financieros y por Tenencia (positivos),Resultado
+4.2.01.003,Diferencia de cambio positiva,4,4.2.01,S,RESULTADO_POSITIVO,ER,Acreedora,N,-,Resultados Financieros y por Tenencia (positivos),Resultado
+4.2.01.004,Resultado por tenencia positivo,4,4.2.01,S,RESULTADO_POSITIVO,ER,Acreedora,N,-,Resultados Financieros y por Tenencia (positivos),Resultado
+4.2.01.005,Resultado por venta de inversiones,4,4.2.01,S,RESULTADO_POSITIVO,ER,Acreedora,N,-,Resultados Financieros y por Tenencia (positivos),Resultado
+4.2.01.006,Descuentos obtenidos,4,4.2.01,S,RESULTADO_POSITIVO,ER,Acreedora,N,-,Resultados Financieros y por Tenencia (positivos),Resultado
+4.2.02,Otros Ingresos,3,4.2,N,RESULTADO_POSITIVO,ER,Acreedora,N,-,Otros Ingresos,
+4.2.02.001,Resultado por venta de bienes de uso (ganancia),4,4.2.02,S,RESULTADO_POSITIVO,ER,Acreedora,N,-,Otros Ingresos,Resultado
+4.2.02.002,Alquileres ganados,4,4.2.02,S,RESULTADO_POSITIVO,ER,Acreedora,N,-,Otros Ingresos,Resultado
+4.2.02.003,Recupero de previsiones,4,4.2.02,S,RESULTADO_POSITIVO,ER,Acreedora,N,-,Otros Ingresos,Resultado
+4.2.02.004,Recupero de gastos,4,4.2.02,S,RESULTADO_POSITIVO,ER,Acreedora,N,-,Otros Ingresos,Resultado
+4.2.02.005,Subsidios y reintegros,4,4.2.02,S,RESULTADO_POSITIVO,ER,Acreedora,N,-,Otros Ingresos,Resultado
+4.2.02.006,Ingresos varios,4,4.2.02,S,RESULTADO_POSITIVO,ER,Acreedora,N,-,Otros Ingresos,Resultado
+5,EGRESOS,1,,N,RESULTADO_NEGATIVO,ER,Deudora,N,-,,
+5.1,COSTO DE VENTAS,2,5,N,RESULTADO_NEGATIVO,ER,Deudora,N,-,,
+5.1.01,Costo de Ventas,3,5.1,N,RESULTADO_NEGATIVO,ER,Deudora,N,-,Costo de Ventas,
+5.1.01.001,Costo de mercaderías vendidas,4,5.1.01,S,RESULTADO_NEGATIVO,ER,Deudora,N,-,Costo de Ventas,Resultado
+5.1.01.002,Costo de productos vendidos,4,5.1.01,S,RESULTADO_NEGATIVO,ER,Deudora,N,-,Costo de Ventas,Resultado
+5.1.01.003,Costo de servicios prestados,4,5.1.01,S,RESULTADO_NEGATIVO,ER,Deudora,N,-,Costo de Ventas,Resultado
+5.1.01.004,Compras de mercaderías,4,5.1.01,S,RESULTADO_NEGATIVO,ER,Deudora,N,-,Costo de Ventas,Resultado
+5.1.01.005,Compras de materias primas,4,5.1.01,S,RESULTADO_NEGATIVO,ER,Deudora,N,-,Costo de Ventas,Resultado
+5.1.01.006,Fletes sobre compras,4,5.1.01,S,RESULTADO_NEGATIVO,ER,Deudora,N,-,Costo de Ventas,Resultado
+5.1.01.007,Devoluciones sobre compras,4,5.1.01,S,RESULTADO_NEGATIVO,ER,Acreedora,S,-,Costo de Ventas,Resultado
+5.1.01.008,Bonificaciones sobre compras,4,5.1.01,S,RESULTADO_NEGATIVO,ER,Acreedora,S,-,Costo de Ventas,Resultado
+5.1.01.009,Mano de obra directa,4,5.1.01,S,RESULTADO_NEGATIVO,ER,Deudora,N,-,Costo de Ventas,Resultado
+5.1.01.010,Cargas sociales mano de obra directa,4,5.1.01,S,RESULTADO_NEGATIVO,ER,Deudora,N,-,Costo de Ventas,Resultado
+5.1.01.011,Gastos de fabricación,4,5.1.01,S,RESULTADO_NEGATIVO,ER,Deudora,N,-,Costo de Ventas,Resultado
+5.1.01.012,Diferencias de inventario,4,5.1.01,S,RESULTADO_NEGATIVO,ER,Deudora,N,-,Costo de Ventas,Resultado
+5.2,GASTOS DE COMERCIALIZACIÓN,2,5,N,RESULTADO_NEGATIVO,ER,Deudora,N,-,,
+5.2.01,Gastos de Comercialización,3,5.2,N,RESULTADO_NEGATIVO,ER,Deudora,N,-,Gastos de Comercialización,
+5.2.01.001,Sueldos y jornales comercialización,4,5.2.01,S,RESULTADO_NEGATIVO,ER,Deudora,N,-,Gastos de Comercialización,Resultado
+5.2.01.002,Cargas sociales comercialización,4,5.2.01,S,RESULTADO_NEGATIVO,ER,Deudora,N,-,Gastos de Comercialización,Resultado
+5.2.01.003,Comisiones a vendedores,4,5.2.01,S,RESULTADO_NEGATIVO,ER,Deudora,N,-,Gastos de Comercialización,Resultado
+5.2.01.004,Publicidad y propaganda,4,5.2.01,S,RESULTADO_NEGATIVO,ER,Deudora,N,-,Gastos de Comercialización,Resultado
+5.2.01.005,Fletes y acarreos sobre ventas,4,5.2.01,S,RESULTADO_NEGATIVO,ER,Deudora,N,-,Gastos de Comercialización,Resultado
+5.2.01.006,Impuesto sobre los ingresos brutos,4,5.2.01,S,RESULTADO_NEGATIVO,ER,Deudora,N,-,Gastos de Comercialización,Resultado
+5.2.01.007,Tasa municipal de seguridad e higiene/comercio,4,5.2.01,S,RESULTADO_NEGATIVO,ER,Deudora,N,-,Gastos de Comercialización,Resultado
+5.2.01.008,Comisiones de tarjetas y plataformas de cobro,4,5.2.01,S,RESULTADO_NEGATIVO,ER,Deudora,N,-,Gastos de Comercialización,Resultado
+5.2.01.009,Deudores incobrables,4,5.2.01,S,RESULTADO_NEGATIVO,ER,Deudora,N,-,Gastos de Comercialización,Resultado
+5.2.01.010,Envases y embalajes,4,5.2.01,S,RESULTADO_NEGATIVO,ER,Deudora,N,-,Gastos de Comercialización,Resultado
+5.2.01.011,Viáticos y movilidad comercial,4,5.2.01,S,RESULTADO_NEGATIVO,ER,Deudora,N,-,Gastos de Comercialización,Resultado
+5.3,GASTOS DE ADMINISTRACIÓN,2,5,N,RESULTADO_NEGATIVO,ER,Deudora,N,-,,
+5.3.01,Gastos de Administración,3,5.3,N,RESULTADO_NEGATIVO,ER,Deudora,N,-,Gastos de Administración,
+5.3.01.001,Sueldos y jornales administración,4,5.3.01,S,RESULTADO_NEGATIVO,ER,Deudora,N,-,Gastos de Administración,Resultado
+5.3.01.002,Cargas sociales administración,4,5.3.01,S,RESULTADO_NEGATIVO,ER,Deudora,N,-,Gastos de Administración,Resultado
+5.3.01.003,SAC y vacaciones,4,5.3.01,S,RESULTADO_NEGATIVO,ER,Deudora,N,-,Gastos de Administración,Resultado
+5.3.01.004,Indemnizaciones,4,5.3.01,S,RESULTADO_NEGATIVO,ER,Deudora,N,-,Gastos de Administración,Resultado
+5.3.01.005,Honorarios profesionales,4,5.3.01,S,RESULTADO_NEGATIVO,ER,Deudora,N,-,Gastos de Administración,Resultado
+5.3.01.006,Honorarios de directores y síndicos,4,5.3.01,S,RESULTADO_NEGATIVO,ER,Deudora,N,-,Gastos de Administración,Resultado
+5.3.01.007,Alquileres,4,5.3.01,S,RESULTADO_NEGATIVO,ER,Deudora,N,-,Gastos de Administración,Resultado
+5.3.01.008,Expensas,4,5.3.01,S,RESULTADO_NEGATIVO,ER,Deudora,N,-,Gastos de Administración,Resultado
+5.3.01.009,Energía eléctrica,4,5.3.01,S,RESULTADO_NEGATIVO,ER,Deudora,N,-,Gastos de Administración,Resultado
+5.3.01.010,Gas,4,5.3.01,S,RESULTADO_NEGATIVO,ER,Deudora,N,-,Gastos de Administración,Resultado
+5.3.01.011,Agua,4,5.3.01,S,RESULTADO_NEGATIVO,ER,Deudora,N,-,Gastos de Administración,Resultado
+5.3.01.012,Teléfono e internet,4,5.3.01,S,RESULTADO_NEGATIVO,ER,Deudora,N,-,Gastos de Administración,Resultado
+5.3.01.013,Papelería y útiles de oficina,4,5.3.01,S,RESULTADO_NEGATIVO,ER,Deudora,N,-,Gastos de Administración,Resultado
+5.3.01.014,Software y suscripciones,4,5.3.01,S,RESULTADO_NEGATIVO,ER,Deudora,N,-,Gastos de Administración,Resultado
+5.3.01.015,Seguros,4,5.3.01,S,RESULTADO_NEGATIVO,ER,Deudora,N,-,Gastos de Administración,Resultado
+5.3.01.016,Mantenimiento y reparaciones,4,5.3.01,S,RESULTADO_NEGATIVO,ER,Deudora,N,-,Gastos de Administración,Resultado
+5.3.01.017,Limpieza,4,5.3.01,S,RESULTADO_NEGATIVO,ER,Deudora,N,-,Gastos de Administración,Resultado
+5.3.01.018,Movilidad y viáticos,4,5.3.01,S,RESULTADO_NEGATIVO,ER,Deudora,N,-,Gastos de Administración,Resultado
+5.3.01.019,Amortización bienes de uso,4,5.3.01,S,RESULTADO_NEGATIVO,ER,Deudora,N,-,Gastos de Administración,Resultado
+5.3.01.020,Amortización activos intangibles,4,5.3.01,S,RESULTADO_NEGATIVO,ER,Deudora,N,-,Gastos de Administración,Resultado
+5.3.01.021,"Impuestos y tasas (inmobiliario, automotor, otros)",4,5.3.01,S,RESULTADO_NEGATIVO,ER,Deudora,N,-,Gastos de Administración,Resultado
+5.3.01.022,Impuesto s/débitos y créditos bancarios (no computable),4,5.3.01,S,RESULTADO_NEGATIVO,ER,Deudora,N,-,Gastos de Administración,Resultado
+5.3.01.023,Impuesto de sellos,4,5.3.01,S,RESULTADO_NEGATIVO,ER,Deudora,N,-,Gastos de Administración,Resultado
+5.3.01.024,Gastos bancarios,4,5.3.01,S,RESULTADO_NEGATIVO,ER,Deudora,N,-,Gastos de Administración,Resultado
+5.3.01.025,Capacitación,4,5.3.01,S,RESULTADO_NEGATIVO,ER,Deudora,N,-,Gastos de Administración,Resultado
+5.3.01.026,Donaciones,4,5.3.01,S,RESULTADO_NEGATIVO,ER,Deudora,N,-,Gastos de Administración,Resultado
+5.3.01.027,Gastos varios,4,5.3.01,S,RESULTADO_NEGATIVO,ER,Deudora,N,-,Gastos de Administración,Resultado
+5.4,RESULTADOS FINANCIEROS Y POR TENENCIA (negativos),2,5,N,RESULTADO_NEGATIVO,ER,Deudora,N,-,,
+5.4.01,Gastos de Financiación,3,5.4,N,RESULTADO_NEGATIVO,ER,Deudora,N,-,Gastos de Financiación,
+5.4.01.001,Intereses bancarios,4,5.4.01,S,RESULTADO_NEGATIVO,ER,Deudora,N,-,Gastos de Financiación,Resultado
+5.4.01.002,Intereses comerciales,4,5.4.01,S,RESULTADO_NEGATIVO,ER,Deudora,N,-,Gastos de Financiación,Resultado
+5.4.01.003,Intereses fiscales (resarcitorios y punitorios),4,5.4.01,S,RESULTADO_NEGATIVO,ER,Deudora,N,-,Gastos de Financiación,Resultado
+5.4.01.004,Comisiones y gastos financieros,4,5.4.01,S,RESULTADO_NEGATIVO,ER,Deudora,N,-,Gastos de Financiación,Resultado
+5.4.01.005,Diferencia de cambio negativa,4,5.4.01,S,RESULTADO_NEGATIVO,ER,Deudora,N,-,Gastos de Financiación,Resultado
+5.4.01.006,Resultado por tenencia negativo,4,5.4.01,S,RESULTADO_NEGATIVO,ER,Deudora,N,-,Gastos de Financiación,Resultado
+5.4.01.007,Descuentos otorgados,4,5.4.01,S,RESULTADO_NEGATIVO,ER,Deudora,N,-,Gastos de Financiación,Resultado
+5.4.01.008,RECPAM - Resultado por exposición a cambios en el poder adquisitivo de la moneda,4,5.4.01,S,RESULTADO_NEGATIVO,ER,Deudora/Acreedora,N,-,Gastos de Financiación,Resultado
+5.5,OTROS EGRESOS,2,5,N,RESULTADO_NEGATIVO,ER,Deudora,N,-,,
+5.5.01,Otros Egresos,3,5.5,N,RESULTADO_NEGATIVO,ER,Deudora,N,-,Otros Egresos,
+5.5.01.001,Resultado por venta de bienes de uso (pérdida),4,5.5.01,S,RESULTADO_NEGATIVO,ER,Deudora,N,-,Otros Egresos,Resultado
+5.5.01.002,Multas y recargos,4,5.5.01,S,RESULTADO_NEGATIVO,ER,Deudora,N,-,Otros Egresos,Resultado
+5.5.01.003,Siniestros,4,5.5.01,S,RESULTADO_NEGATIVO,ER,Deudora,N,-,Otros Egresos,Resultado
+5.5.01.004,Egresos varios,4,5.5.01,S,RESULTADO_NEGATIVO,ER,Deudora,N,-,Otros Egresos,Resultado
+5.6,IMPUESTO A LAS GANANCIAS,2,5,N,RESULTADO_NEGATIVO,ER,Deudora,N,-,,
+5.6.01,Impuesto a las Ganancias,3,5.6,N,RESULTADO_NEGATIVO,ER,Deudora,N,-,Impuesto a las Ganancias,
+5.6.01.001,Impuesto a las ganancias del ejercicio,4,5.6.01,S,RESULTADO_NEGATIVO,ER,Deudora,N,-,Impuesto a las Ganancias,Resultado
+5.6.01.002,Impuesto diferido,4,5.6.01,S,RESULTADO_NEGATIVO,ER,Deudora/Acreedora,N,-,Impuesto a las Ganancias,Resultado
