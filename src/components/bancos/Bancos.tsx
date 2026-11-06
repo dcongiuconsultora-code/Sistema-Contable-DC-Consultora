@@ -25,6 +25,8 @@ interface Props {
   conocidos?: Conocidos;
   /** Registra cobros o pagos creados desde la conciliación. */
   onRegistrar?: (movimientos: Movimiento[]) => void;
+  /** Avisa el resumen leído, para que el resto del sistema (tablero) lo use. */
+  onResumen?: (resumen: ResumenBancario | null) => void;
 }
 
 async function leerResumen(archivo: File): Promise<ResumenBancario> {
@@ -42,6 +44,7 @@ export function Bancos({
   movimientosCliente = [],
   conocidos,
   onRegistrar = () => {},
+  onResumen = () => {},
 }: Props) {
   const input = useRef<HTMLInputElement>(null);
   const [resumen, setResumen] = useState<ResumenBancario | null>(null);
@@ -56,6 +59,7 @@ export function Bancos({
     try {
       const r = await leerResumen(archivo);
       setResumen(r);
+      onResumen(r);
     } catch (e) {
       setResumen(null);
       setError(e instanceof Error ? e.message : String(e));
@@ -66,6 +70,8 @@ export function Bancos({
 
   useEffect(() => {
     if (archivoExterno) procesar(archivoExterno);
+    // Solo cuando llega un archivo nuevo desde afuera.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [archivoExterno]);
 
   const todos = useMemo(

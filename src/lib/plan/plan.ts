@@ -6,10 +6,12 @@ export interface Cuenta {
   imputable: boolean;
   tipo: string;
   rubro: string;
+  /** Lado en que la cuenta tiene su saldo normal (las regularizadoras van al revés de su rubro). */
+  naturaleza: "Deudora" | "Acreedora";
 }
 
 /** Plan de cuentas modelo de la consultora (datos/plan-de-cuentas-modelo.csv). */
-export const PLAN_MODELO: Cuenta[] = planModelo;
+export const PLAN_MODELO = planModelo as Cuenta[];
 
 const POR_CODIGO = new Map(PLAN_MODELO.map((c) => [c.codigo, c]));
 

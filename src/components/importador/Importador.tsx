@@ -2,6 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Bancos } from "@/components/bancos/Bancos";
+import { type Alertas, Tablero } from "@/components/tablero/Tablero";
+import { conciliarResumen } from "@/lib/bancos/conciliacion";
+import type { ResumenBancario } from "@/lib/bancos/tipos";
+import { generarDiario } from "@/lib/contabilidad/diario";
+import type { SaldosIniciales } from "@/lib/contabilidad/indicadores";
 import { CuentasCorrientes } from "@/components/cuentas/CuentasCorrientes";
 import { cuentasCorrientes } from "@/lib/cuentas/cuenta-corriente";
 import {
@@ -30,7 +35,40 @@ import {
   ticketAComprobante,
 } from "@/lib/tickets/validar";
 
-type Seccion = "arca" | "bancos" | "tickets" | "movimientos" | "cuentas";
+type Seccion =
+  | "inicio"
+  | "arca"
+  | "bancos"
+  | "tickets"
+  | "movimientos"
+  | "cuentas";
+
+// Saldos del último balance de la empresa de ejemplo (al 31/08/2026). El banco coincide con el
+// saldo inicial del resumen bancario de ejemplo; los sueldos a pagar son los de agosto.
+const SALDOS_EJEMPLO: SaldosIniciales = {
+  fecha: "2026-08-31",
+  saldos: {
+    "1.1.01.001": 1200000,
+    "1.1.01.006": 450000,
+    "1.1.05.001": 6500000,
+    "1.2.05.008": 9000000,
+    "1.2.05.009": 1800000,
+    "2.1.01.001": 1200000,
+    "2.1.02.002": 2500000,
+    "2.1.03.001": 850000,
+    "2.1.03.005": 400000,
+    "3.1.01.001": 5000000,
+    "3.2.02.001": 5400000,
+  },
+};
+
+function titulo(texto: string) {
+  return texto
+    .toLowerCase()
+    .replace(/(^|\s)\S/g, (l) => l.toUpperCase())
+    .replace(/\b(Sa|Srl|Sas|Saic)\b/g, (s) => s.toUpperCase())
+    .replace(/ (De|Del|La|Las|Los|Y) /g, (s) => s.toLowerCase());
+}
 
 function hoyIso() {
   const d = new Date();
@@ -149,7 +187,14 @@ export function Importador({
     deducciones: File[];
     banco: File;
   } | null>(null);
-  const [seccion, setSeccion] = useState<Seccion>("arca");
+  const [seccion, setSeccion] = useState<Seccion>("inicio");
+  const [resumenBanco, setResumenBanco] = useState<ResumenBancario | null>(
+    null,
+  );
+  const [iniciales, setIniciales] = useState<SaldosIniciales>({
+    fecha: "",
+    saldos: {},
+  });
   const [periodoElegido, setPeriodoElegido] = useState<string | null>(null);
   const [pestana, setPestana] = useState<Pestana>("ventas");
   const [manual, setManual] = useState(MANUAL_INICIAL);
@@ -217,6 +262,58 @@ export function Importador({
       ]),
     };
   }, [ventas, compras, ticketsPendientes]);
+  const conciliacion = useMemo(
+    () =>
+      resumenBanco
+        ? conciliarResumen(resumenBanco, movimientos, conocidos)
+        : null,
+    [resumenBanco, movimientos, conocidos],
+  );
+  const asientos = useMemo(() => {
+    const cuentaBanco = new Map(
+      resumenBanco?.cuentas.map((c) => [
+        c.numero,
+        /AHORRO/i.test(c.tipo) ? "1.1.01.007" : "1.1.01.006",
+      ]),
+    );
+    return generarDiario({
+      ventas: ventas?.comprobantes ?? [],
+      compras: [...(compras?.comprobantes ?? []), ...ticketsPendientes],
+      movimientos,
+      banco: (conciliacion?.filas ?? []).map((fila) => ({
+        fila,
+        cuentaBanco: cuentaBanco.get(fila.cuenta) ?? "1.1.01.006",
+      })),
+    });
+  }, [
+    ventas,
+    compras,
+    ticketsPendientes,
+    movimientos,
+    conciliacion,
+    resumenBanco,
+  ]);
+  const alertas: Alertas = {
+    observados: movimientos.filter((m) => m.estado === "observado").length,
+    sinAprobar: movimientos.filter((m) => m.estado === "enviado").length,
+    cobrosVencidos: ctasClientes
+      .flatMap((c) => c.pendientes)
+      .filter((p) => p.dias > 60)
+      .reduce(
+        (t, p) => ({
+          cantidad: t.cantidad + 1,
+          importe: t.importe + p.pendiente,
+        }),
+        { cantidad: 0, importe: 0 },
+      ),
+    bancoSinRegistrar: conciliacion?.totales.sin_registrar.cantidad ?? 0,
+    bancoSugeridos: conciliacion?.totales.sugerido.cantidad ?? 0,
+    ticketsPendientes: ticketsPendientes.length,
+  };
+  const empresa = resumenBanco?.titular
+    ? titulo(resumenBanco.titular)
+    : "tu empresa";
+
   const registrarDesdeBanco = (nuevos: Movimiento[]) => {
     const ids = new Set(nuevos.map((m) => m.id));
     setMovimientos((actuales) =>
@@ -279,6 +376,9 @@ export function Importador({
     setMovimientos((actuales) =>
       actuales.length ? actuales : MOVIMIENTOS_EJEMPLO,
     );
+    setIniciales((actuales) =>
+      Object.keys(actuales.saldos).length ? actuales : SALDOS_EJEMPLO,
+    );
     setEjemplos({
       ventas: await descargarEjemplo("emitidos-ejemplo.csv", "text/csv"),
       compras: await descargarEjemplo(
@@ -320,6 +420,7 @@ export function Importador({
           <nav className="flex flex-wrap gap-1 text-sm">
             {(
               [
+                ["inicio", "Inicio"],
                 ["arca", "ARCA"],
                 ["bancos", "Bancos"],
                 ["movimientos", "Cobros y pagos"],
@@ -341,6 +442,16 @@ export function Importador({
       </header>
 
       <main className="mx-auto max-w-7xl space-y-6 px-4 py-6">
+        <div hidden={seccion !== "inicio"}>
+          <Tablero
+            empresa={empresa}
+            asientos={asientos}
+            iniciales={iniciales}
+            onIniciales={setIniciales}
+            alertas={alertas}
+            onIr={setSeccion}
+          />
+        </div>
         <div hidden={seccion !== "movimientos"}>
           <section className="mb-6">
             <h1 className="text-2xl font-semibold">Cobros y pagos</h1>
@@ -413,6 +524,7 @@ export function Importador({
             movimientosCliente={movimientos}
             conocidos={conocidos}
             onRegistrar={registrarDesdeBanco}
+            onResumen={setResumenBanco}
           />
         </div>
         <div hidden={seccion !== "arca"} className="space-y-6">

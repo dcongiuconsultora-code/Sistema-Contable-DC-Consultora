@@ -22,6 +22,13 @@ Sistema contable interno de la consultora: los clientes cargan su operación y e
 - Cada movimiento genera su asiento con el plan de cuentas modelo; el estudio lo aprueba u observa (Enviado → Aprobado / Observado).
 - Los cobros y pagos por banco se cruzan con el resumen bancario (mismo importe y sentido, hasta 3 días de diferencia) y esos movimientos del banco quedan clasificados solos.
 
+## Tablero de inicio
+
+- Lo primero que ve el cliente: resultado del mes, ventas (con variación contra el mes anterior), plata disponible, lo que le deben y lo que debe.
+- Índices con semáforo y explicación en palabras: rentabilidad (resultado ÷ ventas), liquidez corriente, prueba ácida y endeudamiento (pasivo ÷ patrimonio neto).
+- Gráfico de ventas y compras por mes y lista de cosas para atender (observados, cobranzas de más de 60 días, banco sin conciliar).
+- Se calcula con un libro diario armado solo (facturas de ARCA, tickets, cobros y pagos, movimientos del banco) más los saldos de inicio del último balance, que carga el estudio.
+
 ## Cuentas corrientes
 
 - Clientes: facturas de Mis Comprobantes emitidos, menos cobros y retenciones. Proveedores: recibidos y tickets, menos pagos.
@@ -66,6 +73,8 @@ npm test        # pruebas del importador y la liquidación
 | `src/lib/movimientos/` | Cobros y pagos del cliente: asientos, validación y cruce con el banco |
 | `src/lib/cuentas/` | Cuentas corrientes de clientes y proveedores |
 | `src/components/cuentas/` | Pantalla de cuentas corrientes |
+| `src/lib/contabilidad/` | Libro diario, mayor, balance, estado de resultados e índices |
+| `src/components/tablero/` | Tablero de inicio |
 | `src/lib/plan/` | Plan de cuentas modelo |
 | `src/components/movimientos/` | Pantalla de cobros y pagos |
 | `src/lib/tickets/` | Lectura de tickets: QR de ARCA, instrucciones para Claude, controles |

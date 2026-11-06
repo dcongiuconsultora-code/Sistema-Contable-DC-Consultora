@@ -4,2260 +4,2583 @@
 "nombre": "ACTIVO",
 "imputable": false,
 "tipo": "ACTIVO",
-"rubro": ""
+"rubro": "",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.1",
 "nombre": "ACTIVO CORRIENTE",
 "imputable": false,
 "tipo": "ACTIVO",
-"rubro": ""
+"rubro": "",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.1.01",
 "nombre": "Caja y Bancos",
 "imputable": false,
 "tipo": "ACTIVO",
-"rubro": "Caja y Bancos"
+"rubro": "Caja y Bancos",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.1.01.001",
 "nombre": "Caja en pesos",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Caja y Bancos"
+"rubro": "Caja y Bancos",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.1.01.002",
 "nombre": "Caja en moneda extranjera",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Caja y Bancos"
+"rubro": "Caja y Bancos",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.1.01.003",
 "nombre": "Fondo fijo",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Caja y Bancos"
+"rubro": "Caja y Bancos",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.1.01.004",
 "nombre": "Valores a depositar",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Caja y Bancos"
+"rubro": "Caja y Bancos",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.1.01.005",
 "nombre": "Recaudaciones a depositar",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Caja y Bancos"
+"rubro": "Caja y Bancos",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.1.01.006",
 "nombre": "Banco cuenta corriente en pesos",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Caja y Bancos"
+"rubro": "Caja y Bancos",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.1.01.007",
 "nombre": "Banco caja de ahorro en pesos",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Caja y Bancos"
+"rubro": "Caja y Bancos",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.1.01.008",
 "nombre": "Banco cuenta en moneda extranjera",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Caja y Bancos"
+"rubro": "Caja y Bancos",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.1.01.009",
 "nombre": "Billeteras virtuales (Mercado Pago y otras)",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Caja y Bancos"
+"rubro": "Caja y Bancos",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.1.02",
 "nombre": "Inversiones",
 "imputable": false,
 "tipo": "ACTIVO",
-"rubro": "Inversiones"
+"rubro": "Inversiones",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.1.02.001",
 "nombre": "Plazos fijos en pesos",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Inversiones"
+"rubro": "Inversiones",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.1.02.002",
 "nombre": "Plazos fijos en moneda extranjera",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Inversiones"
+"rubro": "Inversiones",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.1.02.003",
 "nombre": "Fondos comunes de inversión",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Inversiones"
+"rubro": "Inversiones",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.1.02.004",
 "nombre": "Títulos públicos",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Inversiones"
+"rubro": "Inversiones",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.1.02.005",
 "nombre": "Acciones con cotización",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Inversiones"
+"rubro": "Inversiones",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.1.02.006",
 "nombre": "Cauciones bursátiles",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Inversiones"
+"rubro": "Inversiones",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.1.02.007",
 "nombre": "Intereses a devengar inversiones",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Inversiones"
+"rubro": "Inversiones",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "1.1.03",
 "nombre": "Créditos por Ventas",
 "imputable": false,
 "tipo": "ACTIVO",
-"rubro": "Créditos por Ventas"
+"rubro": "Créditos por Ventas",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.1.03.001",
 "nombre": "Deudores por ventas",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Créditos por Ventas"
+"rubro": "Créditos por Ventas",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.1.03.002",
 "nombre": "Documentos a cobrar",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Créditos por Ventas"
+"rubro": "Créditos por Ventas",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.1.03.003",
 "nombre": "Cheques de terceros diferidos (valores a cobrar)",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Créditos por Ventas"
+"rubro": "Créditos por Ventas",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.1.03.004",
 "nombre": "Tarjetas de crédito a cobrar",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Créditos por Ventas"
+"rubro": "Créditos por Ventas",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.1.03.005",
 "nombre": "Liquidaciones de plataformas a cobrar",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Créditos por Ventas"
+"rubro": "Créditos por Ventas",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.1.03.006",
 "nombre": "Deudores morosos",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Créditos por Ventas"
+"rubro": "Créditos por Ventas",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.1.03.007",
 "nombre": "Deudores en gestión judicial",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Créditos por Ventas"
+"rubro": "Créditos por Ventas",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.1.03.008",
 "nombre": "Intereses a devengar créditos por ventas",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Créditos por Ventas"
+"rubro": "Créditos por Ventas",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "1.1.03.009",
 "nombre": "Previsión para deudores incobrables",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Créditos por Ventas"
+"rubro": "Créditos por Ventas",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "1.1.04",
 "nombre": "Otros Créditos",
 "imputable": false,
 "tipo": "ACTIVO",
-"rubro": "Otros Créditos"
+"rubro": "Otros Créditos",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.1.04.001",
 "nombre": "Anticipos a proveedores",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Otros Créditos"
+"rubro": "Otros Créditos",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.1.04.002",
 "nombre": "Anticipos al personal",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Otros Créditos"
+"rubro": "Otros Créditos",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.1.04.003",
 "nombre": "Préstamos al personal",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Otros Créditos"
+"rubro": "Otros Créditos",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.1.04.004",
 "nombre": "IVA crédito fiscal",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Otros Créditos"
+"rubro": "Otros Créditos",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.1.04.005",
 "nombre": "IVA saldo a favor técnico",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Otros Créditos"
+"rubro": "Otros Créditos",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.1.04.006",
 "nombre": "IVA saldo de libre disponibilidad",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Otros Créditos"
+"rubro": "Otros Créditos",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.1.04.007",
 "nombre": "IVA retenciones sufridas",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Otros Créditos"
+"rubro": "Otros Créditos",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.1.04.008",
 "nombre": "IVA percepciones sufridas",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Otros Créditos"
+"rubro": "Otros Créditos",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.1.04.009",
 "nombre": "Impuesto a las ganancias - anticipos",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Otros Créditos"
+"rubro": "Otros Créditos",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.1.04.010",
 "nombre": "Impuesto a las ganancias - retenciones sufridas",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Otros Créditos"
+"rubro": "Otros Créditos",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.1.04.011",
 "nombre": "Impuesto a las ganancias - percepciones sufridas",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Otros Créditos"
+"rubro": "Otros Créditos",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.1.04.012",
 "nombre": "Impuesto a las ganancias - saldo a favor",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Otros Créditos"
+"rubro": "Otros Créditos",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.1.04.013",
 "nombre": "Ingresos brutos - anticipos",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Otros Créditos"
+"rubro": "Otros Créditos",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.1.04.014",
 "nombre": "Ingresos brutos - retenciones sufridas (incl. SIRCREB)",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Otros Créditos"
+"rubro": "Otros Créditos",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.1.04.015",
 "nombre": "Ingresos brutos - percepciones sufridas",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Otros Créditos"
+"rubro": "Otros Créditos",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.1.04.016",
 "nombre": "Ingresos brutos - saldo a favor",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Otros Créditos"
+"rubro": "Otros Créditos",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.1.04.017",
 "nombre": "Impuesto s/débitos y créditos bancarios a computar",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Otros Créditos"
+"rubro": "Otros Créditos",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.1.04.018",
 "nombre": "Percepciones impuesto PAIS/RG a computar",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Otros Créditos"
+"rubro": "Otros Créditos",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.1.04.019",
 "nombre": "Seguros pagados por adelantado",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Otros Créditos"
+"rubro": "Otros Créditos",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.1.04.020",
 "nombre": "Alquileres pagados por adelantado",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Otros Créditos"
+"rubro": "Otros Créditos",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.1.04.021",
 "nombre": "Otros gastos pagados por adelantado",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Otros Créditos"
+"rubro": "Otros Créditos",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.1.04.022",
 "nombre": "Depósitos en garantía",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Otros Créditos"
+"rubro": "Otros Créditos",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.1.04.023",
 "nombre": "Créditos con socios/accionistas",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Otros Créditos"
+"rubro": "Otros Créditos",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.1.04.024",
 "nombre": "Cuenta particular socios",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Otros Créditos"
+"rubro": "Otros Créditos",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.1.04.025",
 "nombre": "Créditos con sociedades relacionadas",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Otros Créditos"
+"rubro": "Otros Créditos",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.1.04.026",
 "nombre": "Deudores varios",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Otros Créditos"
+"rubro": "Otros Créditos",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.1.04.027",
 "nombre": "Previsión para otros créditos incobrables",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Otros Créditos"
+"rubro": "Otros Créditos",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "1.1.05",
 "nombre": "Bienes de Cambio",
 "imputable": false,
 "tipo": "ACTIVO",
-"rubro": "Bienes de Cambio"
+"rubro": "Bienes de Cambio",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.1.05.001",
 "nombre": "Mercaderías de reventa",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Bienes de Cambio"
+"rubro": "Bienes de Cambio",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.1.05.002",
 "nombre": "Materias primas",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Bienes de Cambio"
+"rubro": "Bienes de Cambio",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.1.05.003",
 "nombre": "Productos en proceso",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Bienes de Cambio"
+"rubro": "Bienes de Cambio",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.1.05.004",
 "nombre": "Productos terminados",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Bienes de Cambio"
+"rubro": "Bienes de Cambio",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.1.05.005",
 "nombre": "Materiales, insumos y envases",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Bienes de Cambio"
+"rubro": "Bienes de Cambio",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.1.05.006",
 "nombre": "Mercaderías en tránsito",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Bienes de Cambio"
+"rubro": "Bienes de Cambio",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.1.05.007",
 "nombre": "Previsión por desvalorización de bienes de cambio",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Bienes de Cambio"
+"rubro": "Bienes de Cambio",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "1.1.06",
 "nombre": "Otros Activos",
 "imputable": false,
 "tipo": "ACTIVO",
-"rubro": "Otros Activos"
+"rubro": "Otros Activos",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.1.06.001",
 "nombre": "Bienes destinados a la venta",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Otros Activos"
+"rubro": "Otros Activos",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.2",
 "nombre": "ACTIVO NO CORRIENTE",
 "imputable": false,
 "tipo": "ACTIVO",
-"rubro": ""
+"rubro": "",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.2.01",
 "nombre": "Créditos por Ventas no corrientes",
 "imputable": false,
 "tipo": "ACTIVO",
-"rubro": "Créditos por Ventas no corrientes"
+"rubro": "Créditos por Ventas no corrientes",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.2.01.001",
 "nombre": "Deudores por ventas a largo plazo",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Créditos por Ventas no corrientes"
+"rubro": "Créditos por Ventas no corrientes",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.2.01.002",
 "nombre": "Documentos a cobrar a largo plazo",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Créditos por Ventas no corrientes"
+"rubro": "Créditos por Ventas no corrientes",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.2.01.003",
 "nombre": "Intereses a devengar créditos LP",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Créditos por Ventas no corrientes"
+"rubro": "Créditos por Ventas no corrientes",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "1.2.02",
 "nombre": "Otros Créditos no corrientes",
 "imputable": false,
 "tipo": "ACTIVO",
-"rubro": "Otros Créditos no corrientes"
+"rubro": "Otros Créditos no corrientes",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.2.02.001",
 "nombre": "Activo por impuesto diferido",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Otros Créditos no corrientes"
+"rubro": "Otros Créditos no corrientes",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.2.02.002",
 "nombre": "Depósitos en garantía a largo plazo",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Otros Créditos no corrientes"
+"rubro": "Otros Créditos no corrientes",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.2.02.003",
 "nombre": "Créditos con sociedades relacionadas LP",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Otros Créditos no corrientes"
+"rubro": "Otros Créditos no corrientes",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.2.02.004",
 "nombre": "Créditos fiscales LP",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Otros Créditos no corrientes"
+"rubro": "Otros Créditos no corrientes",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.2.03",
 "nombre": "Inversiones no corrientes",
 "imputable": false,
 "tipo": "ACTIVO",
-"rubro": "Inversiones no corrientes"
+"rubro": "Inversiones no corrientes",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.2.03.001",
 "nombre": "Plazos fijos a largo plazo",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Inversiones no corrientes"
+"rubro": "Inversiones no corrientes",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.2.03.002",
 "nombre": "Propiedades de inversión (inmuebles de renta)",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Inversiones no corrientes"
+"rubro": "Inversiones no corrientes",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.2.03.003",
 "nombre": "Amortización acumulada propiedades de inversión",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Inversiones no corrientes"
+"rubro": "Inversiones no corrientes",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "1.2.03.004",
 "nombre": "Títulos y bonos LP",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Inversiones no corrientes"
+"rubro": "Inversiones no corrientes",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.2.04",
 "nombre": "Participaciones permanentes en sociedades",
 "imputable": false,
 "tipo": "ACTIVO",
-"rubro": "Participaciones permanentes en sociedades"
+"rubro": "Participaciones permanentes en sociedades",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.2.04.001",
 "nombre": "Participación en sociedades controladas",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Participaciones permanentes en sociedades"
+"rubro": "Participaciones permanentes en sociedades",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.2.04.002",
 "nombre": "Participación en sociedades vinculadas",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Participaciones permanentes en sociedades"
+"rubro": "Participaciones permanentes en sociedades",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.2.04.003",
 "nombre": "Otras participaciones",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Participaciones permanentes en sociedades"
+"rubro": "Participaciones permanentes en sociedades",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.2.05",
 "nombre": "Bienes de Uso",
 "imputable": false,
 "tipo": "ACTIVO",
-"rubro": "Bienes de Uso"
+"rubro": "Bienes de Uso",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.2.05.001",
 "nombre": "Terrenos",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Bienes de Uso"
+"rubro": "Bienes de Uso",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.2.05.002",
 "nombre": "Edificios",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Bienes de Uso"
+"rubro": "Bienes de Uso",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.2.05.003",
 "nombre": "Amortización acumulada edificios",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Bienes de Uso"
+"rubro": "Bienes de Uso",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "1.2.05.004",
 "nombre": "Instalaciones",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Bienes de Uso"
+"rubro": "Bienes de Uso",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.2.05.005",
 "nombre": "Amortización acumulada instalaciones",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Bienes de Uso"
+"rubro": "Bienes de Uso",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "1.2.05.006",
 "nombre": "Maquinarias y equipos",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Bienes de Uso"
+"rubro": "Bienes de Uso",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.2.05.007",
 "nombre": "Amortización acumulada maquinarias y equipos",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Bienes de Uso"
+"rubro": "Bienes de Uso",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "1.2.05.008",
 "nombre": "Rodados",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Bienes de Uso"
+"rubro": "Bienes de Uso",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.2.05.009",
 "nombre": "Amortización acumulada rodados",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Bienes de Uso"
+"rubro": "Bienes de Uso",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "1.2.05.010",
 "nombre": "Muebles y útiles",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Bienes de Uso"
+"rubro": "Bienes de Uso",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.2.05.011",
 "nombre": "Amortización acumulada muebles y útiles",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Bienes de Uso"
+"rubro": "Bienes de Uso",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "1.2.05.012",
 "nombre": "Equipos de computación",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Bienes de Uso"
+"rubro": "Bienes de Uso",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.2.05.013",
 "nombre": "Amortización acumulada equipos de computación",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Bienes de Uso"
+"rubro": "Bienes de Uso",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "1.2.05.014",
 "nombre": "Herramientas",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Bienes de Uso"
+"rubro": "Bienes de Uso",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.2.05.015",
 "nombre": "Amortización acumulada herramientas",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Bienes de Uso"
+"rubro": "Bienes de Uso",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "1.2.05.016",
 "nombre": "Mejoras en inmuebles de terceros",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Bienes de Uso"
+"rubro": "Bienes de Uso",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.2.05.017",
 "nombre": "Amortización acumulada mejoras en inmuebles de terceros",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Bienes de Uso"
+"rubro": "Bienes de Uso",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "1.2.05.018",
 "nombre": "Obras en curso",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Bienes de Uso"
+"rubro": "Bienes de Uso",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.2.05.019",
 "nombre": "Anticipos para compra de bienes de uso",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Bienes de Uso"
+"rubro": "Bienes de Uso",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.2.06",
 "nombre": "Activos Intangibles",
 "imputable": false,
 "tipo": "ACTIVO",
-"rubro": "Activos Intangibles"
+"rubro": "Activos Intangibles",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.2.06.001",
 "nombre": "Marcas y patentes",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Activos Intangibles"
+"rubro": "Activos Intangibles",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.2.06.002",
 "nombre": "Amortización acumulada marcas y patentes",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Activos Intangibles"
+"rubro": "Activos Intangibles",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "1.2.06.003",
 "nombre": "Software y licencias",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Activos Intangibles"
+"rubro": "Activos Intangibles",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.2.06.004",
 "nombre": "Amortización acumulada software y licencias",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Activos Intangibles"
+"rubro": "Activos Intangibles",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "1.2.06.005",
 "nombre": "Gastos de organización",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Activos Intangibles"
+"rubro": "Activos Intangibles",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.2.06.006",
 "nombre": "Amortización acumulada gastos de organización",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Activos Intangibles"
+"rubro": "Activos Intangibles",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "1.2.06.007",
 "nombre": "Gastos de desarrollo",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Activos Intangibles"
+"rubro": "Activos Intangibles",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.2.06.008",
 "nombre": "Amortización acumulada gastos de desarrollo",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Activos Intangibles"
+"rubro": "Activos Intangibles",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "1.2.07",
 "nombre": "Llave de Negocio",
 "imputable": false,
 "tipo": "ACTIVO",
-"rubro": "Llave de Negocio"
+"rubro": "Llave de Negocio",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.2.07.001",
 "nombre": "Llave de negocio",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Llave de Negocio"
+"rubro": "Llave de Negocio",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "1.2.07.002",
 "nombre": "Amortización acumulada llave de negocio",
 "imputable": true,
 "tipo": "ACTIVO",
-"rubro": "Llave de Negocio"
+"rubro": "Llave de Negocio",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "2",
 "nombre": "PASIVO",
 "imputable": false,
 "tipo": "PASIVO",
-"rubro": ""
+"rubro": "",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "2.1",
 "nombre": "PASIVO CORRIENTE",
 "imputable": false,
 "tipo": "PASIVO",
-"rubro": ""
+"rubro": "",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "2.1.01",
 "nombre": "Deudas Comerciales",
 "imputable": false,
 "tipo": "PASIVO",
-"rubro": "Deudas Comerciales"
+"rubro": "Deudas Comerciales",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "2.1.01.001",
 "nombre": "Proveedores",
 "imputable": true,
 "tipo": "PASIVO",
-"rubro": "Deudas Comerciales"
+"rubro": "Deudas Comerciales",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "2.1.01.002",
 "nombre": "Documentos a pagar",
 "imputable": true,
 "tipo": "PASIVO",
-"rubro": "Deudas Comerciales"
+"rubro": "Deudas Comerciales",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "2.1.01.003",
 "nombre": "Cheques diferidos emitidos (valores diferidos a pagar)",
 "imputable": true,
 "tipo": "PASIVO",
-"rubro": "Deudas Comerciales"
+"rubro": "Deudas Comerciales",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "2.1.01.004",
 "nombre": "Tarjetas de crédito a pagar",
 "imputable": true,
 "tipo": "PASIVO",
-"rubro": "Deudas Comerciales"
+"rubro": "Deudas Comerciales",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "2.1.01.005",
 "nombre": "Provisión facturas a recibir",
 "imputable": true,
 "tipo": "PASIVO",
-"rubro": "Deudas Comerciales"
+"rubro": "Deudas Comerciales",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "2.1.01.006",
 "nombre": "Acreedores comerciales varios",
 "imputable": true,
 "tipo": "PASIVO",
-"rubro": "Deudas Comerciales"
+"rubro": "Deudas Comerciales",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "2.1.01.007",
 "nombre": "Intereses a devengar deudas comerciales",
 "imputable": true,
 "tipo": "PASIVO",
-"rubro": "Deudas Comerciales"
+"rubro": "Deudas Comerciales",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "2.1.02",
 "nombre": "Préstamos",
 "imputable": false,
 "tipo": "PASIVO",
-"rubro": "Préstamos"
+"rubro": "Préstamos",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "2.1.02.001",
 "nombre": "Adelantos en cuenta corriente (descubierto bancario)",
 "imputable": true,
 "tipo": "PASIVO",
-"rubro": "Préstamos"
+"rubro": "Préstamos",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "2.1.02.002",
 "nombre": "Préstamos bancarios",
 "imputable": true,
 "tipo": "PASIVO",
-"rubro": "Préstamos"
+"rubro": "Préstamos",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "2.1.02.003",
 "nombre": "Préstamos de terceros",
 "imputable": true,
 "tipo": "PASIVO",
-"rubro": "Préstamos"
+"rubro": "Préstamos",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "2.1.02.004",
 "nombre": "Préstamos de socios",
 "imputable": true,
 "tipo": "PASIVO",
-"rubro": "Préstamos"
+"rubro": "Préstamos",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "2.1.02.005",
 "nombre": "Obligaciones negociables",
 "imputable": true,
 "tipo": "PASIVO",
-"rubro": "Préstamos"
+"rubro": "Préstamos",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "2.1.02.006",
 "nombre": "Intereses a pagar",
 "imputable": true,
 "tipo": "PASIVO",
-"rubro": "Préstamos"
+"rubro": "Préstamos",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "2.1.02.007",
 "nombre": "Intereses a devengar préstamos",
 "imputable": true,
 "tipo": "PASIVO",
-"rubro": "Préstamos"
+"rubro": "Préstamos",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "2.1.03",
 "nombre": "Remuneraciones y Cargas Sociales",
 "imputable": false,
 "tipo": "PASIVO",
-"rubro": "Remuneraciones y Cargas Sociales"
+"rubro": "Remuneraciones y Cargas Sociales",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "2.1.03.001",
 "nombre": "Sueldos y jornales a pagar",
 "imputable": true,
 "tipo": "PASIVO",
-"rubro": "Remuneraciones y Cargas Sociales"
+"rubro": "Remuneraciones y Cargas Sociales",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "2.1.03.002",
 "nombre": "SAC a pagar",
 "imputable": true,
 "tipo": "PASIVO",
-"rubro": "Remuneraciones y Cargas Sociales"
+"rubro": "Remuneraciones y Cargas Sociales",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "2.1.03.003",
 "nombre": "Provisión SAC",
 "imputable": true,
 "tipo": "PASIVO",
-"rubro": "Remuneraciones y Cargas Sociales"
+"rubro": "Remuneraciones y Cargas Sociales",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "2.1.03.004",
 "nombre": "Provisión vacaciones",
 "imputable": true,
 "tipo": "PASIVO",
-"rubro": "Remuneraciones y Cargas Sociales"
+"rubro": "Remuneraciones y Cargas Sociales",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "2.1.03.005",
 "nombre": "Cargas sociales a pagar (F.931)",
 "imputable": true,
 "tipo": "PASIVO",
-"rubro": "Remuneraciones y Cargas Sociales"
+"rubro": "Remuneraciones y Cargas Sociales",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "2.1.03.006",
 "nombre": "Aportes y contribuciones obra social a pagar",
 "imputable": true,
 "tipo": "PASIVO",
-"rubro": "Remuneraciones y Cargas Sociales"
+"rubro": "Remuneraciones y Cargas Sociales",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "2.1.03.007",
 "nombre": "Cuota sindical y aportes sindicales a pagar",
 "imputable": true,
 "tipo": "PASIVO",
-"rubro": "Remuneraciones y Cargas Sociales"
+"rubro": "Remuneraciones y Cargas Sociales",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "2.1.03.008",
 "nombre": "ART a pagar",
 "imputable": true,
 "tipo": "PASIVO",
-"rubro": "Remuneraciones y Cargas Sociales"
+"rubro": "Remuneraciones y Cargas Sociales",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "2.1.03.009",
 "nombre": "Seguro de vida obligatorio a pagar",
 "imputable": true,
 "tipo": "PASIVO",
-"rubro": "Remuneraciones y Cargas Sociales"
+"rubro": "Remuneraciones y Cargas Sociales",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "2.1.03.010",
 "nombre": "Indemnizaciones a pagar",
 "imputable": true,
 "tipo": "PASIVO",
-"rubro": "Remuneraciones y Cargas Sociales"
+"rubro": "Remuneraciones y Cargas Sociales",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "2.1.03.011",
 "nombre": "Retenciones al personal a depositar",
 "imputable": true,
 "tipo": "PASIVO",
-"rubro": "Remuneraciones y Cargas Sociales"
+"rubro": "Remuneraciones y Cargas Sociales",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "2.1.04",
 "nombre": "Cargas Fiscales",
 "imputable": false,
 "tipo": "PASIVO",
-"rubro": "Cargas Fiscales"
+"rubro": "Cargas Fiscales",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "2.1.04.001",
 "nombre": "IVA débito fiscal",
 "imputable": true,
 "tipo": "PASIVO",
-"rubro": "Cargas Fiscales"
+"rubro": "Cargas Fiscales",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "2.1.04.002",
 "nombre": "IVA a pagar",
 "imputable": true,
 "tipo": "PASIVO",
-"rubro": "Cargas Fiscales"
+"rubro": "Cargas Fiscales",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "2.1.04.003",
 "nombre": "IVA retenciones a depositar",
 "imputable": true,
 "tipo": "PASIVO",
-"rubro": "Cargas Fiscales"
+"rubro": "Cargas Fiscales",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "2.1.04.004",
 "nombre": "IVA percepciones a depositar",
 "imputable": true,
 "tipo": "PASIVO",
-"rubro": "Cargas Fiscales"
+"rubro": "Cargas Fiscales",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "2.1.04.005",
 "nombre": "Impuesto a las ganancias a pagar (provisión)",
 "imputable": true,
 "tipo": "PASIVO",
-"rubro": "Cargas Fiscales"
+"rubro": "Cargas Fiscales",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "2.1.04.006",
 "nombre": "Ganancias retenciones a depositar",
 "imputable": true,
 "tipo": "PASIVO",
-"rubro": "Cargas Fiscales"
+"rubro": "Cargas Fiscales",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "2.1.04.007",
 "nombre": "Ingresos brutos a pagar",
 "imputable": true,
 "tipo": "PASIVO",
-"rubro": "Cargas Fiscales"
+"rubro": "Cargas Fiscales",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "2.1.04.008",
 "nombre": "Ingresos brutos retenciones a depositar",
 "imputable": true,
 "tipo": "PASIVO",
-"rubro": "Cargas Fiscales"
+"rubro": "Cargas Fiscales",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "2.1.04.009",
 "nombre": "Ingresos brutos percepciones a depositar",
 "imputable": true,
 "tipo": "PASIVO",
-"rubro": "Cargas Fiscales"
+"rubro": "Cargas Fiscales",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "2.1.04.010",
 "nombre": "Tasas municipales a pagar",
 "imputable": true,
 "tipo": "PASIVO",
-"rubro": "Cargas Fiscales"
+"rubro": "Cargas Fiscales",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "2.1.04.011",
 "nombre": "Bienes personales acciones y participaciones a pagar",
 "imputable": true,
 "tipo": "PASIVO",
-"rubro": "Cargas Fiscales"
+"rubro": "Cargas Fiscales",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "2.1.04.012",
 "nombre": "Autónomos/monotributo a pagar",
 "imputable": true,
 "tipo": "PASIVO",
-"rubro": "Cargas Fiscales"
+"rubro": "Cargas Fiscales",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "2.1.04.013",
 "nombre": "Planes de facilidades de pago ARCA",
 "imputable": true,
 "tipo": "PASIVO",
-"rubro": "Cargas Fiscales"
+"rubro": "Cargas Fiscales",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "2.1.04.014",
 "nombre": "Planes de facilidades de pago provinciales (DGR)",
 "imputable": true,
 "tipo": "PASIVO",
-"rubro": "Cargas Fiscales"
+"rubro": "Cargas Fiscales",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "2.1.04.015",
 "nombre": "Otros impuestos a pagar",
 "imputable": true,
 "tipo": "PASIVO",
-"rubro": "Cargas Fiscales"
+"rubro": "Cargas Fiscales",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "2.1.05",
 "nombre": "Anticipos de Clientes",
 "imputable": false,
 "tipo": "PASIVO",
-"rubro": "Anticipos de Clientes"
+"rubro": "Anticipos de Clientes",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "2.1.05.001",
 "nombre": "Anticipos de clientes",
 "imputable": true,
 "tipo": "PASIVO",
-"rubro": "Anticipos de Clientes"
+"rubro": "Anticipos de Clientes",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "2.1.05.002",
 "nombre": "Señas recibidas",
 "imputable": true,
 "tipo": "PASIVO",
-"rubro": "Anticipos de Clientes"
+"rubro": "Anticipos de Clientes",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "2.1.06",
 "nombre": "Dividendos y Honorarios a Pagar",
 "imputable": false,
 "tipo": "PASIVO",
-"rubro": "Dividendos y Honorarios a Pagar"
+"rubro": "Dividendos y Honorarios a Pagar",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "2.1.06.001",
 "nombre": "Dividendos/utilidades a pagar",
 "imputable": true,
 "tipo": "PASIVO",
-"rubro": "Dividendos y Honorarios a Pagar"
+"rubro": "Dividendos y Honorarios a Pagar",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "2.1.06.002",
 "nombre": "Honorarios de directores y síndicos a pagar",
 "imputable": true,
 "tipo": "PASIVO",
-"rubro": "Dividendos y Honorarios a Pagar"
+"rubro": "Dividendos y Honorarios a Pagar",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "2.1.07",
 "nombre": "Otras Deudas",
 "imputable": false,
 "tipo": "PASIVO",
-"rubro": "Otras Deudas"
+"rubro": "Otras Deudas",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "2.1.07.001",
 "nombre": "Deudas con socios/accionistas",
 "imputable": true,
 "tipo": "PASIVO",
-"rubro": "Otras Deudas"
+"rubro": "Otras Deudas",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "2.1.07.002",
 "nombre": "Cuenta particular socios (saldo acreedor)",
 "imputable": true,
 "tipo": "PASIVO",
-"rubro": "Otras Deudas"
+"rubro": "Otras Deudas",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "2.1.07.003",
 "nombre": "Deudas con sociedades relacionadas",
 "imputable": true,
 "tipo": "PASIVO",
-"rubro": "Otras Deudas"
+"rubro": "Otras Deudas",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "2.1.07.004",
 "nombre": "Acreedores varios",
 "imputable": true,
 "tipo": "PASIVO",
-"rubro": "Otras Deudas"
+"rubro": "Otras Deudas",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "2.1.07.005",
 "nombre": "Ingresos cobrados por adelantado",
 "imputable": true,
 "tipo": "PASIVO",
-"rubro": "Otras Deudas"
+"rubro": "Otras Deudas",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "2.1.08",
 "nombre": "Previsiones",
 "imputable": false,
 "tipo": "PASIVO",
-"rubro": "Previsiones"
+"rubro": "Previsiones",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "2.1.08.001",
 "nombre": "Previsión para juicios laborales",
 "imputable": true,
 "tipo": "PASIVO",
-"rubro": "Previsiones"
+"rubro": "Previsiones",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "2.1.08.002",
 "nombre": "Previsión para contingencias fiscales",
 "imputable": true,
 "tipo": "PASIVO",
-"rubro": "Previsiones"
+"rubro": "Previsiones",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "2.1.08.003",
 "nombre": "Previsión para otras contingencias",
 "imputable": true,
 "tipo": "PASIVO",
-"rubro": "Previsiones"
+"rubro": "Previsiones",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "2.2",
 "nombre": "PASIVO NO CORRIENTE",
 "imputable": false,
 "tipo": "PASIVO",
-"rubro": ""
+"rubro": "",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "2.2.01",
 "nombre": "Deudas Comerciales no corrientes",
 "imputable": false,
 "tipo": "PASIVO",
-"rubro": "Deudas Comerciales no corrientes"
+"rubro": "Deudas Comerciales no corrientes",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "2.2.01.001",
 "nombre": "Proveedores a largo plazo",
 "imputable": true,
 "tipo": "PASIVO",
-"rubro": "Deudas Comerciales no corrientes"
+"rubro": "Deudas Comerciales no corrientes",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "2.2.01.002",
 "nombre": "Documentos a pagar a largo plazo",
 "imputable": true,
 "tipo": "PASIVO",
-"rubro": "Deudas Comerciales no corrientes"
+"rubro": "Deudas Comerciales no corrientes",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "2.2.02",
 "nombre": "Préstamos no corrientes",
 "imputable": false,
 "tipo": "PASIVO",
-"rubro": "Préstamos no corrientes"
+"rubro": "Préstamos no corrientes",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "2.2.02.001",
 "nombre": "Préstamos bancarios a largo plazo",
 "imputable": true,
 "tipo": "PASIVO",
-"rubro": "Préstamos no corrientes"
+"rubro": "Préstamos no corrientes",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "2.2.02.002",
 "nombre": "Préstamos de terceros a largo plazo",
 "imputable": true,
 "tipo": "PASIVO",
-"rubro": "Préstamos no corrientes"
+"rubro": "Préstamos no corrientes",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "2.2.02.003",
 "nombre": "Préstamos de socios a largo plazo",
 "imputable": true,
 "tipo": "PASIVO",
-"rubro": "Préstamos no corrientes"
+"rubro": "Préstamos no corrientes",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "2.2.02.004",
 "nombre": "Leasing a pagar",
 "imputable": true,
 "tipo": "PASIVO",
-"rubro": "Préstamos no corrientes"
+"rubro": "Préstamos no corrientes",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "2.2.03",
 "nombre": "Cargas Fiscales no corrientes",
 "imputable": false,
 "tipo": "PASIVO",
-"rubro": "Cargas Fiscales no corrientes"
+"rubro": "Cargas Fiscales no corrientes",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "2.2.03.001",
 "nombre": "Planes de facilidades de pago ARCA LP",
 "imputable": true,
 "tipo": "PASIVO",
-"rubro": "Cargas Fiscales no corrientes"
+"rubro": "Cargas Fiscales no corrientes",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "2.2.03.002",
 "nombre": "Planes de facilidades de pago provinciales LP",
 "imputable": true,
 "tipo": "PASIVO",
-"rubro": "Cargas Fiscales no corrientes"
+"rubro": "Cargas Fiscales no corrientes",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "2.2.03.003",
 "nombre": "Pasivo por impuesto diferido",
 "imputable": true,
 "tipo": "PASIVO",
-"rubro": "Cargas Fiscales no corrientes"
+"rubro": "Cargas Fiscales no corrientes",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "2.2.04",
 "nombre": "Otras Deudas no corrientes",
 "imputable": false,
 "tipo": "PASIVO",
-"rubro": "Otras Deudas no corrientes"
+"rubro": "Otras Deudas no corrientes",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "2.2.04.001",
 "nombre": "Deudas con sociedades relacionadas LP",
 "imputable": true,
 "tipo": "PASIVO",
-"rubro": "Otras Deudas no corrientes"
+"rubro": "Otras Deudas no corrientes",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "2.2.04.002",
 "nombre": "Otras deudas LP",
 "imputable": true,
 "tipo": "PASIVO",
-"rubro": "Otras Deudas no corrientes"
+"rubro": "Otras Deudas no corrientes",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "2.2.05",
 "nombre": "Previsiones no corrientes",
 "imputable": false,
 "tipo": "PASIVO",
-"rubro": "Previsiones no corrientes"
+"rubro": "Previsiones no corrientes",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "2.2.05.001",
 "nombre": "Previsión para juicios LP",
 "imputable": true,
 "tipo": "PASIVO",
-"rubro": "Previsiones no corrientes"
+"rubro": "Previsiones no corrientes",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "2.2.05.002",
 "nombre": "Previsión para contingencias LP",
 "imputable": true,
 "tipo": "PASIVO",
-"rubro": "Previsiones no corrientes"
+"rubro": "Previsiones no corrientes",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "3",
 "nombre": "PATRIMONIO NETO",
 "imputable": false,
 "tipo": "PATRIMONIO_NETO",
-"rubro": ""
+"rubro": "",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "3.1",
 "nombre": "APORTES DE LOS PROPIETARIOS",
 "imputable": false,
 "tipo": "PATRIMONIO_NETO",
-"rubro": ""
+"rubro": "",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "3.1.01",
 "nombre": "Capital",
 "imputable": false,
 "tipo": "PATRIMONIO_NETO",
-"rubro": "Capital"
+"rubro": "Capital",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "3.1.01.001",
 "nombre": "Capital social suscripto",
 "imputable": true,
 "tipo": "PATRIMONIO_NETO",
-"rubro": "Capital"
+"rubro": "Capital",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "3.1.01.002",
 "nombre": "Ajuste de capital",
 "imputable": true,
 "tipo": "PATRIMONIO_NETO",
-"rubro": "Capital"
+"rubro": "Capital",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "3.1.01.003",
 "nombre": "Aportes irrevocables a cuenta de futuras suscripciones",
 "imputable": true,
 "tipo": "PATRIMONIO_NETO",
-"rubro": "Capital"
+"rubro": "Capital",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "3.1.01.004",
 "nombre": "Primas de emisión",
 "imputable": true,
 "tipo": "PATRIMONIO_NETO",
-"rubro": "Capital"
+"rubro": "Capital",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "3.1.01.005",
 "nombre": "Capital suscripto pendiente de integración",
 "imputable": true,
 "tipo": "PATRIMONIO_NETO",
-"rubro": "Capital"
+"rubro": "Capital",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "3.2",
 "nombre": "RESULTADOS ACUMULADOS",
 "imputable": false,
 "tipo": "PATRIMONIO_NETO",
-"rubro": ""
+"rubro": "",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "3.2.01",
 "nombre": "Ganancias Reservadas",
 "imputable": false,
 "tipo": "PATRIMONIO_NETO",
-"rubro": "Ganancias Reservadas"
+"rubro": "Ganancias Reservadas",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "3.2.01.001",
 "nombre": "Reserva legal",
 "imputable": true,
 "tipo": "PATRIMONIO_NETO",
-"rubro": "Ganancias Reservadas"
+"rubro": "Ganancias Reservadas",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "3.2.01.002",
 "nombre": "Reserva estatutaria",
 "imputable": true,
 "tipo": "PATRIMONIO_NETO",
-"rubro": "Ganancias Reservadas"
+"rubro": "Ganancias Reservadas",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "3.2.01.003",
 "nombre": "Reserva facultativa",
 "imputable": true,
 "tipo": "PATRIMONIO_NETO",
-"rubro": "Ganancias Reservadas"
+"rubro": "Ganancias Reservadas",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "3.2.02",
 "nombre": "Resultados no Asignados",
 "imputable": false,
 "tipo": "PATRIMONIO_NETO",
-"rubro": "Resultados no Asignados"
+"rubro": "Resultados no Asignados",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "3.2.02.001",
 "nombre": "Resultados no asignados",
 "imputable": true,
 "tipo": "PATRIMONIO_NETO",
-"rubro": "Resultados no Asignados"
+"rubro": "Resultados no Asignados",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "3.2.02.002",
 "nombre": "Resultado del ejercicio",
 "imputable": true,
 "tipo": "PATRIMONIO_NETO",
-"rubro": "Resultados no Asignados"
+"rubro": "Resultados no Asignados",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "3.2.02.003",
 "nombre": "Ajuste de resultados de ejercicios anteriores (AREA)",
 "imputable": true,
 "tipo": "PATRIMONIO_NETO",
-"rubro": "Resultados no Asignados"
+"rubro": "Resultados no Asignados",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "3.2.03",
 "nombre": "Otros Resultados Integrales",
 "imputable": false,
 "tipo": "PATRIMONIO_NETO",
-"rubro": "Otros Resultados Integrales"
+"rubro": "Otros Resultados Integrales",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "3.2.03.001",
 "nombre": "Saldo por revaluación de bienes de uso",
 "imputable": true,
 "tipo": "PATRIMONIO_NETO",
-"rubro": "Otros Resultados Integrales"
+"rubro": "Otros Resultados Integrales",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "3.2.03.002",
 "nombre": "Diferencias de conversión",
 "imputable": true,
 "tipo": "PATRIMONIO_NETO",
-"rubro": "Otros Resultados Integrales"
+"rubro": "Otros Resultados Integrales",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "4",
 "nombre": "INGRESOS",
 "imputable": false,
 "tipo": "RESULTADO_POSITIVO",
-"rubro": ""
+"rubro": "",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "4.1",
 "nombre": "INGRESOS OPERATIVOS",
 "imputable": false,
 "tipo": "RESULTADO_POSITIVO",
-"rubro": ""
+"rubro": "",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "4.1.01",
 "nombre": "Ventas y Servicios",
 "imputable": false,
 "tipo": "RESULTADO_POSITIVO",
-"rubro": "Ventas y Servicios"
+"rubro": "Ventas y Servicios",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "4.1.01.001",
 "nombre": "Ventas de mercaderías",
 "imputable": true,
 "tipo": "RESULTADO_POSITIVO",
-"rubro": "Ventas y Servicios"
+"rubro": "Ventas y Servicios",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "4.1.01.002",
 "nombre": "Ventas de productos elaborados",
 "imputable": true,
 "tipo": "RESULTADO_POSITIVO",
-"rubro": "Ventas y Servicios"
+"rubro": "Ventas y Servicios",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "4.1.01.003",
 "nombre": "Prestación de servicios",
 "imputable": true,
 "tipo": "RESULTADO_POSITIVO",
-"rubro": "Ventas y Servicios"
+"rubro": "Ventas y Servicios",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "4.1.01.004",
 "nombre": "Honorarios profesionales",
 "imputable": true,
 "tipo": "RESULTADO_POSITIVO",
-"rubro": "Ventas y Servicios"
+"rubro": "Ventas y Servicios",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "4.1.01.005",
 "nombre": "Ventas exentas/no gravadas",
 "imputable": true,
 "tipo": "RESULTADO_POSITIVO",
-"rubro": "Ventas y Servicios"
+"rubro": "Ventas y Servicios",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "4.1.01.006",
 "nombre": "Exportaciones",
 "imputable": true,
 "tipo": "RESULTADO_POSITIVO",
-"rubro": "Ventas y Servicios"
+"rubro": "Ventas y Servicios",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "4.1.01.007",
 "nombre": "Devoluciones sobre ventas",
 "imputable": true,
 "tipo": "RESULTADO_POSITIVO",
-"rubro": "Ventas y Servicios"
+"rubro": "Ventas y Servicios",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "4.1.01.008",
 "nombre": "Bonificaciones y descuentos sobre ventas",
 "imputable": true,
 "tipo": "RESULTADO_POSITIVO",
-"rubro": "Ventas y Servicios"
+"rubro": "Ventas y Servicios",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "4.2",
 "nombre": "OTROS INGRESOS",
 "imputable": false,
 "tipo": "RESULTADO_POSITIVO",
-"rubro": ""
+"rubro": "",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "4.2.01",
 "nombre": "Resultados Financieros y por Tenencia (positivos)",
 "imputable": false,
 "tipo": "RESULTADO_POSITIVO",
-"rubro": "Resultados Financieros y por Tenencia (positivos)"
+"rubro": "Resultados Financieros y por Tenencia (positivos)",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "4.2.01.001",
 "nombre": "Intereses ganados",
 "imputable": true,
 "tipo": "RESULTADO_POSITIVO",
-"rubro": "Resultados Financieros y por Tenencia (positivos)"
+"rubro": "Resultados Financieros y por Tenencia (positivos)",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "4.2.01.002",
 "nombre": "Rendimiento de inversiones (FCI, plazos fijos)",
 "imputable": true,
 "tipo": "RESULTADO_POSITIVO",
-"rubro": "Resultados Financieros y por Tenencia (positivos)"
+"rubro": "Resultados Financieros y por Tenencia (positivos)",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "4.2.01.003",
 "nombre": "Diferencia de cambio positiva",
 "imputable": true,
 "tipo": "RESULTADO_POSITIVO",
-"rubro": "Resultados Financieros y por Tenencia (positivos)"
+"rubro": "Resultados Financieros y por Tenencia (positivos)",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "4.2.01.004",
 "nombre": "Resultado por tenencia positivo",
 "imputable": true,
 "tipo": "RESULTADO_POSITIVO",
-"rubro": "Resultados Financieros y por Tenencia (positivos)"
+"rubro": "Resultados Financieros y por Tenencia (positivos)",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "4.2.01.005",
 "nombre": "Resultado por venta de inversiones",
 "imputable": true,
 "tipo": "RESULTADO_POSITIVO",
-"rubro": "Resultados Financieros y por Tenencia (positivos)"
+"rubro": "Resultados Financieros y por Tenencia (positivos)",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "4.2.01.006",
 "nombre": "Descuentos obtenidos",
 "imputable": true,
 "tipo": "RESULTADO_POSITIVO",
-"rubro": "Resultados Financieros y por Tenencia (positivos)"
+"rubro": "Resultados Financieros y por Tenencia (positivos)",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "4.2.02",
 "nombre": "Otros Ingresos",
 "imputable": false,
 "tipo": "RESULTADO_POSITIVO",
-"rubro": "Otros Ingresos"
+"rubro": "Otros Ingresos",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "4.2.02.001",
 "nombre": "Resultado por venta de bienes de uso (ganancia)",
 "imputable": true,
 "tipo": "RESULTADO_POSITIVO",
-"rubro": "Otros Ingresos"
+"rubro": "Otros Ingresos",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "4.2.02.002",
 "nombre": "Alquileres ganados",
 "imputable": true,
 "tipo": "RESULTADO_POSITIVO",
-"rubro": "Otros Ingresos"
+"rubro": "Otros Ingresos",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "4.2.02.003",
 "nombre": "Recupero de previsiones",
 "imputable": true,
 "tipo": "RESULTADO_POSITIVO",
-"rubro": "Otros Ingresos"
+"rubro": "Otros Ingresos",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "4.2.02.004",
 "nombre": "Recupero de gastos",
 "imputable": true,
 "tipo": "RESULTADO_POSITIVO",
-"rubro": "Otros Ingresos"
+"rubro": "Otros Ingresos",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "4.2.02.005",
 "nombre": "Subsidios y reintegros",
 "imputable": true,
 "tipo": "RESULTADO_POSITIVO",
-"rubro": "Otros Ingresos"
+"rubro": "Otros Ingresos",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "4.2.02.006",
 "nombre": "Ingresos varios",
 "imputable": true,
 "tipo": "RESULTADO_POSITIVO",
-"rubro": "Otros Ingresos"
+"rubro": "Otros Ingresos",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "5",
 "nombre": "EGRESOS",
 "imputable": false,
 "tipo": "RESULTADO_NEGATIVO",
-"rubro": ""
+"rubro": "",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "5.1",
 "nombre": "COSTO DE VENTAS",
 "imputable": false,
 "tipo": "RESULTADO_NEGATIVO",
-"rubro": ""
+"rubro": "",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "5.1.01",
 "nombre": "Costo de Ventas",
 "imputable": false,
 "tipo": "RESULTADO_NEGATIVO",
-"rubro": "Costo de Ventas"
+"rubro": "Costo de Ventas",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "5.1.01.001",
 "nombre": "Costo de mercaderías vendidas",
 "imputable": true,
 "tipo": "RESULTADO_NEGATIVO",
-"rubro": "Costo de Ventas"
+"rubro": "Costo de Ventas",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "5.1.01.002",
 "nombre": "Costo de productos vendidos",
 "imputable": true,
 "tipo": "RESULTADO_NEGATIVO",
-"rubro": "Costo de Ventas"
+"rubro": "Costo de Ventas",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "5.1.01.003",
 "nombre": "Costo de servicios prestados",
 "imputable": true,
 "tipo": "RESULTADO_NEGATIVO",
-"rubro": "Costo de Ventas"
+"rubro": "Costo de Ventas",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "5.1.01.004",
 "nombre": "Compras de mercaderías",
 "imputable": true,
 "tipo": "RESULTADO_NEGATIVO",
-"rubro": "Costo de Ventas"
+"rubro": "Costo de Ventas",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "5.1.01.005",
 "nombre": "Compras de materias primas",
 "imputable": true,
 "tipo": "RESULTADO_NEGATIVO",
-"rubro": "Costo de Ventas"
+"rubro": "Costo de Ventas",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "5.1.01.006",
 "nombre": "Fletes sobre compras",
 "imputable": true,
 "tipo": "RESULTADO_NEGATIVO",
-"rubro": "Costo de Ventas"
+"rubro": "Costo de Ventas",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "5.1.01.007",
 "nombre": "Devoluciones sobre compras",
 "imputable": true,
 "tipo": "RESULTADO_NEGATIVO",
-"rubro": "Costo de Ventas"
+"rubro": "Costo de Ventas",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "5.1.01.008",
 "nombre": "Bonificaciones sobre compras",
 "imputable": true,
 "tipo": "RESULTADO_NEGATIVO",
-"rubro": "Costo de Ventas"
+"rubro": "Costo de Ventas",
+"naturaleza": "Acreedora"
 },
 {
 "codigo": "5.1.01.009",
 "nombre": "Mano de obra directa",
 "imputable": true,
 "tipo": "RESULTADO_NEGATIVO",
-"rubro": "Costo de Ventas"
+"rubro": "Costo de Ventas",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "5.1.01.010",
 "nombre": "Cargas sociales mano de obra directa",
 "imputable": true,
 "tipo": "RESULTADO_NEGATIVO",
-"rubro": "Costo de Ventas"
+"rubro": "Costo de Ventas",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "5.1.01.011",
 "nombre": "Gastos de fabricación",
 "imputable": true,
 "tipo": "RESULTADO_NEGATIVO",
-"rubro": "Costo de Ventas"
+"rubro": "Costo de Ventas",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "5.1.01.012",
 "nombre": "Diferencias de inventario",
 "imputable": true,
 "tipo": "RESULTADO_NEGATIVO",
-"rubro": "Costo de Ventas"
+"rubro": "Costo de Ventas",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "5.2",
 "nombre": "GASTOS DE COMERCIALIZACIÓN",
 "imputable": false,
 "tipo": "RESULTADO_NEGATIVO",
-"rubro": ""
+"rubro": "",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "5.2.01",
 "nombre": "Gastos de Comercialización",
 "imputable": false,
 "tipo": "RESULTADO_NEGATIVO",
-"rubro": "Gastos de Comercialización"
+"rubro": "Gastos de Comercialización",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "5.2.01.001",
 "nombre": "Sueldos y jornales comercialización",
 "imputable": true,
 "tipo": "RESULTADO_NEGATIVO",
-"rubro": "Gastos de Comercialización"
+"rubro": "Gastos de Comercialización",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "5.2.01.002",
 "nombre": "Cargas sociales comercialización",
 "imputable": true,
 "tipo": "RESULTADO_NEGATIVO",
-"rubro": "Gastos de Comercialización"
+"rubro": "Gastos de Comercialización",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "5.2.01.003",
 "nombre": "Comisiones a vendedores",
 "imputable": true,
 "tipo": "RESULTADO_NEGATIVO",
-"rubro": "Gastos de Comercialización"
+"rubro": "Gastos de Comercialización",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "5.2.01.004",
 "nombre": "Publicidad y propaganda",
 "imputable": true,
 "tipo": "RESULTADO_NEGATIVO",
-"rubro": "Gastos de Comercialización"
+"rubro": "Gastos de Comercialización",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "5.2.01.005",
 "nombre": "Fletes y acarreos sobre ventas",
 "imputable": true,
 "tipo": "RESULTADO_NEGATIVO",
-"rubro": "Gastos de Comercialización"
+"rubro": "Gastos de Comercialización",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "5.2.01.006",
 "nombre": "Impuesto sobre los ingresos brutos",
 "imputable": true,
 "tipo": "RESULTADO_NEGATIVO",
-"rubro": "Gastos de Comercialización"
+"rubro": "Gastos de Comercialización",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "5.2.01.007",
 "nombre": "Tasa municipal de seguridad e higiene/comercio",
 "imputable": true,
 "tipo": "RESULTADO_NEGATIVO",
-"rubro": "Gastos de Comercialización"
+"rubro": "Gastos de Comercialización",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "5.2.01.008",
 "nombre": "Comisiones de tarjetas y plataformas de cobro",
 "imputable": true,
 "tipo": "RESULTADO_NEGATIVO",
-"rubro": "Gastos de Comercialización"
+"rubro": "Gastos de Comercialización",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "5.2.01.009",
 "nombre": "Deudores incobrables",
 "imputable": true,
 "tipo": "RESULTADO_NEGATIVO",
-"rubro": "Gastos de Comercialización"
+"rubro": "Gastos de Comercialización",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "5.2.01.010",
 "nombre": "Envases y embalajes",
 "imputable": true,
 "tipo": "RESULTADO_NEGATIVO",
-"rubro": "Gastos de Comercialización"
+"rubro": "Gastos de Comercialización",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "5.2.01.011",
 "nombre": "Viáticos y movilidad comercial",
 "imputable": true,
 "tipo": "RESULTADO_NEGATIVO",
-"rubro": "Gastos de Comercialización"
+"rubro": "Gastos de Comercialización",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "5.3",
 "nombre": "GASTOS DE ADMINISTRACIÓN",
 "imputable": false,
 "tipo": "RESULTADO_NEGATIVO",
-"rubro": ""
+"rubro": "",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "5.3.01",
 "nombre": "Gastos de Administración",
 "imputable": false,
 "tipo": "RESULTADO_NEGATIVO",
-"rubro": "Gastos de Administración"
+"rubro": "Gastos de Administración",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "5.3.01.001",
 "nombre": "Sueldos y jornales administración",
 "imputable": true,
 "tipo": "RESULTADO_NEGATIVO",
-"rubro": "Gastos de Administración"
+"rubro": "Gastos de Administración",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "5.3.01.002",
 "nombre": "Cargas sociales administración",
 "imputable": true,
 "tipo": "RESULTADO_NEGATIVO",
-"rubro": "Gastos de Administración"
+"rubro": "Gastos de Administración",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "5.3.01.003",
 "nombre": "SAC y vacaciones",
 "imputable": true,
 "tipo": "RESULTADO_NEGATIVO",
-"rubro": "Gastos de Administración"
+"rubro": "Gastos de Administración",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "5.3.01.004",
 "nombre": "Indemnizaciones",
 "imputable": true,
 "tipo": "RESULTADO_NEGATIVO",
-"rubro": "Gastos de Administración"
+"rubro": "Gastos de Administración",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "5.3.01.005",
 "nombre": "Honorarios profesionales",
 "imputable": true,
 "tipo": "RESULTADO_NEGATIVO",
-"rubro": "Gastos de Administración"
+"rubro": "Gastos de Administración",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "5.3.01.006",
 "nombre": "Honorarios de directores y síndicos",
 "imputable": true,
 "tipo": "RESULTADO_NEGATIVO",
-"rubro": "Gastos de Administración"
+"rubro": "Gastos de Administración",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "5.3.01.007",
 "nombre": "Alquileres",
 "imputable": true,
 "tipo": "RESULTADO_NEGATIVO",
-"rubro": "Gastos de Administración"
+"rubro": "Gastos de Administración",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "5.3.01.008",
 "nombre": "Expensas",
 "imputable": true,
 "tipo": "RESULTADO_NEGATIVO",
-"rubro": "Gastos de Administración"
+"rubro": "Gastos de Administración",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "5.3.01.009",
 "nombre": "Energía eléctrica",
 "imputable": true,
 "tipo": "RESULTADO_NEGATIVO",
-"rubro": "Gastos de Administración"
+"rubro": "Gastos de Administración",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "5.3.01.010",
 "nombre": "Gas",
 "imputable": true,
 "tipo": "RESULTADO_NEGATIVO",
-"rubro": "Gastos de Administración"
+"rubro": "Gastos de Administración",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "5.3.01.011",
 "nombre": "Agua",
 "imputable": true,
 "tipo": "RESULTADO_NEGATIVO",
-"rubro": "Gastos de Administración"
+"rubro": "Gastos de Administración",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "5.3.01.012",
 "nombre": "Teléfono e internet",
 "imputable": true,
 "tipo": "RESULTADO_NEGATIVO",
-"rubro": "Gastos de Administración"
+"rubro": "Gastos de Administración",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "5.3.01.013",
 "nombre": "Papelería y útiles de oficina",
 "imputable": true,
 "tipo": "RESULTADO_NEGATIVO",
-"rubro": "Gastos de Administración"
+"rubro": "Gastos de Administración",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "5.3.01.014",
 "nombre": "Software y suscripciones",
 "imputable": true,
 "tipo": "RESULTADO_NEGATIVO",
-"rubro": "Gastos de Administración"
+"rubro": "Gastos de Administración",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "5.3.01.015",
 "nombre": "Seguros",
 "imputable": true,
 "tipo": "RESULTADO_NEGATIVO",
-"rubro": "Gastos de Administración"
+"rubro": "Gastos de Administración",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "5.3.01.016",
 "nombre": "Mantenimiento y reparaciones",
 "imputable": true,
 "tipo": "RESULTADO_NEGATIVO",
-"rubro": "Gastos de Administración"
+"rubro": "Gastos de Administración",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "5.3.01.017",
 "nombre": "Limpieza",
 "imputable": true,
 "tipo": "RESULTADO_NEGATIVO",
-"rubro": "Gastos de Administración"
+"rubro": "Gastos de Administración",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "5.3.01.018",
 "nombre": "Movilidad y viáticos",
 "imputable": true,
 "tipo": "RESULTADO_NEGATIVO",
-"rubro": "Gastos de Administración"
+"rubro": "Gastos de Administración",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "5.3.01.019",
 "nombre": "Amortización bienes de uso",
 "imputable": true,
 "tipo": "RESULTADO_NEGATIVO",
-"rubro": "Gastos de Administración"
+"rubro": "Gastos de Administración",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "5.3.01.020",
 "nombre": "Amortización activos intangibles",
 "imputable": true,
 "tipo": "RESULTADO_NEGATIVO",
-"rubro": "Gastos de Administración"
+"rubro": "Gastos de Administración",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "5.3.01.021",
 "nombre": "Impuestos y tasas (inmobiliario, automotor, otros)",
 "imputable": true,
 "tipo": "RESULTADO_NEGATIVO",
-"rubro": "Gastos de Administración"
+"rubro": "Gastos de Administración",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "5.3.01.022",
 "nombre": "Impuesto s/débitos y créditos bancarios (no computable)",
 "imputable": true,
 "tipo": "RESULTADO_NEGATIVO",
-"rubro": "Gastos de Administración"
+"rubro": "Gastos de Administración",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "5.3.01.023",
 "nombre": "Impuesto de sellos",
 "imputable": true,
 "tipo": "RESULTADO_NEGATIVO",
-"rubro": "Gastos de Administración"
+"rubro": "Gastos de Administración",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "5.3.01.024",
 "nombre": "Gastos bancarios",
 "imputable": true,
 "tipo": "RESULTADO_NEGATIVO",
-"rubro": "Gastos de Administración"
+"rubro": "Gastos de Administración",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "5.3.01.025",
 "nombre": "Capacitación",
 "imputable": true,
 "tipo": "RESULTADO_NEGATIVO",
-"rubro": "Gastos de Administración"
+"rubro": "Gastos de Administración",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "5.3.01.026",
 "nombre": "Donaciones",
 "imputable": true,
 "tipo": "RESULTADO_NEGATIVO",
-"rubro": "Gastos de Administración"
+"rubro": "Gastos de Administración",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "5.3.01.027",
 "nombre": "Gastos varios",
 "imputable": true,
 "tipo": "RESULTADO_NEGATIVO",
-"rubro": "Gastos de Administración"
+"rubro": "Gastos de Administración",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "5.4",
 "nombre": "RESULTADOS FINANCIEROS Y POR TENENCIA (negativos)",
 "imputable": false,
 "tipo": "RESULTADO_NEGATIVO",
-"rubro": ""
+"rubro": "",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "5.4.01",
 "nombre": "Gastos de Financiación",
 "imputable": false,
 "tipo": "RESULTADO_NEGATIVO",
-"rubro": "Gastos de Financiación"
+"rubro": "Gastos de Financiación",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "5.4.01.001",
 "nombre": "Intereses bancarios",
 "imputable": true,
 "tipo": "RESULTADO_NEGATIVO",
-"rubro": "Gastos de Financiación"
+"rubro": "Gastos de Financiación",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "5.4.01.002",
 "nombre": "Intereses comerciales",
 "imputable": true,
 "tipo": "RESULTADO_NEGATIVO",
-"rubro": "Gastos de Financiación"
+"rubro": "Gastos de Financiación",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "5.4.01.003",
 "nombre": "Intereses fiscales (resarcitorios y punitorios)",
 "imputable": true,
 "tipo": "RESULTADO_NEGATIVO",
-"rubro": "Gastos de Financiación"
+"rubro": "Gastos de Financiación",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "5.4.01.004",
 "nombre": "Comisiones y gastos financieros",
 "imputable": true,
 "tipo": "RESULTADO_NEGATIVO",
-"rubro": "Gastos de Financiación"
+"rubro": "Gastos de Financiación",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "5.4.01.005",
 "nombre": "Diferencia de cambio negativa",
 "imputable": true,
 "tipo": "RESULTADO_NEGATIVO",
-"rubro": "Gastos de Financiación"
+"rubro": "Gastos de Financiación",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "5.4.01.006",
 "nombre": "Resultado por tenencia negativo",
 "imputable": true,
 "tipo": "RESULTADO_NEGATIVO",
-"rubro": "Gastos de Financiación"
+"rubro": "Gastos de Financiación",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "5.4.01.007",
 "nombre": "Descuentos otorgados",
 "imputable": true,
 "tipo": "RESULTADO_NEGATIVO",
-"rubro": "Gastos de Financiación"
+"rubro": "Gastos de Financiación",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "5.4.01.008",
 "nombre": "RECPAM - Resultado por exposición a cambios en el poder adquisitivo de la moneda",
 "imputable": true,
 "tipo": "RESULTADO_NEGATIVO",
-"rubro": "Gastos de Financiación"
+"rubro": "Gastos de Financiación",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "5.5",
 "nombre": "OTROS EGRESOS",
 "imputable": false,
 "tipo": "RESULTADO_NEGATIVO",
-"rubro": ""
+"rubro": "",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "5.5.01",
 "nombre": "Otros Egresos",
 "imputable": false,
 "tipo": "RESULTADO_NEGATIVO",
-"rubro": "Otros Egresos"
+"rubro": "Otros Egresos",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "5.5.01.001",
 "nombre": "Resultado por venta de bienes de uso (pérdida)",
 "imputable": true,
 "tipo": "RESULTADO_NEGATIVO",
-"rubro": "Otros Egresos"
+"rubro": "Otros Egresos",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "5.5.01.002",
 "nombre": "Multas y recargos",
 "imputable": true,
 "tipo": "RESULTADO_NEGATIVO",
-"rubro": "Otros Egresos"
+"rubro": "Otros Egresos",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "5.5.01.003",
 "nombre": "Siniestros",
 "imputable": true,
 "tipo": "RESULTADO_NEGATIVO",
-"rubro": "Otros Egresos"
+"rubro": "Otros Egresos",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "5.5.01.004",
 "nombre": "Egresos varios",
 "imputable": true,
 "tipo": "RESULTADO_NEGATIVO",
-"rubro": "Otros Egresos"
+"rubro": "Otros Egresos",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "5.6",
 "nombre": "IMPUESTO A LAS GANANCIAS",
 "imputable": false,
 "tipo": "RESULTADO_NEGATIVO",
-"rubro": ""
+"rubro": "",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "5.6.01",
 "nombre": "Impuesto a las Ganancias",
 "imputable": false,
 "tipo": "RESULTADO_NEGATIVO",
-"rubro": "Impuesto a las Ganancias"
+"rubro": "Impuesto a las Ganancias",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "5.6.01.001",
 "nombre": "Impuesto a las ganancias del ejercicio",
 "imputable": true,
 "tipo": "RESULTADO_NEGATIVO",
-"rubro": "Impuesto a las Ganancias"
+"rubro": "Impuesto a las Ganancias",
+"naturaleza": "Deudora"
 },
 {
 "codigo": "5.6.01.002",
 "nombre": "Impuesto diferido",
 "imputable": true,
 "tipo": "RESULTADO_NEGATIVO",
-"rubro": "Impuesto a las Ganancias"
+"rubro": "Impuesto a las Ganancias",
+"naturaleza": "Deudora"
 }
 ]
