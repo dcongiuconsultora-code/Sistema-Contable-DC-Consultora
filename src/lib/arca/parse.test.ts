@@ -42,13 +42,17 @@ describe("Mis Comprobantes formato simple (CSV)", () => {
 
   it("omite el comprobante repetido", () => {
     expect(r.comprobantes).toHaveLength(4);
-    expect(r.errores).toEqual([{ fila: 7, mensaje: expect.stringContaining("repetido") }]);
+    expect(r.errores).toEqual([
+      { fila: 7, mensaje: expect.stringContaining("repetido") },
+    ]);
   });
 
   it("deduce la alícuota y pone en negativo las notas de crédito", () => {
     const [fa, fa105, nc, mixta] = r.comprobantes;
     expect(fa.alicuotas).toEqual([{ tasa: 21, neto: 8000000, iva: 1680000 }]);
-    expect(fa105.alicuotas).toEqual([{ tasa: 10.5, neto: 2100000, iva: 220500 }]);
+    expect(fa105.alicuotas).toEqual([
+      { tasa: 10.5, neto: 2100000, iva: 220500 },
+    ]);
     expect(nc.clase).toBe("nota_credito");
     expect(nc.total).toBe(-121000);
     expect(nc.alicuotas).toEqual([{ tasa: 21, neto: -100000, iva: -21000 }]);
@@ -64,19 +68,98 @@ async function xlsxDetallado(): Promise<ArrayBuffer> {
   const hoja = libro.addWorksheet("Recibidos");
   hoja.addRow(["Mis Comprobantes Recibidos - CUIT 30-70984512-3"]);
   hoja.addRow([
-    "Fecha de Emisión", "Tipo de Comprobante", "Punto de Venta", "Número Desde", "Número Hasta",
-    "Cód. Autorización", "Tipo Doc. Emisor", "Nro. Doc. Emisor", "Denominación Emisor",
-    "Tipo Cambio", "Moneda", "Imp. Neto Gravado IVA 21%", "IVA 21%", "Imp. Neto Gravado IVA 10,5%",
-    "IVA 10,5%", "Imp. Neto Gravado Total", "Imp. Neto No Gravado", "Imp. Op. Exentas",
-    "Otros Tributos", "Total IVA", "Imp. Total",
+    "Fecha de Emisión",
+    "Tipo de Comprobante",
+    "Punto de Venta",
+    "Número Desde",
+    "Número Hasta",
+    "Cód. Autorización",
+    "Tipo Doc. Emisor",
+    "Nro. Doc. Emisor",
+    "Denominación Emisor",
+    "Tipo Cambio",
+    "Moneda",
+    "Imp. Neto Gravado IVA 21%",
+    "IVA 21%",
+    "Imp. Neto Gravado IVA 10,5%",
+    "IVA 10,5%",
+    "Imp. Neto Gravado Total",
+    "Imp. Neto No Gravado",
+    "Imp. Op. Exentas",
+    "Otros Tributos",
+    "Total IVA",
+    "Imp. Total",
   ]);
   const d = (dia: number) => new Date(Date.UTC(2026, 8, dia));
-  hoja.addRow([d(5), "1 - Factura A", 4, 38811, 38811, "7612", "CUIT", 30712345678, "Molinos del Sur SA",
-    1, "$", 9000000, 1890000, 1500000, 157500, 10500000, 0, 0, 276400, 2047500, 12823900]);
-  hoja.addRow([d(10), "6 - Factura B", 1, 900, 900, "7613", "CUIT", 30711112223, "Librería Centro",
-    1, "$", 10000, 2100, 0, 0, 10000, 0, 0, 0, 2100, 12100]);
-  hoja.addRow([d(12), "1 - Factura A", 7, 55, 55, "7614", "CUIT", 30700000001, "Proveedor Exterior",
-    "1000", "DOL", 100, 21, 0, 0, 100, 0, 0, 0, 21, 121]);
+  hoja.addRow([
+    d(5),
+    "1 - Factura A",
+    4,
+    38811,
+    38811,
+    "7612",
+    "CUIT",
+    30712345678,
+    "Molinos del Sur SA",
+    1,
+    "$",
+    9000000,
+    1890000,
+    1500000,
+    157500,
+    10500000,
+    0,
+    0,
+    276400,
+    2047500,
+    12823900,
+  ]);
+  hoja.addRow([
+    d(10),
+    "6 - Factura B",
+    1,
+    900,
+    900,
+    "7613",
+    "CUIT",
+    30711112223,
+    "Librería Centro",
+    1,
+    "$",
+    10000,
+    2100,
+    0,
+    0,
+    10000,
+    0,
+    0,
+    0,
+    2100,
+    12100,
+  ]);
+  hoja.addRow([
+    d(12),
+    "1 - Factura A",
+    7,
+    55,
+    55,
+    "7614",
+    "CUIT",
+    30700000001,
+    "Proveedor Exterior",
+    "1000",
+    "DOL",
+    100,
+    21,
+    0,
+    0,
+    100,
+    0,
+    0,
+    0,
+    21,
+    121,
+  ]);
   return (await libro.xlsx.writeBuffer()) as ArrayBuffer;
 }
 
@@ -139,18 +222,87 @@ describe("Mis Comprobantes formato ARCA actual (encabezados abreviados)", async 
   const hoja = libro.addWorksheet("Sheet1");
   hoja.addRow(["Mis Comprobantes Emitidos - CUIT 30711111118"]);
   hoja.addRow([
-    "Fecha", "Tipo", "Punto de Venta", "Número Desde", "Número Hasta", "Cód. Autorización",
-    "Tipo Doc. Receptor", "Nro. Doc. Receptor", "Denominación Receptor", "Tipo Cambio", "Moneda",
-    "Neto Grav. IVA 0%", "IVA 2,5%", "Neto Grav. IVA 2,5%", "IVA 5%", "Neto Grav. IVA 5%",
-    "IVA 10,5%", "Neto Grav. IVA 10,5%", "IVA 21%", "Neto Grav. IVA 21%", "IVA 27%", "Neto Grav. IVA 27%",
-    "Neto Gravado Total", "Neto No Gravado", "Op. Exentas", "Otros Tributos", "Total IVA", "Imp. Total",
+    "Fecha",
+    "Tipo",
+    "Punto de Venta",
+    "Número Desde",
+    "Número Hasta",
+    "Cód. Autorización",
+    "Tipo Doc. Receptor",
+    "Nro. Doc. Receptor",
+    "Denominación Receptor",
+    "Tipo Cambio",
+    "Moneda",
+    "Neto Grav. IVA 0%",
+    "IVA 2,5%",
+    "Neto Grav. IVA 2,5%",
+    "IVA 5%",
+    "Neto Grav. IVA 5%",
+    "IVA 10,5%",
+    "Neto Grav. IVA 10,5%",
+    "IVA 21%",
+    "Neto Grav. IVA 21%",
+    "IVA 27%",
+    "Neto Grav. IVA 27%",
+    "Neto Gravado Total",
+    "Neto No Gravado",
+    "Op. Exentas",
+    "Otros Tributos",
+    "Total IVA",
+    "Imp. Total",
   ]);
   const vacio = Array(10).fill(null);
-  hoja.addRow(["15/10/2026", "6 - Factura B", 2, 260, 260, 86400000000001, null, null, null, 1, "$",
-    ...vacio.slice(0, 7), 39575.63, 188455.38, null, null, 188455.38, 0, 0, 0, 39575.63, 228031]);
-  hoja.addRow(["22/10/2026", "1 - Factura A", 1, 54, 54, 86400000000002, "CUIT", 30722222229, "Cliente Ficticio SRL", 1, "$",
-    ...vacio.slice(0, 7), 731383.38, 3482778, null, null, 3482778, 0, 0, 0, 731383.38, 4214161.38]);
-  const r = importarMisComprobantes(await leerXlsx((await libro.xlsx.writeBuffer()) as ArrayBuffer));
+  hoja.addRow([
+    "15/10/2026",
+    "6 - Factura B",
+    2,
+    260,
+    260,
+    86400000000001,
+    null,
+    null,
+    null,
+    1,
+    "$",
+    ...vacio.slice(0, 7),
+    39575.63,
+    188455.38,
+    null,
+    null,
+    188455.38,
+    0,
+    0,
+    0,
+    39575.63,
+    228031,
+  ]);
+  hoja.addRow([
+    "22/10/2026",
+    "1 - Factura A",
+    1,
+    54,
+    54,
+    86400000000002,
+    "CUIT",
+    30722222229,
+    "Cliente Ficticio SRL",
+    1,
+    "$",
+    ...vacio.slice(0, 7),
+    731383.38,
+    3482778,
+    null,
+    null,
+    3482778,
+    0,
+    0,
+    0,
+    731383.38,
+    4214161.38,
+  ]);
+  const r = importarMisComprobantes(
+    await leerXlsx((await libro.xlsx.writeBuffer()) as ArrayBuffer),
+  );
 
   it("lee neto e IVA por alícuota", () => {
     expect(r.operacion).toBe("ventas");
@@ -176,23 +328,133 @@ describe("Mis Comprobantes recibidos formato ARCA actual", async () => {
   const hoja = libro.addWorksheet("Sheet1");
   hoja.addRow(["Mis Comprobantes Recibidos - CUIT 30711111118"]);
   hoja.addRow([
-    "Fecha", "Tipo", "Punto de Venta", "Número Desde", "Número Hasta", "Cód. Autorización",
-    "Tipo Doc. Emisor", "Nro. Doc. Emisor", "Denominación Emisor", "Tipo Doc. Receptor", "Nro. Doc. Receptor",
-    "Tipo Cambio", "Moneda", "Neto Grav. IVA 0%", "IVA 2,5%", "Neto Grav. IVA 2,5%", "IVA 5%", "Neto Grav. IVA 5%",
-    "IVA 10,5%", "Neto Grav. IVA 10,5%", "IVA 21%", "Neto Grav. IVA 21%", "IVA 27%", "Neto Grav. IVA 27%",
-    "Neto Gravado Total", "Neto No Gravado", "Op. Exentas", "Otros Tributos", "Total IVA", "Imp. Total",
+    "Fecha",
+    "Tipo",
+    "Punto de Venta",
+    "Número Desde",
+    "Número Hasta",
+    "Cód. Autorización",
+    "Tipo Doc. Emisor",
+    "Nro. Doc. Emisor",
+    "Denominación Emisor",
+    "Tipo Doc. Receptor",
+    "Nro. Doc. Receptor",
+    "Tipo Cambio",
+    "Moneda",
+    "Neto Grav. IVA 0%",
+    "IVA 2,5%",
+    "Neto Grav. IVA 2,5%",
+    "IVA 5%",
+    "Neto Grav. IVA 5%",
+    "IVA 10,5%",
+    "Neto Grav. IVA 10,5%",
+    "IVA 21%",
+    "Neto Grav. IVA 21%",
+    "IVA 27%",
+    "Neto Grav. IVA 27%",
+    "Neto Gravado Total",
+    "Neto No Gravado",
+    "Op. Exentas",
+    "Otros Tributos",
+    "Total IVA",
+    "Imp. Total",
   ]);
   const vacio = (n: number) => Array(n).fill(null);
   const receptor = ["CUIT", 30711111118, 1, "$"];
-  hoja.addRow(["01/10/2026", "1 - Factura A", 7, 746401, 746401, 86400000000003, "CUIT", 30733333331, "Proveedor Uno SA",
-    ...receptor, ...vacio(7), 8334.38, 39687.54, null, null, 39687.54, 0, 0, 1428.75, 8334.38, 49450.67]);
-  hoja.addRow(["03/10/2026", "3 - Nota de Crédito A", 7, 120, 120, 86400000000004, "CUIT", 30733333331, "Proveedor Uno SA",
-    ...receptor, ...vacio(7), 2100, 10000, null, null, 10000, 0, 0, 0, 2100, 12100]);
-  hoja.addRow(["05/10/2026", "11 - Factura C", 2, 201, 201, 86400000000005, "CUIT", 27344444445, "Monotributista Ficticia",
-    ...receptor, ...vacio(14), 0, null, 385000]);
-  hoja.addRow(["11/10/2026", "81 - Tique Factura A", 193, 41856, 41856, null, "CUIT", 30755555557, "Estación Ficticia SRL",
-    ...receptor, 0, 0, 0, 0, 0, 0, 0, 15429.78, 73475.14, 0, 0, 73475.14, 0, 0, 0, 15429.78, 100000.01]);
-  const r = importarMisComprobantes(await leerXlsx((await libro.xlsx.writeBuffer()) as ArrayBuffer));
+  hoja.addRow([
+    "01/10/2026",
+    "1 - Factura A",
+    7,
+    746401,
+    746401,
+    86400000000003,
+    "CUIT",
+    30733333331,
+    "Proveedor Uno SA",
+    ...receptor,
+    ...vacio(7),
+    8334.38,
+    39687.54,
+    null,
+    null,
+    39687.54,
+    0,
+    0,
+    1428.75,
+    8334.38,
+    49450.67,
+  ]);
+  hoja.addRow([
+    "03/10/2026",
+    "3 - Nota de Crédito A",
+    7,
+    120,
+    120,
+    86400000000004,
+    "CUIT",
+    30733333331,
+    "Proveedor Uno SA",
+    ...receptor,
+    ...vacio(7),
+    2100,
+    10000,
+    null,
+    null,
+    10000,
+    0,
+    0,
+    0,
+    2100,
+    12100,
+  ]);
+  hoja.addRow([
+    "05/10/2026",
+    "11 - Factura C",
+    2,
+    201,
+    201,
+    86400000000005,
+    "CUIT",
+    27344444445,
+    "Monotributista Ficticia",
+    ...receptor,
+    ...vacio(14),
+    0,
+    null,
+    385000,
+  ]);
+  hoja.addRow([
+    "11/10/2026",
+    "81 - Tique Factura A",
+    193,
+    41856,
+    41856,
+    null,
+    "CUIT",
+    30755555557,
+    "Estación Ficticia SRL",
+    ...receptor,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    15429.78,
+    73475.14,
+    0,
+    0,
+    73475.14,
+    0,
+    0,
+    0,
+    15429.78,
+    100000.01,
+  ]);
+  const r = importarMisComprobantes(
+    await leerXlsx((await libro.xlsx.writeBuffer()) as ArrayBuffer),
+  );
   const [fa, nc, fc, tique] = r.comprobantes;
 
   it("toma al emisor como contraparte, no al receptor", () => {

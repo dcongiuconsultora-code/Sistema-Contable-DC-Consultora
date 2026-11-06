@@ -93,7 +93,7 @@ const IMPORTES: [CampoNumero, string][] = [
 ];
 
 function nuevoId() {
-  return Math.random().toString(36).slice(2, 10);
+  return crypto.randomUUID();
 }
 
 export function Tickets({

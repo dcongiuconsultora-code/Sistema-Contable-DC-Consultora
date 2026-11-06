@@ -15,11 +15,22 @@ interface Props {
 }
 
 const TEXTOS: Record<Operacion, { titulo: string; ayuda: string }> = {
-  ventas: { titulo: "Comprobantes emitidos", ayuda: "Ventas · Mis Comprobantes > Emitidos" },
-  compras: { titulo: "Comprobantes recibidos", ayuda: "Compras y gastos · Mis Comprobantes > Recibidos" },
+  ventas: {
+    titulo: "Comprobantes emitidos",
+    ayuda: "Ventas · Mis Comprobantes > Emitidos",
+  },
+  compras: {
+    titulo: "Comprobantes recibidos",
+    ayuda: "Compras y gastos · Mis Comprobantes > Recibidos",
+  },
 };
 
-export function ZonaArchivo({ operacion, resultado, onResultado, archivoExterno }: Props) {
+export function ZonaArchivo({
+  operacion,
+  resultado,
+  onResultado,
+  archivoExterno,
+}: Props) {
   const input = useRef<HTMLInputElement>(null);
   const [nombre, setNombre] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -47,7 +58,9 @@ export function ZonaArchivo({ operacion, resultado, onResultado, archivoExterno 
   }, [archivoExterno]);
 
   const { titulo, ayuda } = TEXTOS[operacion];
-  const conAdvertencias = resultado?.comprobantes.filter((c) => c.advertencias.length > 0).length ?? 0;
+  const conAdvertencias =
+    resultado?.comprobantes.filter((c) => c.advertencias.length > 0).length ??
+    0;
 
   return (
     <div className="rounded-xl border border-stone-200 bg-white p-5 shadow-sm">
@@ -71,11 +84,21 @@ export function ZonaArchivo({ operacion, resultado, onResultado, archivoExterno 
           if (archivo) procesar(archivo);
         }}
         className={`flex w-full flex-col items-center justify-center rounded-lg border-2 border-dashed px-4 py-6 text-sm transition ${
-          arrastrando ? "border-marca bg-marca-claro" : "border-stone-300 hover:border-marca hover:bg-stone-50"
+          arrastrando
+            ? "border-marca bg-marca-claro"
+            : "border-stone-300 hover:border-marca hover:bg-stone-50"
         }`}
       >
-        <span className="font-medium text-marca">{cargando ? "Leyendo…" : nombre ? "Cambiar archivo" : "Elegir archivo"}</span>
-        <span className="mt-1 text-stone-500">{nombre ?? "o arrastralo acá (.xlsx o .csv)"}</span>
+        <span className="font-medium text-marca">
+          {cargando
+            ? "Leyendo…"
+            : nombre
+              ? "Cambiar archivo"
+              : "Elegir archivo"}
+        </span>
+        <span className="mt-1 text-stone-500">
+          {nombre ?? "o arrastralo acá (.xlsx o .csv)"}
+        </span>
       </button>
       <input
         ref={input}
@@ -89,32 +112,48 @@ export function ZonaArchivo({ operacion, resultado, onResultado, archivoExterno 
         }}
       />
 
-      {error && <p className="mt-3 rounded-md bg-red-50 p-3 text-sm text-red-800">{error}</p>}
+      {error && (
+        <p className="mt-3 rounded-md bg-red-50 p-3 text-sm text-red-800">
+          {error}
+        </p>
+      )}
 
       {resultado && (
         <div className="mt-3 space-y-2 text-sm">
           <p>
             <strong>{resultado.comprobantes.length}</strong> comprobantes leídos
-            {resultado.cuitTitular && <> · CUIT {cuitConGuiones(resultado.cuitTitular)}</>}
-            {" · "}formato {resultado.formato === "detallado" ? "con desglose por alícuota" : "simple"}
+            {resultado.cuitTitular && (
+              <> · CUIT {cuitConGuiones(resultado.cuitTitular)}</>
+            )}
+            {" · "}formato{" "}
+            {resultado.formato === "detallado"
+              ? "con desglose por alícuota"
+              : "simple"}
           </p>
           {resultado.errores.length > 0 && (
             <details className="rounded-md bg-red-50 p-3 text-red-800">
-              <summary className="cursor-pointer">{resultado.errores.length} filas con problemas</summary>
+              <summary className="cursor-pointer">
+                {resultado.errores.length} filas con problemas
+              </summary>
               <ul className="mt-2 list-disc pl-5">
                 {resultado.errores.map((e) => (
-                  <li key={e.fila}>Fila {e.fila}: {e.mensaje}</li>
+                  <li key={e.fila}>
+                    Fila {e.fila}: {e.mensaje}
+                  </li>
                 ))}
               </ul>
             </details>
           )}
           {conAdvertencias > 0 && (
             <p className="rounded-md bg-amber-50 p-3 text-amber-900">
-              {conAdvertencias} comprobantes para revisar (marcados en el libro).
+              {conAdvertencias} comprobantes para revisar (marcados en el
+              libro).
             </p>
           )}
           {resultado.avisos.map((a) => (
-            <p key={a} className="text-stone-600">ⓘ {a}</p>
+            <p key={a} className="text-stone-600">
+              ⓘ {a}
+            </p>
           ))}
         </div>
       )}

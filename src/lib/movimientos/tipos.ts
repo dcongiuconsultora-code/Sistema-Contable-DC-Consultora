@@ -147,6 +147,8 @@ export interface Movimiento {
   nota: string;
   estado: EstadoMovimiento;
   observacion?: string;
+  /** "banco" si lo registró el estudio desde la conciliación bancaria; si no, lo cargó el cliente. */
+  origen?: "cliente" | "banco";
 }
 
 export const TIPOS: {

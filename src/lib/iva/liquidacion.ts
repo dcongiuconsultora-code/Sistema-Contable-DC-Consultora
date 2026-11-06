@@ -20,10 +20,18 @@ export function claveTasa(tasa: number | null) {
   return tasa === null ? "s/d" : String(tasa);
 }
 
-export function comprobantesDelPeriodo(comprobantes: Comprobante[], periodo: string) {
+export function comprobantesDelPeriodo(
+  comprobantes: Comprobante[],
+  periodo: string,
+) {
   return comprobantes
     .filter((c) => c.periodo === periodo)
-    .sort((a, b) => a.fecha.localeCompare(b.fecha) || a.puntoVenta - b.puntoVenta || a.numeroDesde - b.numeroDesde);
+    .sort(
+      (a, b) =>
+        a.fecha.localeCompare(b.fecha) ||
+        a.puntoVenta - b.puntoVenta ||
+        a.numeroDesde - b.numeroDesde,
+    );
 }
 
 export function totalesLibro(comprobantes: Comprobante[]): TotalesLibro {
@@ -96,8 +104,13 @@ export function liquidarIva(
   const debitoFiscal = tv.iva;
   const creditoFiscal = tc.iva;
 
-  const saldoTecnico = redondear(debitoFiscal - creditoFiscal - manual.saldoTecnicoAnterior);
-  const aDescontar = manual.percepciones + manual.retenciones + manual.saldoLibreDisponibilidadAnterior;
+  const saldoTecnico = redondear(
+    debitoFiscal - creditoFiscal - manual.saldoTecnicoAnterior,
+  );
+  const aDescontar =
+    manual.percepciones +
+    manual.retenciones +
+    manual.saldoLibreDisponibilidadAnterior;
   const impuestoDeterminado = Math.max(0, saldoTecnico);
   return {
     debitoPorTasa,
@@ -107,6 +120,8 @@ export function liquidarIva(
     saldoTecnico,
     saldoTecnicoAFavor: Math.max(0, -saldoTecnico),
     saldoAPagar: redondear(Math.max(0, impuestoDeterminado - aDescontar)),
-    saldoLibreDisponibilidad: redondear(Math.max(0, aDescontar - impuestoDeterminado)),
+    saldoLibreDisponibilidad: redondear(
+      Math.max(0, aDescontar - impuestoDeterminado),
+    ),
   };
 }

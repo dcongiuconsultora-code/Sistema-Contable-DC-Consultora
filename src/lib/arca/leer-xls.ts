@@ -41,11 +41,15 @@ class LectorSegmentos {
   constructor(private segmentos: Uint8Array[]) {}
 
   private asegurar() {
-    while (this.seg < this.segmentos.length && this.pos >= this.segmentos[this.seg].length) {
+    while (
+      this.seg < this.segmentos.length &&
+      this.pos >= this.segmentos[this.seg].length
+    ) {
       this.seg++;
       this.pos = 0;
     }
-    if (this.seg >= this.segmentos.length) throw new Error("archivo .xls incompleto");
+    if (this.seg >= this.segmentos.length)
+      throw new Error("archivo .xls incompleto");
   }
 
   u8() {
@@ -66,7 +70,10 @@ class LectorSegmentos {
   caracteres(cantidad: number, dobleByte: boolean) {
     let texto = "";
     for (let i = 0; i < cantidad; i++) {
-      if (this.seg < this.segmentos.length && this.pos >= this.segmentos[this.seg].length) {
+      if (
+        this.seg < this.segmentos.length &&
+        this.pos >= this.segmentos[this.seg].length
+      ) {
         this.seg++;
         this.pos = 0;
         dobleByte = (this.u8() & 0x01) === 1;
@@ -89,7 +96,11 @@ class LectorSegmentos {
 
 function leerSst(registros: Registro[], indice: number): string[] {
   const segmentos = [registros[indice].datos];
-  for (let i = indice + 1; i < registros.length && registros[i].tipo === CONTINUE; i++) {
+  for (
+    let i = indice + 1;
+    i < registros.length && registros[i].tipo === CONTINUE;
+    i++
+  ) {
     segmentos.push(registros[i].datos);
   }
   const lector = new LectorSegmentos(segmentos);
@@ -114,10 +125,13 @@ function numeroRk(rk: number): number {
 
 export function leerXls(datos: ArrayBuffer): Celda[][] {
   const contenedor = CFB.read(new Uint8Array(datos), { type: "array" });
-  const libro = CFB.find(contenedor, "Workbook") ?? CFB.find(contenedor, "Book");
+  const libro =
+    CFB.find(contenedor, "Workbook") ?? CFB.find(contenedor, "Book");
   if (!libro?.content) throw new Error("No se pudo abrir el archivo .xls");
   const contenido = libro.content as Uint8Array | number[];
-  const registros = leerRegistros(contenido instanceof Uint8Array ? contenido : Uint8Array.from(contenido));
+  const registros = leerRegistros(
+    contenido instanceof Uint8Array ? contenido : Uint8Array.from(contenido),
+  );
 
   let textos: string[] = [];
   const filas: Celda[][] = [];
@@ -128,7 +142,11 @@ export function leerXls(datos: ArrayBuffer): Celda[][] {
 
   for (let i = 0; i < registros.length; i++) {
     const { tipo, datos } = registros[i];
-    const vista = new DataView(datos.buffer, datos.byteOffset, datos.byteLength);
+    const vista = new DataView(
+      datos.buffer,
+      datos.byteOffset,
+      datos.byteLength,
+    );
     if (tipo === BOF && i > 0) bloque++;
     if (bloque > 1) break;
     if (tipo === EOF && bloque === 1) break;
@@ -153,13 +171,18 @@ export function leerXls(datos: ArrayBuffer): Celda[][] {
       case MULRK: {
         const ultima = vista.getUint16(datos.length - 2, true);
         for (let c = col; c <= ultima; c++) {
-          poner(fila, c, numeroRk(vista.getUint32(4 + (c - col) * 6 + 2, true)));
+          poner(
+            fila,
+            c,
+            numeroRk(vista.getUint32(4 + (c - col) * 6 + 2, true)),
+          );
         }
         break;
       }
       case FORMULA:
         // Solo el resultado numérico; los resultados de texto vienen en otro registro y no los usamos.
-        if (vista.getUint16(12, true) !== 0xffff) poner(fila, col, vista.getFloat64(6, true));
+        if (vista.getUint16(12, true) !== 0xffff)
+          poner(fila, col, vista.getFloat64(6, true));
         break;
       case BOOLERR:
         if (datos[7] === 0) poner(fila, col, datos[6] === 1);

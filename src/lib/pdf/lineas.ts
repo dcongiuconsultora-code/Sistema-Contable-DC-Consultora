@@ -44,7 +44,11 @@ export async function extraerLineas(doc: DocumentoPdf): Promise<LineaPdf[]> {
         linea = { pagina, y, fragmentos: [], texto: "" };
         porAltura.push(linea);
       }
-      linea.fragmentos.push({ x: item.transform[4], fin: item.transform[4] + item.width, texto: item.str.trim() });
+      linea.fragmentos.push({
+        x: item.transform[4],
+        fin: item.transform[4] + item.width,
+        texto: item.str.trim(),
+      });
     }
     porAltura.sort((a, b) => b.y - a.y);
     for (const l of porAltura) {

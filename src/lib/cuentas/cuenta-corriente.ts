@@ -140,9 +140,7 @@ export function cuentasCorrientes(
       fecha: m.fecha,
       cargo: 0,
       // Los registrados desde la conciliación bancaria los crea el estudio.
-      origen: m.id.startsWith("banco-")
-        ? ("Banco" as const)
-        : ("Cliente" as const),
+      origen: m.origen === "banco" ? ("Banco" as const) : ("Cliente" as const),
       sinAprobar: m.estado !== "aprobado",
     };
     cuenta.items.push({

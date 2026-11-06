@@ -80,7 +80,8 @@ export function conciliarResumen(
   ): Movimiento | undefined => {
     const { cuit, nombre } = sugerenciaDesdeBanco(m);
     const base = {
-      id: `banco-${cuenta}-${m.fecha}-${m.referencia}-${m.importe}-${m.pagina}`,
+      id: crypto.randomUUID(),
+      origen: "banco" as const,
       fecha: m.fecha,
       importe: Math.abs(m.importe),
       medio: tipoCuenta.get(cuenta) ?? "banco_cc",

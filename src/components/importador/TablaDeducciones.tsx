@@ -12,7 +12,10 @@ export function TablaDeducciones({ deducciones, periodo }: Props) {
   const totales = totalesDeducciones(deducciones, periodo);
   const delPeriodo = deducciones
     .filter((d) => d.periodo === periodo)
-    .sort((a, b) => a.impuesto.localeCompare(b.impuesto) || a.fecha.localeCompare(b.fecha));
+    .sort(
+      (a, b) =>
+        a.impuesto.localeCompare(b.impuesto) || a.fecha.localeCompare(b.fecha),
+    );
 
   if (delPeriodo.length === 0) {
     return (
@@ -25,7 +28,9 @@ export function TablaDeducciones({ deducciones, periodo }: Props) {
   return (
     <div className="space-y-4">
       <div className="overflow-hidden rounded-xl border border-stone-200 bg-white shadow-sm">
-        <h3 className="border-b border-stone-200 px-4 py-3 font-semibold">Resumen para las declaraciones juradas</h3>
+        <h3 className="border-b border-stone-200 px-4 py-3 font-semibold">
+          Resumen para las declaraciones juradas
+        </h3>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-stone-50 text-left text-xs uppercase tracking-wide text-stone-500">
@@ -44,7 +49,9 @@ export function TablaDeducciones({ deducciones, periodo }: Props) {
                   <td className="px-4 py-2">{t.jurisdiccion ?? "—"}</td>
                   <td className="px-4 py-2">{TIPO[t.tipo]}</td>
                   <td className="cifra px-4 py-2">{t.cantidad}</td>
-                  <td className="cifra px-4 py-2 font-medium">{pesos(t.importe)}</td>
+                  <td className="cifra px-4 py-2 font-medium">
+                    {pesos(t.importe)}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -53,7 +60,9 @@ export function TablaDeducciones({ deducciones, periodo }: Props) {
       </div>
 
       <div className="overflow-hidden rounded-xl border border-stone-200 bg-white shadow-sm">
-        <h3 className="border-b border-stone-200 px-4 py-3 font-semibold">Detalle ({delPeriodo.length})</h3>
+        <h3 className="border-b border-stone-200 px-4 py-3 font-semibold">
+          Detalle ({delPeriodo.length})
+        </h3>
         <div className="max-h-[32rem] overflow-auto">
           <table className="w-full text-sm">
             <thead className="sticky top-0 bg-stone-50 text-left text-xs uppercase tracking-wide text-stone-500">
@@ -69,19 +78,33 @@ export function TablaDeducciones({ deducciones, periodo }: Props) {
             <tbody className="divide-y divide-stone-100">
               {delPeriodo.map((d, i) => (
                 <tr key={i}>
-                  <td className="px-3 py-2 whitespace-nowrap">{d.origen === "SIRCREB" ? "Mensual" : fechaCorta(d.fecha)}</td>
                   <td className="px-3 py-2 whitespace-nowrap">
-                    <div>{d.impuesto}{d.jurisdiccion ? ` · ${d.jurisdiccion}` : ""}</div>
+                    {d.origen === "SIRCREB" ? "Mensual" : fechaCorta(d.fecha)}
+                  </td>
+                  <td className="px-3 py-2 whitespace-nowrap">
+                    <div>
+                      {d.impuesto}
+                      {d.jurisdiccion ? ` · ${d.jurisdiccion}` : ""}
+                    </div>
                     <div className="text-xs text-stone-500">{TIPO[d.tipo]}</div>
                   </td>
                   <td className="px-3 py-2">
                     <div className="max-w-56 truncate">{d.agente || "—"}</div>
-                    <div className="text-xs text-stone-500">{cuitConGuiones(d.cuitAgente)}</div>
+                    <div className="text-xs text-stone-500">
+                      {cuitConGuiones(d.cuitAgente)}
+                    </div>
                   </td>
                   <td className="px-3 py-2">
-                    <div className="max-w-72 truncate text-stone-600" title={d.regimen}>{d.regimen}</div>
+                    <div
+                      className="max-w-72 truncate text-stone-600"
+                      title={d.regimen}
+                    >
+                      {d.regimen}
+                    </div>
                   </td>
-                  <td className="px-3 py-2 whitespace-nowrap text-stone-600">{d.comprobante || "—"}</td>
+                  <td className="px-3 py-2 whitespace-nowrap text-stone-600">
+                    {d.comprobante || "—"}
+                  </td>
                   <td className="cifra px-3 py-2">{pesos(d.importe)}</td>
                 </tr>
               ))}

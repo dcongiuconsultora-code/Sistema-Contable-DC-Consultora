@@ -1,7 +1,12 @@
 // Códigos de tipo de comprobante de ARCA (tabla de comprobantes de facturación electrónica).
 
 export type Letra = "A" | "B" | "C" | "M" | "E" | "";
-export type Clase = "factura" | "nota_debito" | "nota_credito" | "recibo" | "otro";
+export type Clase =
+  | "factura"
+  | "nota_debito"
+  | "nota_credito"
+  | "recibo"
+  | "otro";
 
 export interface TipoComprobante {
   codigo: number;
@@ -57,7 +62,10 @@ const TABLA: [number, string, Letra, Clase][] = [
 ];
 
 const POR_CODIGO = new Map<number, TipoComprobante>(
-  TABLA.map(([codigo, nombre, letra, clase]) => [codigo, { codigo, nombre, letra, clase }]),
+  TABLA.map(([codigo, nombre, letra, clase]) => [
+    codigo,
+    { codigo, nombre, letra, clase },
+  ]),
 );
 
 /**
@@ -75,20 +83,22 @@ export function interpretarTipo(valor: unknown): TipoComprobante | null {
   const nombre = texto.replace(/^\d+\s*-\s*/, "");
   const sinAcentos = nombre.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
   const porNombre = TABLA.find(
-    ([, n]) => n.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase() === sinAcentos,
+    ([, n]) =>
+      n.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase() === sinAcentos,
   );
   if (porNombre) return POR_CODIGO.get(porNombre[0])!;
 
   // Código desconocido: deducimos lo que podamos del texto.
-  const clase: Clase = sinAcentos.includes("credito") && !sinAcentos.includes("factura de credito")
-    ? "nota_credito"
-    : sinAcentos.includes("debito")
-      ? "nota_debito"
-      : sinAcentos.includes("recibo")
-        ? "recibo"
-        : sinAcentos.includes("factura") || sinAcentos.includes("tique")
-          ? "factura"
-          : "otro";
+  const clase: Clase =
+    sinAcentos.includes("credito") && !sinAcentos.includes("factura de credito")
+      ? "nota_credito"
+      : sinAcentos.includes("debito")
+        ? "nota_debito"
+        : sinAcentos.includes("recibo")
+          ? "recibo"
+          : sinAcentos.includes("factura") || sinAcentos.includes("tique")
+            ? "factura"
+            : "otro";
   const letraTexto = nombre.trim().match(/\b([ABCEM])$/);
   return {
     codigo: numero ? Number(numero[1]) : 0,

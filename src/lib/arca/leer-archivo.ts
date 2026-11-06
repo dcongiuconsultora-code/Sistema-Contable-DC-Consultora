@@ -28,7 +28,10 @@ function dividirLineaCsv(linea: string, separador: string): string[] {
 }
 
 export function leerCsv(texto: string): Celda[][] {
-  const lineas = texto.replace(/^﻿/, "").split(/\r?\n/).filter((l) => l.trim() !== "");
+  const lineas = texto
+    .replace(/^﻿/, "")
+    .split(/\r?\n/)
+    .filter((l) => l.trim() !== "");
   if (lineas.length === 0) return [];
   // ARCA exporta con ";" pero aceptamos también "," y tabulaciones.
   const muestra = lineas.slice(0, 5).join("\n");
@@ -56,7 +59,9 @@ export async function leerXlsx(datos: ArrayBuffer): Promise<Celda[][]> {
   if (!hoja) return [];
   const filas: Celda[][] = [];
   hoja.eachRow({ includeEmpty: true }, (fila, numero) => {
-    const valores = (fila.values as ExcelJS.CellValue[]).slice(1).map(valorCelda);
+    const valores = (fila.values as ExcelJS.CellValue[])
+      .slice(1)
+      .map(valorCelda);
     filas[numero - 1] = valores;
   });
   return Array.from(filas, (f) => f ?? []);
@@ -84,5 +89,7 @@ export async function leerArchivo(archivo: File): Promise<Celda[][]> {
   if (nombre.endsWith(".xls")) {
     return leerXls(await archivo.arrayBuffer());
   }
-  throw new Error("Formato no soportado. Subí el archivo .xlsx, .xls o .csv que descargás de ARCA.");
+  throw new Error(
+    "Formato no soportado. Subí el archivo .xlsx, .xls o .csv que descargás de ARCA.",
+  );
 }

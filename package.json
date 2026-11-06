@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.6.0",
+    "@supabase/supabase-js": "^2.58.0",
     "cfb": "^1.2.2",
     "exceljs": "^4.4.0",
     "jsqr": "^1.4.0",

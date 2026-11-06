@@ -21,8 +21,13 @@ interface Columnas {
 }
 
 /** Ubica cada importe en la columna cuyo borde derecho está más cerca. */
-function columnaDe(f: Fragmento, c: Columnas): "debitos" | "creditos" | "saldo" {
-  const candidatas = (["debitos", "creditos", "saldo"] as const).map((k) => [k, Math.abs(f.fin - c[k])] as const);
+function columnaDe(
+  f: Fragmento,
+  c: Columnas,
+): "debitos" | "creditos" | "saldo" {
+  const candidatas = (["debitos", "creditos", "saldo"] as const).map(
+    (k) => [k, Math.abs(f.fin - c[k])] as const,
+  );
   return candidatas.sort((a, b) => a[1] - b[1])[0][0];
 }
 
@@ -37,7 +42,15 @@ export function esResumenMacro(lineas: LineaPdf[]) {
 
 /** Lee el resumen de cuenta de Banco Macro (PDF), con todas las cuentas que trae. */
 export function importarResumenMacro(lineas: LineaPdf[]): ResumenBancario {
-  const resumen: ResumenBancario = { banco: "Banco Macro", titular: "", cuit: "", desde: null, hasta: null, cuentas: [], controles: [] };
+  const resumen: ResumenBancario = {
+    banco: "Banco Macro",
+    titular: "",
+    cuit: "",
+    desde: null,
+    hasta: null,
+    cuentas: [],
+    controles: [],
+  };
   const cuentas = new Map<string, CuentaBancaria>();
   let actual: CuentaBancaria | null = null;
   let columnas: Columnas | null = null;
@@ -51,11 +64,17 @@ export function importarResumenMacro(lineas: LineaPdf[]): ResumenBancario {
       if (cuit) {
         resumen.cuit = cuit[1];
         // El nombre del titular está en la misma línea, a la izquierda.
-        resumen.titular = linea.fragmentos.filter((f) => f.x < 300).map((f) => f.texto).join(" ").trim();
+        resumen.titular = linea.fragmentos
+          .filter((f) => f.x < 300)
+          .map((f) => f.texto)
+          .join(" ")
+          .trim();
       }
     }
     if (!resumen.desde) {
-      const periodo = t.match(/Periodo del Extracto:\s*(\d{2})\/(\d{2})\/(\d{4})\s*al\s*(\d{2})\/(\d{2})\/(\d{4})/);
+      const periodo = t.match(
+        /Periodo del Extracto:\s*(\d{2})\/(\d{2})\/(\d{4})\s*al\s*(\d{2})\/(\d{2})\/(\d{4})/,
+      );
       if (periodo) {
         resumen.desde = fechaIso(periodo[1], periodo[2], periodo[3]);
         resumen.hasta = fechaIso(periodo[4], periodo[5], periodo[6]);
@@ -85,10 +104,16 @@ export function importarResumenMacro(lineas: LineaPdf[]): ResumenBancario {
     if (!actual) continue;
 
     if (/^FECHA\b/.test(t) && /DEBITOS/.test(t) && /CREDITOS/.test(t)) {
-      const fin = (nombre: string) => linea.fragmentos.find((f) => f.texto === nombre)?.fin ?? 0;
+      const fin = (nombre: string) =>
+        linea.fragmentos.find((f) => f.texto === nombre)?.fin ?? 0;
       const ref = linea.fragmentos.find((f) => f.texto === "REFERENCIA");
       // Los importes terminan un poco a la derecha del título de su columna.
-      columnas = { referencia: ref?.x ?? 0, debitos: fin("DEBITOS") + 17, creditos: fin("CREDITOS") + 13, saldo: fin("SALDO") + 17 };
+      columnas = {
+        referencia: ref?.x ?? 0,
+        debitos: fin("DEBITOS") + 17,
+        creditos: fin("CREDITOS") + 13,
+        saldo: fin("SALDO") + 17,
+      };
       continue;
     }
     if (/SALDO ULTIMO EXTRACTO/.test(t)) {
@@ -124,7 +149,10 @@ export function importarResumenMacro(lineas: LineaPdf[]): ResumenBancario {
     }
     // La referencia es el número en su columna; a veces viene pegada al final de la descripción.
     const enColumna = texto.filter((f) => f.x >= columnas!.referencia - 2);
-    const descripcion = texto.filter((f) => f.x < columnas!.referencia - 2).map((f) => f.texto).join(" ");
+    const descripcion = texto
+      .filter((f) => f.x < columnas!.referencia - 2)
+      .map((f) => f.texto)
+      .join(" ");
     let referencia = enColumna.map((f) => f.texto).join(" ");
     let desc = descripcion;
     if (!referencia) {
@@ -155,12 +183,16 @@ export function controlar(cuentas: CuentaBancaria[]): string[] {
     for (const m of c.movimientos) {
       saldo = redondear(saldo + m.importe);
       if (m.saldo !== null && Math.abs(m.saldo - saldo) > 0.005) {
-        problemas.push(`${c.numero}: el saldo después de "${m.descripcion}" del ${m.fecha} debería ser ${m.saldo} y da ${saldo}.`);
+        problemas.push(
+          `${c.numero}: el saldo después de "${m.descripcion}" del ${m.fecha} debería ser ${m.saldo} y da ${saldo}.`,
+        );
         saldo = m.saldo; // seguimos desde el saldo del banco para no arrastrar el error
       }
     }
     if (c.saldoFinal !== null && Math.abs(c.saldoFinal - saldo) > 0.005) {
-      problemas.push(`${c.numero}: el saldo final del banco es ${c.saldoFinal} y los movimientos dan ${saldo}.`);
+      problemas.push(
+        `${c.numero}: el saldo final del banco es ${c.saldoFinal} y los movimientos dan ${saldo}.`,
+      );
     }
   }
   return problemas;

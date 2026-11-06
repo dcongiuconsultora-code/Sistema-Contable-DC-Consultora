@@ -50,7 +50,7 @@ function hoy() {
 
 function nuevo(tipo: TipoMovimiento): Movimiento {
   return {
-    id: Math.random().toString(36).slice(2, 10),
+    id: crypto.randomUUID(),
     tipo,
     fecha: hoy(),
     importe: 0,
@@ -521,7 +521,11 @@ export function Movimientos({
               <div
                 className={`text-xs font-semibold uppercase tracking-wide ${t.id === "socios" ? "text-stone-500" : t.entra ? "text-emerald-700" : "text-red-700"}`}
               >
-                {t.id === "socios" ? "Entra o sale plata" : t.entra ? "Entra plata" : "Sale plata"}
+                {t.id === "socios"
+                  ? "Entra o sale plata"
+                  : t.entra
+                    ? "Entra plata"
+                    : "Sale plata"}
               </div>
               <div className="mt-1 font-semibold">{t.nombre}</div>
               <div className="text-sm text-stone-500">{t.ayuda}</div>

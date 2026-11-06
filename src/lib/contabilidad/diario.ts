@@ -130,9 +130,8 @@ export function generarDiario(f: FuentesDiario): Asiento[] {
       .filter((m) => m.estado !== "observado")
       .map((m) => ({
         fecha: m.fecha,
-        origen: m.id.startsWith("banco-")
-          ? ("Banco" as const)
-          : ("Cliente" as const),
+        origen:
+          m.origen === "banco" ? ("Banco" as const) : ("Cliente" as const),
         descripcion: m.contraparte || m.nota || m.tipo,
         lineas: generarAsiento(m),
       })),

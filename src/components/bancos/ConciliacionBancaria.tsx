@@ -94,7 +94,8 @@ function Registrar({
         e.preventDefault();
         if (falta) return;
         onRegistrar({
-          id: `banco-${fila.cuenta}-${fila.movimiento.fecha}-${fila.movimiento.referencia}-${fila.movimiento.importe}-${fila.movimiento.pagina}`,
+          id: crypto.randomUUID(),
+          origen: "banco",
           tipo,
           fecha: fila.movimiento.fecha,
           importe: Math.abs(fila.movimiento.importe),
