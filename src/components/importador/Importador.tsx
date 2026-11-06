@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Bancos } from "@/components/bancos/Bancos";
+import { type TicketCargado, Tickets } from "@/components/tickets/Tickets";
 import { LibroIva } from "./LibroIva";
 import { PanelLiquidacion } from "./PanelLiquidacion";
 import { TablaDeducciones } from "./TablaDeducciones";
@@ -14,8 +15,14 @@ import {
   type DatosManualesIva,
 } from "@/lib/iva/liquidacion";
 import { nombrePeriodo } from "@/lib/formato";
+import { type LectorTicket, leerConServidor } from "@/lib/tickets/lector";
+import {
+  claveComprobante,
+  revisarTicket,
+  ticketAComprobante,
+} from "@/lib/tickets/validar";
 
-type Seccion = "arca" | "bancos";
+type Seccion = "arca" | "bancos" | "tickets";
 type Pestana = "ventas" | "compras" | "deducciones" | "liquidacion";
 
 const MANUAL_INICIAL: DatosManualesIva = {
@@ -43,8 +50,13 @@ async function descargarEjemplo(nombre: string, tipo: string) {
 
 export function Importador({
   cargarEjemploAlInicio = false,
+  lector = leerConServidor,
+  sinLector,
 }: {
   cargarEjemploAlInicio?: boolean;
+  /** Cómo se leen las fotos de tickets: por defecto, la ruta del servidor; null = carga manual. */
+  lector?: LectorTicket | null;
+  sinLector?: string;
 }) {
   const [ventas, setVentas] = useState<ResultadoImportacion | null>(null);
   const [compras, setCompras] = useState<ResultadoImportacion | null>(null);
@@ -61,6 +73,30 @@ export function Importador({
   const [periodoElegido, setPeriodoElegido] = useState<string | null>(null);
   const [pestana, setPestana] = useState<Pestana>("ventas");
   const [manual, setManual] = useState(MANUAL_INICIAL);
+  const [tickets, setTickets] = useState<TicketCargado[]>([]);
+  const [cuitElegido, setCuitElegido] = useState<string | null>(null);
+  const cuitCliente =
+    cuitElegido ?? compras?.cuitTitular ?? ventas?.cuitTitular ?? "";
+
+  // Los tickets que el cliente cargó y todavía no aparecen en Mis Comprobantes recibidos.
+  const ticketsPendientes = useMemo(() => {
+    const enArca = new Set((compras?.comprobantes ?? []).map(claveComprobante));
+    return tickets
+      .map((t, i) =>
+        ticketAComprobante(
+          revisarTicket(t.datos, cuitCliente || null),
+          100000 + i,
+        ),
+      )
+      .filter((c) => !enArca.has(claveComprobante(c)))
+      .map((c) => ({
+        ...c,
+        advertencias: [
+          "Ticket cargado por el cliente, todavía no figura en ARCA.",
+          ...c.advertencias,
+        ],
+      }));
+  }, [tickets, compras, cuitCliente]);
 
   const deducciones = useMemo(
     () => archivosDeducciones.flatMap((a) => a.resultado.deducciones),
@@ -74,6 +110,7 @@ export function Importador({
     for (const c of [
       ...(ventas?.comprobantes ?? []),
       ...(compras?.comprobantes ?? []),
+      ...ticketsPendientes,
     ]) {
       cantidad.set(c.periodo, (cantidad.get(c.periodo) ?? 0) + 1);
     }
@@ -87,7 +124,7 @@ export function Importador({
       .sort()
       .reverse();
     return { periodos: lista, principal: masComprobantes ?? lista[0] };
-  }, [ventas, compras, deducciones]);
+  }, [ventas, compras, deducciones, ticketsPendientes]);
   const periodo =
     periodoElegido && periodos.includes(periodoElegido)
       ? periodoElegido
@@ -97,7 +134,10 @@ export function Importador({
     ? comprobantesDelPeriodo(ventas?.comprobantes ?? [], periodo)
     : [];
   const comprasPeriodo = periodo
-    ? comprobantesDelPeriodo(compras?.comprobantes ?? [], periodo)
+    ? comprobantesDelPeriodo(
+        [...(compras?.comprobantes ?? []), ...ticketsPendientes],
+        periodo,
+      )
     : [];
   const ivaDesdeArchivos =
     periodo && archivosDeducciones.length > 0
@@ -151,6 +191,7 @@ export function Importador({
               [
                 ["arca", "ARCA"],
                 ["bancos", "Bancos"],
+                ["tickets", "Tickets"],
               ] as [Seccion, string][]
             ).map(([id, texto]) => (
               <button
@@ -167,6 +208,30 @@ export function Importador({
       </header>
 
       <main className="mx-auto max-w-7xl space-y-6 px-4 py-6">
+        <div hidden={seccion !== "tickets"}>
+          <section className="mb-6">
+            <h1 className="text-2xl font-semibold">Tickets del cliente</h1>
+            <p className="mt-1 max-w-3xl text-stone-600">
+              Para los tiques que todavía no aparecen en Mis Comprobantes. El
+              cliente saca una foto, el sistema lee los datos y el cliente los
+              confirma. Se suman al Libro IVA Compras del período y, cuando el
+              comprobante aparece en ARCA, se toma el de ARCA y el ticket no se
+              cuenta dos veces.
+            </p>
+          </section>
+          <Tickets
+            cuitCliente={cuitCliente}
+            onCuitCliente={setCuitElegido}
+            comprasArca={compras?.comprobantes ?? []}
+            tickets={tickets}
+            onTickets={setTickets}
+            lector={lector}
+            sinLector={sinLector}
+            ticketEjemplo={() =>
+              descargarEjemplo("ticket-ejemplo.jpg", "image/jpeg")
+            }
+          />
+        </div>
         <div hidden={seccion !== "bancos"}>
           <section className="mb-6">
             <h1 className="text-2xl font-semibold">Bancos</h1>
