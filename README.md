@@ -16,6 +16,12 @@ Sistema contable interno de la consultora: los clientes cargan su operación y e
 - Controla movimiento por movimiento que el saldo cierre contra el que informa el banco.
 - Clasifica cada movimiento con las cuentas del plan (SIRCREB y otras retenciones de IIBB, impuesto a los débitos y créditos, gastos bancarios, cobros y pagos, cheques, fondos comunes, etc.) y marca para revisar los que necesitan criterio.
 
+## Cobros y pagos del cliente
+
+- El cliente registra cobros de clientes (con las retenciones que le hicieron), pagos a proveedores, sueldos, honorarios, gastos, impuestos y movimientos con los socios.
+- Cada movimiento genera su asiento con el plan de cuentas modelo; el estudio lo aprueba u observa (Enviado → Aprobado / Observado).
+- Los cobros y pagos por banco se cruzan con el resumen bancario (mismo importe y sentido, hasta 3 días de diferencia) y esos movimientos del banco quedan clasificados solos.
+
 ## Tickets del cliente
 
 - El cliente saca una foto del tique (o factura) que todavía no aparece en Mis Comprobantes.
@@ -45,6 +51,9 @@ npm test        # pruebas del importador y la liquidación
 | `src/lib/pdf/` | Extracción de texto de PDF con posiciones (pdf.js) |
 | `src/components/importador/` | Pantalla de importación de ARCA |
 | `src/components/bancos/` | Pantalla de bancos |
+| `src/lib/movimientos/` | Cobros y pagos del cliente: asientos, validación y cruce con el banco |
+| `src/lib/plan/` | Plan de cuentas modelo |
+| `src/components/movimientos/` | Pantalla de cobros y pagos |
 | `src/lib/tickets/` | Lectura de tickets: QR de ARCA, instrucciones para Claude, controles |
 | `src/app/api/tickets/leer/` | Ruta del servidor que lee la foto con la API de Anthropic |
 | `src/components/tickets/` | Pantalla de carga de tickets |

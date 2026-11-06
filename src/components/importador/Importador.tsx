@@ -2,7 +2,13 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Bancos } from "@/components/bancos/Bancos";
+import {
+  type Contraparte,
+  Movimientos,
+} from "@/components/movimientos/Movimientos";
 import { type TicketCargado, Tickets } from "@/components/tickets/Tickets";
+import type { Comprobante } from "@/lib/arca/tipos";
+import type { Movimiento } from "@/lib/movimientos/tipos";
 import { LibroIva } from "./LibroIva";
 import { PanelLiquidacion } from "./PanelLiquidacion";
 import { TablaDeducciones } from "./TablaDeducciones";
@@ -22,7 +28,74 @@ import {
   ticketAComprobante,
 } from "@/lib/tickets/validar";
 
-type Seccion = "arca" | "bancos" | "tickets";
+type Seccion = "arca" | "bancos" | "tickets" | "movimientos";
+
+/** Clientes o proveedores distintos de una lista de comprobantes, para sugerir al cargar. */
+function contrapartes(comprobantes: Comprobante[]): Contraparte[] {
+  const vistas = new Map<string, Contraparte>();
+  for (const c of comprobantes) {
+    if (c.contraparte && !vistas.has(c.contraparte))
+      vistas.set(c.contraparte, {
+        nombre: c.contraparte,
+        cuit: c.cuitContraparte,
+      });
+  }
+  return [...vistas.values()].sort((a, b) => a.nombre.localeCompare(b.nombre));
+}
+
+// Movimientos de ejemplo que coinciden con el resumen bancario de ejemplo.
+const MOVIMIENTOS_EJEMPLO: Movimiento[] = [
+  {
+    id: "ej1",
+    tipo: "pago_proveedor",
+    fecha: "2026-09-02",
+    importe: 31567.04,
+    medio: "banco_cc",
+    contraparte: "Electricidad Demo",
+    cuitContraparte: "",
+    nota: "Factura de agosto",
+    estado: "aprobado",
+  },
+  {
+    id: "ej2",
+    tipo: "cobro",
+    fecha: "2026-09-03",
+    importe: 380000,
+    medio: "banco_cc",
+    contraparte: "Cliente Mayorista SA",
+    cuitContraparte: "",
+    nota: "",
+    estado: "enviado",
+    retenciones: [],
+  },
+  {
+    id: "ej3",
+    tipo: "sueldo",
+    fecha: "2026-09-05",
+    importe: 850000,
+    medio: "efectivo",
+    contraparte: "Juan Pérez",
+    cuitContraparte: "",
+    cuenta: "2.1.03.001",
+    periodo: "2026-08",
+    nota: "",
+    estado: "enviado",
+  },
+  {
+    id: "ej4",
+    tipo: "gasto",
+    fecha: "2026-09-10",
+    importe: 45000,
+    medio: "efectivo",
+    contraparte: "",
+    cuitContraparte: "",
+    cuenta: "5.3.01.018",
+    conFactura: false,
+    nota: "Viáticos viaje a Jujuy",
+    estado: "observado",
+    observacion: "¿Hay tickets de este viaje? Si los hay, cargalos en Tickets.",
+  },
+];
 type Pestana = "ventas" | "compras" | "deducciones" | "liquidacion";
 
 const MANUAL_INICIAL: DatosManualesIva = {
@@ -74,6 +147,7 @@ export function Importador({
   const [pestana, setPestana] = useState<Pestana>("ventas");
   const [manual, setManual] = useState(MANUAL_INICIAL);
   const [tickets, setTickets] = useState<TicketCargado[]>([]);
+  const [movimientos, setMovimientos] = useState<Movimiento[]>([]);
   const [cuitElegido, setCuitElegido] = useState<string | null>(null);
   const cuitCliente =
     cuitElegido ?? compras?.cuitTitular ?? ventas?.cuitTitular ?? "";
@@ -148,6 +222,9 @@ export function Importador({
     : 0;
 
   async function cargarEjemplos() {
+    setMovimientos((actuales) =>
+      actuales.length ? actuales : MOVIMIENTOS_EJEMPLO,
+    );
     setEjemplos({
       ventas: await descargarEjemplo("emitidos-ejemplo.csv", "text/csv"),
       compras: await descargarEjemplo(
@@ -191,6 +268,7 @@ export function Importador({
               [
                 ["arca", "ARCA"],
                 ["bancos", "Bancos"],
+                ["movimientos", "Cobros y pagos"],
                 ["tickets", "Tickets"],
               ] as [Seccion, string][]
             ).map(([id, texto]) => (
@@ -208,6 +286,24 @@ export function Importador({
       </header>
 
       <main className="mx-auto max-w-7xl space-y-6 px-4 py-6">
+        <div hidden={seccion !== "movimientos"}>
+          <section className="mb-6">
+            <h1 className="text-2xl font-semibold">Cobros y pagos</h1>
+            <p className="mt-1 max-w-3xl text-stone-600">
+              El cliente registra lo que cobra y lo que paga: proveedores,
+              sueldos, honorarios, gastos e impuestos. Cada movimiento genera su
+              asiento con el plan de cuentas; el estudio lo aprueba u observa.
+              Los que se pagan por banco se reconocen solos en el resumen
+              bancario.
+            </p>
+          </section>
+          <Movimientos
+            movimientos={movimientos}
+            onMovimientos={setMovimientos}
+            clientes={contrapartes(ventas?.comprobantes ?? [])}
+            proveedores={contrapartes(compras?.comprobantes ?? [])}
+          />
+        </div>
         <div hidden={seccion !== "tickets"}>
           <section className="mb-6">
             <h1 className="text-2xl font-semibold">Tickets del cliente</h1>
@@ -242,7 +338,10 @@ export function Importador({
               quedan marcados para revisar.
             </p>
           </section>
-          <Bancos archivoExterno={ejemplos?.banco} />
+          <Bancos
+            archivoExterno={ejemplos?.banco}
+            movimientosCliente={movimientos}
+          />
         </div>
         <div hidden={seccion !== "arca"} className="space-y-6">
           <section>
