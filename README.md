@@ -22,6 +22,18 @@ Sistema contable interno de la consultora: los clientes cargan su operación y e
 - Cada movimiento genera su asiento con el plan de cuentas modelo; el estudio lo aprueba u observa (Enviado → Aprobado / Observado).
 - Los cobros y pagos por banco se cruzan con el resumen bancario (mismo importe y sentido, hasta 3 días de diferencia) y esos movimientos del banco quedan clasificados solos.
 
+## Cuentas corrientes
+
+- Clientes: facturas de Mis Comprobantes emitidos, menos cobros y retenciones. Proveedores: recibidos y tickets, menos pagos.
+- Se agrupan por CUIT; si un cobro o pago no tiene CUIT, se asigna por nombre.
+- Saldo, comprobantes pendientes y antigüedad (los pagos cancelan primero lo más viejo).
+
+## Conciliación bancaria
+
+- Cada movimiento del banco queda **conciliado** (lo cargó el cliente), **automático** (impuestos, retenciones, gastos bancarios), **sugerido** (el banco trae el CUIT o el nombre de un cliente o proveedor conocido) o **sin registrar**.
+- Los sugeridos se registran con un clic (o todos juntos) y los sin registrar con un formulario corto; entran a la cuenta corriente.
+- Lista lo que el cliente cargó por banco y no aparece en el resumen.
+
 ## Tickets del cliente
 
 - El cliente saca una foto del tique (o factura) que todavía no aparece en Mis Comprobantes.
@@ -52,6 +64,8 @@ npm test        # pruebas del importador y la liquidación
 | `src/components/importador/` | Pantalla de importación de ARCA |
 | `src/components/bancos/` | Pantalla de bancos |
 | `src/lib/movimientos/` | Cobros y pagos del cliente: asientos, validación y cruce con el banco |
+| `src/lib/cuentas/` | Cuentas corrientes de clientes y proveedores |
+| `src/components/cuentas/` | Pantalla de cuentas corrientes |
 | `src/lib/plan/` | Plan de cuentas modelo |
 | `src/components/movimientos/` | Pantalla de cobros y pagos |
 | `src/lib/tickets/` | Lectura de tickets: QR de ARCA, instrucciones para Claude, controles |

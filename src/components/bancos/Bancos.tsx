@@ -6,9 +6,10 @@ import {
   type Clasificacion,
   clasificarMovimiento,
 } from "@/lib/bancos/clasificar";
+import { type Conocidos, conciliarResumen } from "@/lib/bancos/conciliacion";
 import { cuentaDelMovimiento } from "@/lib/movimientos/asiento";
-import { conciliar } from "@/lib/movimientos/conciliar";
 import { type Movimiento, TIPOS } from "@/lib/movimientos/tipos";
+import { ConciliacionBancaria } from "./ConciliacionBancaria";
 import { nombreCuenta } from "@/lib/plan/plan";
 import { esResumenMacro, importarResumenMacro } from "@/lib/bancos/macro";
 import type { MovimientoBancario, ResumenBancario } from "@/lib/bancos/tipos";
@@ -20,9 +21,11 @@ interface Props {
   archivoExterno?: File | null;
   /** Cobros y pagos que cargó el cliente: se cruzan con los movimientos del banco. */
   movimientosCliente?: Movimiento[];
+  /** Clientes y proveedores conocidos, para sugerir a quién corresponde cada movimiento. */
+  conocidos?: Conocidos;
+  /** Registra cobros o pagos creados desde la conciliación. */
+  onRegistrar?: (movimientos: Movimiento[]) => void;
 }
-
-type Filtro = "todos" | "revisar" | "automaticos";
 
 async function leerResumen(archivo: File): Promise<ResumenBancario> {
   if (!archivo.name.toLowerCase().endsWith(".pdf"))
@@ -34,14 +37,17 @@ async function leerResumen(archivo: File): Promise<ResumenBancario> {
   );
 }
 
-export function Bancos({ archivoExterno, movimientosCliente = [] }: Props) {
+export function Bancos({
+  archivoExterno,
+  movimientosCliente = [],
+  conocidos,
+  onRegistrar = () => {},
+}: Props) {
   const input = useRef<HTMLInputElement>(null);
   const [resumen, setResumen] = useState<ResumenBancario | null>(null);
   const [nombre, setNombre] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [cargando, setCargando] = useState(false);
-  const [cuentaElegida, setCuentaElegida] = useState<string | null>(null);
-  const [filtro, setFiltro] = useState<Filtro>("revisar");
 
   async function procesar(archivo: File) {
     setCargando(true);
@@ -50,12 +56,6 @@ export function Bancos({ archivoExterno, movimientosCliente = [] }: Props) {
     try {
       const r = await leerResumen(archivo);
       setResumen(r);
-      // Por defecto, la cuenta con más movimientos.
-      setCuentaElegida(
-        [...r.cuentas].sort(
-          (a, b) => b.movimientos.length - a.movimientos.length,
-        )[0]?.numero ?? null,
-      );
     } catch (e) {
       setResumen(null);
       setError(e instanceof Error ? e.message : String(e));
@@ -68,51 +68,43 @@ export function Bancos({ archivoExterno, movimientosCliente = [] }: Props) {
     if (archivoExterno) procesar(archivoExterno);
   }, [archivoExterno]);
 
-  const cuenta =
-    resumen?.cuentas.find((c) => c.numero === cuentaElegida) ?? null;
   const todos = useMemo(
     () => resumen?.cuentas.flatMap((c) => c.movimientos) ?? [],
     [resumen],
   );
-  // Lo que el cliente ya cargó manda sobre las reglas: dice a quién se pagó o quién pagó.
+  const conciliacion = useMemo(
+    () =>
+      resumen ? conciliarResumen(resumen, movimientosCliente, conocidos) : null,
+    [resumen, movimientosCliente, conocidos],
+  );
+  // Para el resumen por concepto: lo que cargó el cliente (o lo sugerido) manda sobre las reglas.
   const clasificar = useMemo(() => {
-    const cruces = conciliar(todos, movimientosCliente);
+    const porMovimiento = new Map(
+      conciliacion?.filas.map((f) => [f.movimiento, f]),
+    );
     return (m: MovimientoBancario): Clasificacion => {
-      const delCliente = cruces.get(m);
-      if (!delCliente) return clasificarMovimiento(m);
-      const cuentaContable = cuentaDelMovimiento(delCliente);
+      const fila = porMovimiento.get(m);
+      const deCliente = fila?.delCliente ?? fila?.sugerencia;
+      if (!fila || !deCliente) return clasificarMovimiento(m);
+      const cuentaContable = cuentaDelMovimiento(deCliente);
       return {
-        concepto: `${TIPOS.find((t) => t.id === delCliente.tipo)?.nombre} (cargado por el cliente)`,
+        concepto: `${TIPOS.find((t) => t.id === deCliente.tipo)?.nombre}${fila.delCliente ? " (cargado por el cliente)" : " (sugerido)"}`,
         cuenta: cuentaContable,
         nombreCuenta: nombreCuenta(cuentaContable),
-        automatica: true,
-        cuitContraparte: delCliente.cuitContraparte || undefined,
-        nota: delCliente.contraparte || undefined,
+        automatica: Boolean(fila.delCliente),
+        cuitContraparte: deCliente.cuitContraparte || undefined,
+        nota: deCliente.contraparte || undefined,
       };
     };
-  }, [todos, movimientosCliente]);
+  }, [conciliacion]);
   const grupos = useMemo(
     () => agruparPorConcepto(todos, clasificar),
     [todos, clasificar],
   );
-  const automaticos = todos.filter((m) => clasificar(m).automatica).length;
-
-  const movimientos: [
-    MovimientoBancario,
-    ReturnType<typeof clasificarMovimiento>,
-  ][] = (cuenta?.movimientos ?? [])
-    .map(
-      (m) =>
-        [m, clasificar(m)] as [
-          MovimientoBancario,
-          ReturnType<typeof clasificarMovimiento>,
-        ],
-    )
-    .filter(
-      ([, c]) =>
-        filtro === "todos" ||
-        (filtro === "revisar" ? !c.automatica : c.automatica),
-    );
+  const automaticos = conciliacion
+    ? conciliacion.totales.conciliado.cantidad +
+      conciliacion.totales.automatico.cantidad
+    : 0;
 
   return (
     <div className="space-y-6">
@@ -319,119 +311,13 @@ export function Bancos({ archivoExterno, movimientosCliente = [] }: Props) {
             </div>
           </section>
 
-          <section className="overflow-hidden rounded-xl border border-stone-200 bg-white shadow-sm">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-stone-200 px-4 py-3">
-              <h3 className="font-semibold">Movimientos</h3>
-              <div className="flex flex-wrap items-center gap-2 text-sm">
-                <select
-                  value={cuentaElegida ?? ""}
-                  onChange={(e) => setCuentaElegida(e.target.value)}
-                  className="rounded-md border border-stone-300 bg-white px-2 py-1"
-                >
-                  {resumen.cuentas.map((c) => (
-                    <option key={c.numero} value={c.numero}>
-                      {c.tipo} · {c.numero}
-                    </option>
-                  ))}
-                </select>
-                <div className="flex gap-1 rounded-lg bg-stone-200/70 p-1">
-                  {(
-                    [
-                      ["revisar", "Para revisar"],
-                      ["automaticos", "Automáticos"],
-                      ["todos", "Todos"],
-                    ] as [Filtro, string][]
-                  ).map(([id, texto]) => (
-                    <button
-                      key={id}
-                      type="button"
-                      onClick={() => setFiltro(id)}
-                      className={`rounded-md px-2.5 py-1 font-medium ${filtro === id ? "bg-white text-marca shadow-sm" : "text-stone-600"}`}
-                    >
-                      {texto}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-            {movimientos.length === 0 ? (
-              <p className="p-6 text-sm text-stone-500">
-                No hay movimientos con este filtro.
-              </p>
-            ) : (
-              <div className="max-h-[36rem] overflow-auto">
-                <table className="w-full text-sm">
-                  <thead className="sticky top-0 bg-stone-50 text-left text-xs uppercase tracking-wide text-stone-500">
-                    <tr>
-                      <th className="px-3 py-2">Fecha</th>
-                      <th className="px-3 py-2">Descripción del banco</th>
-                      <th className="px-3 py-2">Clasificación</th>
-                      <th className="px-3 py-2 text-right">Importe</th>
-                      <th className="px-3 py-2 text-right">Saldo</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-stone-100">
-                    {movimientos.map(([m, c], i) => (
-                      <tr
-                        key={i}
-                        className={c.automatica ? undefined : "bg-amber-50/60"}
-                      >
-                        <td className="px-3 py-2 whitespace-nowrap">
-                          {fechaCorta(m.fecha)}
-                        </td>
-                        <td className="px-3 py-2">
-                          <div
-                            className="max-w-80 truncate"
-                            title={m.descripcion}
-                          >
-                            {m.descripcion}
-                          </div>
-                          {m.referencia && (
-                            <div className="text-xs text-stone-500">
-                              Ref. {m.referencia}
-                            </div>
-                          )}
-                        </td>
-                        <td className="px-3 py-2">
-                          <div className="font-medium">{c.concepto}</div>
-                          <div
-                            className="text-xs text-stone-500"
-                            title={c.nota}
-                          >
-                            {c.cuenta
-                              ? `${c.cuenta} · ${c.nombreCuenta}`
-                              : "Cuenta a definir"}
-                            {c.cuitContraparte && (
-                              <> · CUIT {cuitConGuiones(c.cuitContraparte)}</>
-                            )}
-                          </div>
-                          {c.nota && !c.automatica && (
-                            <div className="text-xs text-amber-800">
-                              {c.nota}
-                            </div>
-                          )}
-                          {c.nota &&
-                            c.concepto.endsWith("(cargado por el cliente)") && (
-                              <div className="text-xs text-emerald-700">
-                                ✓ {c.nota}
-                              </div>
-                            )}
-                        </td>
-                        <td
-                          className={`cifra px-3 py-2 font-medium ${m.importe < 0 ? "text-red-700" : "text-emerald-700"}`}
-                        >
-                          {pesos(m.importe)}
-                        </td>
-                        <td className="cifra px-3 py-2 text-stone-500">
-                          {m.saldo !== null ? pesos(m.saldo) : ""}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </section>
+          {conciliacion && (
+            <ConciliacionBancaria
+              conciliacion={conciliacion}
+              cuentas={resumen.cuentas}
+              onRegistrar={onRegistrar}
+            />
+          )}
         </>
       )}
     </div>

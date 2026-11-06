@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Bancos } from "@/components/bancos/Bancos";
+import { CuentasCorrientes } from "@/components/cuentas/CuentasCorrientes";
+import { cuentasCorrientes } from "@/lib/cuentas/cuenta-corriente";
 import {
   type Contraparte,
   Movimientos,
@@ -28,7 +30,12 @@ import {
   ticketAComprobante,
 } from "@/lib/tickets/validar";
 
-type Seccion = "arca" | "bancos" | "tickets" | "movimientos";
+type Seccion = "arca" | "bancos" | "tickets" | "movimientos" | "cuentas";
+
+function hoyIso() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
 
 /** Clientes o proveedores distintos de una lista de comprobantes, para sugerir al cargar. */
 function contrapartes(comprobantes: Comprobante[]): Contraparte[] {
@@ -172,6 +179,53 @@ export function Importador({
       }));
   }, [tickets, compras, cuitCliente]);
 
+  const fechaCorte = hoyIso();
+  const ctasClientes = useMemo(
+    () =>
+      cuentasCorrientes(
+        "cliente",
+        ventas?.comprobantes ?? [],
+        movimientos,
+        fechaCorte,
+      ),
+    [ventas, movimientos, fechaCorte],
+  );
+  const ctasProveedores = useMemo(
+    () =>
+      cuentasCorrientes(
+        "proveedor",
+        [...(compras?.comprobantes ?? []), ...ticketsPendientes],
+        movimientos,
+        fechaCorte,
+        (c) => (c.fila >= 100000 ? "Ticket" : "ARCA"),
+      ),
+    [compras, ticketsPendientes, movimientos, fechaCorte],
+  );
+  // Clientes y proveedores por CUIT, para reconocerlos en el resumen del banco.
+  const conocidos = useMemo(() => {
+    const porCuit = (comprobantes: Comprobante[]) =>
+      new Map(
+        comprobantes
+          .filter((c) => c.cuitContraparte.length === 11)
+          .map((c) => [c.cuitContraparte, c.contraparte || c.cuitContraparte]),
+      );
+    return {
+      clientes: porCuit(ventas?.comprobantes ?? []),
+      proveedores: porCuit([
+        ...(compras?.comprobantes ?? []),
+        ...ticketsPendientes,
+      ]),
+    };
+  }, [ventas, compras, ticketsPendientes]);
+  const registrarDesdeBanco = (nuevos: Movimiento[]) => {
+    const ids = new Set(nuevos.map((m) => m.id));
+    setMovimientos((actuales) =>
+      [...actuales.filter((m) => !ids.has(m.id)), ...nuevos].sort((a, b) =>
+        b.fecha.localeCompare(a.fecha),
+      ),
+    );
+  };
+
   const deducciones = useMemo(
     () => archivosDeducciones.flatMap((a) => a.resultado.deducciones),
     [archivosDeducciones],
@@ -263,12 +317,13 @@ export function Importador({
           <span className="text-lg font-semibold">
             DC Consultora · Sistema Contable
           </span>
-          <nav className="flex gap-1 text-sm">
+          <nav className="flex flex-wrap gap-1 text-sm">
             {(
               [
                 ["arca", "ARCA"],
                 ["bancos", "Bancos"],
                 ["movimientos", "Cobros y pagos"],
+                ["cuentas", "Cuentas corrientes"],
                 ["tickets", "Tickets"],
               ] as [Seccion, string][]
             ).map(([id, texto]) => (
@@ -302,6 +357,21 @@ export function Importador({
             onMovimientos={setMovimientos}
             clientes={contrapartes(ventas?.comprobantes ?? [])}
             proveedores={contrapartes(compras?.comprobantes ?? [])}
+          />
+        </div>
+        <div hidden={seccion !== "cuentas"}>
+          <section className="mb-6">
+            <h1 className="text-2xl font-semibold">Cuentas corrientes</h1>
+            <p className="mt-1 max-w-3xl text-stone-600">
+              Se arman solas: las facturas salen de Mis Comprobantes y de los
+              tickets, y los cobros y pagos, de lo que carga el cliente y de lo
+              que se registra desde la conciliación bancaria.
+            </p>
+          </section>
+          <CuentasCorrientes
+            clientes={ctasClientes}
+            proveedores={ctasProveedores}
+            fechaCorte={fechaCorte}
           />
         </div>
         <div hidden={seccion !== "tickets"}>
@@ -341,6 +411,8 @@ export function Importador({
           <Bancos
             archivoExterno={ejemplos?.banco}
             movimientosCliente={movimientos}
+            conocidos={conocidos}
+            onRegistrar={registrarDesdeBanco}
           />
         </div>
         <div hidden={seccion !== "arca"} className="space-y-6">
