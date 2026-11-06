@@ -1,5 +1,5 @@
-import { Importador } from "@/components/importador/Importador";
+import { App } from "@/components/App";
 
 export default function Inicio() {
-  return <Importador />;
+  return <App />;
 }

@@ -9,6 +9,8 @@ import {
 } from "@/lib/arca/retenciones";
 
 export interface ArchivoDeducciones {
+  /** Id en la base de datos, si ya está guardado. */
+  id?: string;
   nombre: string;
   resultado: ResultadoDeducciones;
 }

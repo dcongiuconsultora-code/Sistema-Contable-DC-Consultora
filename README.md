@@ -52,6 +52,21 @@ Sistema contable interno de la consultora: los clientes cargan su operación y e
 
 Por ahora no guarda nada: los archivos se leen en el navegador. En `public/ejemplos/` hay dos archivos de prueba.
 
+## Base de datos (Supabase)
+
+- Esquema y permisos en `supabase/migrations/`. Cada dato pertenece a una empresa; el estudio ve todo y cada cliente solo las empresas a las que fue invitado.
+- Ingreso sin contraseña: llega un mail con un link. Los mails del estudio se listan en la tabla `emails_estudio`.
+- La app necesita estas variables (en `.env.local` para correrla en la compu, y en el servicio donde se publique):
+
+```
+NEXT_PUBLIC_SUPABASE_URL=https://<proyecto>.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<clave anónima del proyecto>
+ANTHROPIC_API_KEY=<para leer las fotos de los tickets>
+```
+
+- Sin esas variables, la app funciona como prototipo (los datos no se guardan).
+- Prueba de integración contra la base real: `SUPABASE_URL=... SUPABASE_ANON_KEY=... SUPABASE_SERVICE_KEY=... npx vitest run repositorio.integracion` (crea datos de prueba y los borra).
+
 ## Cómo correrlo
 
 ```bash
@@ -75,6 +90,10 @@ npm test        # pruebas del importador y la liquidación
 | `src/components/cuentas/` | Pantalla de cuentas corrientes |
 | `src/lib/contabilidad/` | Libro diario, mayor, balance, estado de resultados e índices |
 | `src/components/tablero/` | Tablero de inicio |
+| `src/lib/datos/` | Lectura y guardado en Supabase |
+| `src/components/acceso/` | Ingreso con el mail |
+| `src/components/empresas/` | Alta de empresas y accesos de los clientes |
+| `supabase/` | Migraciones de la base y prueba de permisos |
 | `src/lib/plan/` | Plan de cuentas modelo |
 | `src/components/movimientos/` | Pantalla de cobros y pagos |
 | `src/lib/tickets/` | Lectura de tickets: QR de ARCA, instrucciones para Claude, controles |

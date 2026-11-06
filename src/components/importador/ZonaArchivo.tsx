@@ -9,7 +9,7 @@ import { cuitConGuiones } from "@/lib/formato";
 interface Props {
   operacion: Operacion;
   resultado: ResultadoImportacion | null;
-  onResultado: (r: ResultadoImportacion | null) => void;
+  onResultado: (r: ResultadoImportacion | null, nombreArchivo?: string) => void;
   /** Archivo cargado desde afuera (por ejemplo, los archivos de ejemplo). */
   archivoExterno?: File | null;
 }
@@ -43,7 +43,7 @@ export function ZonaArchivo({
     setNombre(archivo.name);
     try {
       const filas = await leerArchivo(archivo);
-      onResultado(importarMisComprobantes(filas, { operacion }));
+      onResultado(importarMisComprobantes(filas, { operacion }), archivo.name);
     } catch (e) {
       onResultado(null);
       setError(e instanceof Error ? e.message : String(e));

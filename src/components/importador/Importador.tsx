@@ -1,6 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import {
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import type { Empresa, Repositorio } from "@/lib/datos/repositorio";
 import { Bancos } from "@/components/bancos/Bancos";
 import { type Alertas, Tablero } from "@/components/tablero/Tablero";
 import { conciliarResumen } from "@/lib/bancos/conciliacion";
@@ -166,11 +174,30 @@ async function descargarEjemplo(nombre: string, tipo: string) {
   return new File([await respuesta.blob()], nombre, { type: tipo });
 }
 
+/** Con base de datos: de qué empresa son los datos, quién está usando la app y dónde se guarda. */
+export interface Conexion {
+  repo: Repositorio;
+  empresa: Empresa;
+  rol: "estudio" | "cliente";
+  /** Va a la derecha del encabezado: empresa elegida, usuario y salir. */
+  encabezado: ReactNode;
+}
+
+// El cliente ve su tablero y carga cobros, pagos y tickets; lo de ARCA y bancos lo hace el estudio.
+const SECCIONES_CLIENTE: Seccion[] = [
+  "inicio",
+  "movimientos",
+  "cuentas",
+  "tickets",
+];
+
 export function Importador({
   cargarEjemploAlInicio = false,
   lector = leerConServidor,
   sinLector,
+  conexion,
 }: {
+  conexion?: Conexion;
   cargarEjemploAlInicio?: boolean;
   /** Cómo se leen las fotos de tickets: por defecto, la ruta del servidor; null = carga manual. */
   lector?: LectorTicket | null;
@@ -202,7 +229,191 @@ export function Importador({
   const [movimientos, setMovimientos] = useState<Movimiento[]>([]);
   const [cuitElegido, setCuitElegido] = useState<string | null>(null);
   const cuitCliente =
-    cuitElegido ?? compras?.cuitTitular ?? ventas?.cuitTitular ?? "";
+    cuitElegido ??
+    conexion?.empresa.cuit ??
+    compras?.cuitTitular ??
+    ventas?.cuitTitular ??
+    "";
+
+  // --- Base de datos ---------------------------------------------------------------------------
+  const [cargando, setCargando] = useState(Boolean(conexion));
+  const [errorDatos, setErrorDatos] = useState<string | null>(null);
+  const [resumenGuardado, setResumenGuardado] =
+    useState<ResumenBancario | null>(null);
+  const repo = conexion?.repo;
+  const empresaId = conexion?.empresa.id;
+
+  const comoResultado = useCallback(
+    (
+      operacion: "ventas" | "compras",
+      comprobantes: Comprobante[],
+      archivo?: ResultadoImportacion | null,
+    ): ResultadoImportacion | null =>
+      comprobantes.length === 0 && !archivo
+        ? null
+        : {
+            operacion,
+            formato: "detallado",
+            cuitTitular: conexion?.empresa.cuit ?? null,
+            comprobantes,
+            errores: archivo?.errores ?? [],
+            avisos: archivo?.avisos ?? [],
+          },
+    [conexion?.empresa.cuit],
+  );
+
+  const recargar = useCallback(
+    async (ultimoArchivo?: {
+      operacion: "ventas" | "compras";
+      resultado: ResultadoImportacion;
+    }) => {
+      if (!repo || !empresaId) return;
+      try {
+        const d = await repo.cargar(empresaId);
+        setVentas(
+          comoResultado(
+            "ventas",
+            d.ventas,
+            ultimoArchivo?.operacion === "ventas"
+              ? ultimoArchivo.resultado
+              : null,
+          ),
+        );
+        setCompras(
+          comoResultado(
+            "compras",
+            d.compras,
+            ultimoArchivo?.operacion === "compras"
+              ? ultimoArchivo.resultado
+              : null,
+          ),
+        );
+        setMovimientos(d.movimientos);
+        setTickets(d.tickets);
+        setArchivosDeducciones(
+          d.archivosDeducciones.map((a) => ({
+            id: a.id,
+            nombre: a.nombre,
+            resultado: {
+              origen: a.origen,
+              deducciones: a.deducciones,
+              errores: [],
+            },
+          })),
+        );
+        setIniciales(d.saldos);
+        setResumenBanco(d.resumen);
+        setResumenGuardado(d.resumen);
+      } catch (e) {
+        setErrorDatos(e instanceof Error ? e.message : String(e));
+      } finally {
+        setCargando(false);
+      }
+    },
+    [repo, empresaId, comoResultado],
+  );
+
+  useEffect(() => {
+    recargar();
+  }, [recargar]);
+
+  /** Guarda en segundo plano; si falla, avisa y vuelve a leer lo que quedó en la base. */
+  const guardar = (accion: () => Promise<unknown>) => {
+    if (!repo) return;
+    accion().catch((e) => {
+      setErrorDatos(e instanceof Error ? e.message : String(e));
+      recargar();
+    });
+  };
+
+  const importarComprobantes =
+    (operacion: "ventas" | "compras") =>
+    (r: ResultadoImportacion | null, nombre?: string) => {
+      if (!repo || !empresaId || !r)
+        return operacion === "ventas" ? setVentas(r) : setCompras(r);
+      guardar(async () => {
+        await repo.guardarComprobantes(
+          empresaId,
+          operacion,
+          r.comprobantes,
+          nombre ?? "archivo",
+        );
+        await recargar({ operacion, resultado: r });
+      });
+    };
+
+  const actualizarDeducciones = (siguientes: ArchivoDeducciones[]) => {
+    const anteriores = archivosDeducciones;
+    setArchivosDeducciones(siguientes);
+    if (!repo || !empresaId) return;
+    const quitados = anteriores.filter(
+      (a) => a.id && !siguientes.some((n) => n.id === a.id),
+    );
+    const nuevos = siguientes.filter((a) => !a.id && !anteriores.includes(a));
+    guardar(async () => {
+      for (const a of quitados) await repo.borrarArchivo(a.id!);
+      for (const a of nuevos)
+        await repo.guardarDeducciones(
+          empresaId,
+          a.nombre,
+          a.resultado.origen,
+          a.resultado.deducciones,
+        );
+      if (nuevos.length) await recargar();
+    });
+  };
+
+  const actualizarMovimientos = (siguientes: Movimiento[]) => {
+    const anteriores = new Map(
+      movimientos.map((m) => [m.id, JSON.stringify(m)]),
+    );
+    setMovimientos(siguientes);
+    const cambiados = siguientes.filter(
+      (m) => anteriores.get(m.id) !== JSON.stringify(m),
+    );
+    if (empresaId && cambiados.length)
+      guardar(() => repo!.guardarMovimientos(empresaId, cambiados));
+  };
+
+  const actualizarTickets = (siguientes: TicketCargado[]) => {
+    const anteriores = new Map(tickets.map((t) => [t.id, JSON.stringify(t)]));
+    setTickets(siguientes);
+    if (!repo || !empresaId) return;
+    const cambiados = siguientes.filter(
+      (t) => anteriores.get(t.id) !== JSON.stringify(t),
+    );
+    const quitados = tickets.filter(
+      (t) => !siguientes.some((n) => n.id === t.id),
+    );
+    guardar(async () => {
+      for (const t of cambiados) {
+        // Solo se sube la foto la primera vez (las nuevas son locales, "blob:").
+        const foto = t.foto.startsWith("blob:")
+          ? await (await fetch(t.foto)).blob()
+          : null;
+        await repo.guardarTicket(empresaId, t, foto);
+      }
+      for (const t of quitados) await repo.borrarTicket(t.id);
+    });
+  };
+
+  // Los saldos de inicio se guardan un momento después de dejar de escribir.
+  const esperaSaldos = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const actualizarIniciales = (s: SaldosIniciales) => {
+    setIniciales(s);
+    if (!repo || !empresaId) return;
+    if (esperaSaldos.current) clearTimeout(esperaSaldos.current);
+    esperaSaldos.current = setTimeout(
+      () => guardar(() => repo.guardarSaldos(empresaId, s)),
+      800,
+    );
+  };
+
+  const recibirResumen = (r: ResumenBancario | null, nombre?: string) => {
+    setResumenBanco(r);
+    if (r && empresaId && repo)
+      guardar(() => repo.guardarResumen(empresaId, r, nombre ?? "resumen.pdf"));
+  };
 
   // Los tickets que el cliente cargó y todavía no aparecen en Mis Comprobantes recibidos.
   const ticketsPendientes = useMemo(() => {
@@ -310,14 +521,16 @@ export function Importador({
     bancoSugeridos: conciliacion?.totales.sugerido.cantidad ?? 0,
     ticketsPendientes: ticketsPendientes.length,
   };
-  const empresa = resumenBanco?.titular
-    ? titulo(resumenBanco.titular)
-    : "tu empresa";
+  const empresa = conexion
+    ? conexion.empresa.razon_social
+    : resumenBanco?.titular
+      ? titulo(resumenBanco.titular)
+      : "tu empresa";
 
   const registrarDesdeBanco = (nuevos: Movimiento[]) => {
     const ids = new Set(nuevos.map((m) => m.id));
-    setMovimientos((actuales) =>
-      [...actuales.filter((m) => !ids.has(m.id)), ...nuevos].sort((a, b) =>
+    actualizarMovimientos(
+      [...movimientos.filter((m) => !ids.has(m.id)), ...nuevos].sort((a, b) =>
         b.fecha.localeCompare(a.fecha),
       ),
     );
@@ -427,27 +640,54 @@ export function Importador({
                 ["cuentas", "Cuentas corrientes"],
                 ["tickets", "Tickets"],
               ] as [Seccion, string][]
-            ).map(([id, texto]) => (
-              <button
-                key={id}
-                type="button"
-                onClick={() => setSeccion(id)}
-                className={`rounded-md px-3 py-1.5 font-medium ${seccion === id ? "bg-white/20" : "opacity-80 hover:bg-white/10 hover:opacity-100"}`}
-              >
-                {texto}
-              </button>
-            ))}
+            )
+              .filter(
+                ([id]) =>
+                  conexion?.rol !== "cliente" || SECCIONES_CLIENTE.includes(id),
+              )
+              .map(([id, texto]) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setSeccion(id)}
+                  className={`rounded-md px-3 py-1.5 font-medium ${seccion === id ? "bg-white/20" : "opacity-80 hover:bg-white/10 hover:opacity-100"}`}
+                >
+                  {texto}
+                </button>
+              ))}
           </nav>
+          {conexion?.encabezado}
         </div>
       </header>
 
       <main className="mx-auto max-w-7xl space-y-6 px-4 py-6">
+        {errorDatos && (
+          <div
+            role="alert"
+            className="flex items-start justify-between gap-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800"
+          >
+            <span>{errorDatos}</span>
+            <button
+              type="button"
+              onClick={() => setErrorDatos(null)}
+              className="shrink-0 font-medium"
+            >
+              Cerrar
+            </button>
+          </div>
+        )}
+        {cargando && (
+          <p className="text-sm text-stone-500">
+            Cargando los datos de {empresa}…
+          </p>
+        )}
         <div hidden={seccion !== "inicio"}>
           <Tablero
             empresa={empresa}
             asientos={asientos}
             iniciales={iniciales}
-            onIniciales={setIniciales}
+            onIniciales={actualizarIniciales}
+            puedeEditarSaldos={conexion?.rol !== "cliente"}
             alertas={alertas}
             onIr={setSeccion}
           />
@@ -465,7 +705,8 @@ export function Importador({
           </section>
           <Movimientos
             movimientos={movimientos}
-            onMovimientos={setMovimientos}
+            onMovimientos={actualizarMovimientos}
+            vistaFija={conexion?.rol}
             clientes={contrapartes(ventas?.comprobantes ?? [])}
             proveedores={contrapartes(compras?.comprobantes ?? [])}
           />
@@ -501,7 +742,7 @@ export function Importador({
             onCuitCliente={setCuitElegido}
             comprasArca={compras?.comprobantes ?? []}
             tickets={tickets}
-            onTickets={setTickets}
+            onTickets={actualizarTickets}
             lector={lector}
             sinLector={sinLector}
             ticketEjemplo={() =>
@@ -524,7 +765,8 @@ export function Importador({
             movimientosCliente={movimientos}
             conocidos={conocidos}
             onRegistrar={registrarDesdeBanco}
-            onResumen={setResumenBanco}
+            onResumen={recibirResumen}
+            resumenGuardado={resumenGuardado}
           />
         </div>
         <div hidden={seccion !== "arca"} className="space-y-6">
@@ -534,11 +776,14 @@ export function Importador({
               Descargá de ARCA los comprobantes emitidos y recibidos y las
               retenciones del cliente, y subilos acá. Se arman solos los libros
               de IVA, el resumen de retenciones y percepciones y la liquidación
-              del período. Por ahora los archivos se leen en tu navegador y no
-              se guardan.
+              del período.
+              {conexion
+                ? " Lo que subas queda guardado; si subís dos veces el mismo archivo, no se duplica."
+                : " En el prototipo los archivos se leen en tu navegador y no se guardan."}
             </p>
             <button
               type="button"
+              hidden={Boolean(conexion)}
               onClick={cargarEjemplos}
               className="mt-3 rounded-md border border-marca px-3 py-1.5 text-sm font-medium text-marca hover:bg-marca-claro"
             >
@@ -550,18 +795,18 @@ export function Importador({
             <ZonaArchivo
               operacion="ventas"
               resultado={ventas}
-              onResultado={setVentas}
+              onResultado={importarComprobantes("ventas")}
               archivoExterno={ejemplos?.ventas}
             />
             <ZonaArchivo
               operacion="compras"
               resultado={compras}
-              onResultado={setCompras}
+              onResultado={importarComprobantes("compras")}
               archivoExterno={ejemplos?.compras}
             />
             <ZonaDeducciones
               archivos={archivosDeducciones}
-              onArchivos={setArchivosDeducciones}
+              onArchivos={actualizarDeducciones}
               archivosExternos={ejemplos?.deducciones}
             />
           </section>

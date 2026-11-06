@@ -31,6 +31,8 @@ interface Props {
   onIniciales: (s: SaldosIniciales) => void;
   alertas: Alertas;
   onIr: (seccion: "movimientos" | "cuentas" | "bancos" | "tickets") => void;
+  /** false para los clientes: ven cómo se calcula pero no cambian los saldos de inicio. */
+  puedeEditarSaldos?: boolean;
 }
 
 // Colores del gráfico (paleta categórica validada: azul y naranja) y de estado (fijos).
@@ -478,6 +480,7 @@ export function Tablero({
   onIniciales,
   alertas,
   onIr,
+  puedeEditarSaldos = true,
 }: Props) {
   const periodos = useMemo(() => {
     const todos = new Set(
@@ -758,7 +761,9 @@ export function Tablero({
               incluido.
             </p>
           </div>
-          <EditorSaldos iniciales={iniciales} onIniciales={onIniciales} />
+          {puedeEditarSaldos && (
+            <EditorSaldos iniciales={iniciales} onIniciales={onIniciales} />
+          )}
         </div>
       </details>
     </div>

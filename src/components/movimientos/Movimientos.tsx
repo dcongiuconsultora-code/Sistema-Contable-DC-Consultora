@@ -32,9 +32,11 @@ interface Props {
   /** Clientes y proveedores conocidos (de Mis Comprobantes), para sugerir al escribir. */
   clientes: Contraparte[];
   proveedores: Contraparte[];
+  /** Con usuarios reales, la vista la da el rol y no se puede cambiar. */
+  vistaFija?: Vista;
 }
 
-type Vista = "cliente" | "estudio";
+export type Vista = "cliente" | "estudio";
 
 const PROVINCIAS = Object.values(JURISDICCIONES);
 const ESTADOS = {
@@ -458,8 +460,10 @@ export function Movimientos({
   onMovimientos,
   clientes,
   proveedores,
+  vistaFija,
 }: Props) {
-  const [vista, setVista] = useState<Vista>("cliente");
+  const [vistaElegida, setVista] = useState<Vista>("cliente");
+  const vista = vistaFija ?? vistaElegida;
   const [editando, setEditando] = useState<Movimiento | null>(null);
   const [abierto, setAbierto] = useState<string | null>(null);
   const [observando, setObservando] = useState<{
@@ -486,7 +490,10 @@ export function Movimientos({
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex gap-1 rounded-lg bg-stone-200/70 p-1 text-sm">
+        <div
+          hidden={Boolean(vistaFija)}
+          className="flex gap-1 rounded-lg bg-stone-200/70 p-1 text-sm"
+        >
           {(
             [
               ["cliente", "Vista del cliente"],

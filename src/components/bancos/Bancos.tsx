@@ -26,7 +26,9 @@ interface Props {
   /** Registra cobros o pagos creados desde la conciliación. */
   onRegistrar?: (movimientos: Movimiento[]) => void;
   /** Avisa el resumen leído, para que el resto del sistema (tablero) lo use. */
-  onResumen?: (resumen: ResumenBancario | null) => void;
+  onResumen?: (resumen: ResumenBancario | null, nombreArchivo?: string) => void;
+  /** Resumen ya guardado en la base, para mostrarlo al entrar. */
+  resumenGuardado?: ResumenBancario | null;
 }
 
 async function leerResumen(archivo: File): Promise<ResumenBancario> {
@@ -45,10 +47,18 @@ export function Bancos({
   conocidos,
   onRegistrar = () => {},
   onResumen = () => {},
+  resumenGuardado = null,
 }: Props) {
   const input = useRef<HTMLInputElement>(null);
   const [resumen, setResumen] = useState<ResumenBancario | null>(null);
   const [nombre, setNombre] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (resumenGuardado) {
+      setResumen(resumenGuardado);
+      setNombre("Último resumen guardado");
+    }
+  }, [resumenGuardado]);
   const [error, setError] = useState<string | null>(null);
   const [cargando, setCargando] = useState(false);
 
@@ -59,7 +69,7 @@ export function Bancos({
     try {
       const r = await leerResumen(archivo);
       setResumen(r);
-      onResumen(r);
+      onResumen(r, archivo.name);
     } catch (e) {
       setResumen(null);
       setError(e instanceof Error ? e.message : String(e));
