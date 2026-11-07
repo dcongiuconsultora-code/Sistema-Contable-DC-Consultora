@@ -6,6 +6,7 @@ import type { SaldosIniciales } from "@/lib/contabilidad/indicadores";
 import type { Movimiento } from "@/lib/movimientos/tipos";
 import type { TicketExtraido } from "@/lib/tickets/esquema";
 import type { ConfigUnidades, Unidad } from "@/lib/unidades/unidades";
+import { INDICES_FACPCE, type Indices } from "@/lib/inflacion/indices";
 import {
   comprobanteAFila,
   type DatosResumen,
@@ -27,6 +28,18 @@ export interface Empresa {
   razon_social: string;
   cuit: string;
   condicion_iva: string;
+  /** Mes en que cierra el ejercicio (1 a 12). */
+  mes_cierre?: number;
+  /** Impuestos para los vencimientos; null = los de su condición frente al IVA. */
+  impuestos?: string[] | null;
+}
+
+/** Lo que el estudio completa al cerrar un ejercicio. */
+export interface DatosCierre {
+  existenciaFinal?: Record<string, number>;
+  actividad?: string;
+  domicilio?: string;
+  ejercicioNumero?: string;
 }
 
 export interface Mensaje {
@@ -116,7 +129,7 @@ export class Repositorio {
   async empresas(): Promise<Empresa[]> {
     const { data, error } = await this.db
       .from("empresas")
-      .select("id, razon_social, cuit, condicion_iva")
+      .select("id, razon_social, cuit, condicion_iva, mes_cierre, impuestos")
       .order("razon_social");
     fallar(error, "leer las empresas");
     return data ?? [];
@@ -126,10 +139,80 @@ export class Repositorio {
     const { data, error } = await this.db
       .from("empresas")
       .insert(e)
-      .select("id, razon_social, cuit, condicion_iva")
+      .select("id, razon_social, cuit, condicion_iva, mes_cierre, impuestos")
       .single();
     fallar(error, "crear la empresa");
     return data!;
+  }
+
+  async actualizarEmpresa(
+    id: string,
+    cambios: Partial<Pick<Empresa, "mes_cierre" | "impuestos">>,
+  ) {
+    const { error } = await this.db
+      .from("empresas")
+      .update(cambios)
+      .eq("id", id);
+    fallar(error, "guardar los datos de la empresa");
+  }
+
+  // Cierre de ejercicio e índices ----------------------------------------------------------------
+
+  async cierre(empresaId: string, fecha: string): Promise<DatosCierre | null> {
+    const { data, error } = await this.db
+      .from("cierres_ejercicio")
+      .select("datos")
+      .eq("empresa_id", empresaId)
+      .eq("cierre", fecha)
+      .maybeSingle();
+    fallar(error, "leer el cierre del ejercicio");
+    return (data?.datos as DatosCierre) ?? null;
+  }
+
+  /** Datos del último cierre guardado (para no volver a escribir la carátula cada año). */
+  async ultimoCierre(empresaId: string): Promise<DatosCierre | null> {
+    const { data, error } = await this.db
+      .from("cierres_ejercicio")
+      .select("datos")
+      .eq("empresa_id", empresaId)
+      .order("cierre", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    fallar(error, "leer el último cierre");
+    return (data?.datos as DatosCierre) ?? null;
+  }
+
+  async guardarCierre(empresaId: string, fecha: string, datos: DatosCierre) {
+    const { error } = await this.db.from("cierres_ejercicio").upsert({
+      empresa_id: empresaId,
+      cierre: fecha,
+      datos,
+      actualizado_en: new Date().toISOString(),
+    });
+    fallar(error, "guardar el cierre del ejercicio");
+  }
+
+  /** Índices FACPCE: los que trae la app más los que se subieron después. */
+  async indices(): Promise<Indices> {
+    const { data, error } = await this.db
+      .from("indices_inflacion")
+      .select("mes, valor");
+    fallar(error, "leer los índices de inflación");
+    const todos = { ...INDICES_FACPCE };
+    for (const f of data ?? []) todos[f.mes] = Number(f.valor);
+    return todos;
+  }
+
+  async guardarIndices(indices: Indices) {
+    const filas = Object.entries(indices)
+      .filter(
+        ([mes, valor]) => Math.abs((INDICES_FACPCE[mes] ?? 0) - valor) > 1e-4,
+      )
+      .map(([mes, valor]) => ({ mes, valor }));
+    if (!filas.length) return 0;
+    const { error } = await this.db.from("indices_inflacion").upsert(filas);
+    fallar(error, "guardar los índices");
+    return filas.length;
   }
 
   async invitaciones(empresaId: string): Promise<string[]> {

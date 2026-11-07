@@ -57,6 +57,19 @@ Sistema contable interno de la consultora: los clientes cargan su operación y e
 - Los tickets confirmados se suman al Libro IVA Compras y, cuando el comprobante aparece en ARCA, se usa el de ARCA (se cruzan por CUIT, punto de venta y número).
 - La ruta `/api/tickets/leer` necesita la variable de entorno `ANTHROPIC_API_KEY` en el servidor.
 
+## Balance (estados contables)
+
+- Pestaña **Balance** (solo el estudio): fecha de cierre, inventario final, datos de la carátula.
+- Descarga el Excel con el modelo de la **RT 54** (CPCE Jujuy, en `public/modelos/`): carátula, situación patrimonial, resultados, evolución del patrimonio neto, flujo de efectivo (sintético y directo), anexos de bienes de uso, propiedades de inversión, intangibles, previsiones, costo de ventas y gastos por naturaleza, y la composición de rubros de las notas.
+- **Moneda homogénea (RT 6)**: reexpresa las partidas no monetarias con los índices FACPCE (Res. JG 539/18), calcula el RECPAM, deja el capital nominal con su "Ajuste de capital" y reexpresa los comparativos. Una hoja extra muestra los índices, el coeficiente y el asiento de reexpresión.
+- Índices: vienen con la app (`src/lib/inflacion/indices-facpce.json`) y cada mes se sube el Excel nuevo de la FACPCE desde la misma pantalla.
+
+## Vencimientos
+
+- Al entrar, el estudio ve **Mi estudio**: los vencimientos de los próximos 15, 30 o 60 días de todas las empresas, y las empresas.
+- Calendario 2026 de la Comisión Federal de Impuestos por terminación de CUIT: IVA, Ganancias (sociedades y personas humanas, con la DDJJ al 5.º mes del cierre), SICORE, Bienes Personales, monotributo y Mis Facilidades.
+- En cada empresa, "Impuestos" define el mes de cierre y qué impuestos tiene (si no se elige, los de su condición frente al IVA).
+
 ## Mensajes
 
 - El cliente escribe dudas o avisos en la pestaña **Mensajes**; el estudio los ve por empresa y contesta ahí mismo.
@@ -115,4 +128,10 @@ npm test        # pruebas del importador y la liquidación
 | `src/app/api/tickets/leer/` | Ruta del servidor que lee la foto con la API de Anthropic |
 | `src/components/tickets/` | Pantalla de carga de tickets |
 | `src/components/mensajes/` | Mensajes entre el cliente y el estudio |
+| `src/lib/contabilidad/estados.ts` | Estados contables por rubro (RT 54) |
+| `src/lib/contabilidad/reexpresion.ts` | Ajuste por inflación contable (RT 6) |
+| `src/lib/contabilidad/exportar-rt54.ts` | Excel con el modelo RT 54 |
+| `src/lib/inflacion/` | Índices FACPCE |
+| `src/lib/vencimientos/` | Calendario de vencimientos |
+| `src/components/balance/` | Pantalla de balance |
 | `public/ejemplos/` | Archivos de ejemplo de Mis Comprobantes |

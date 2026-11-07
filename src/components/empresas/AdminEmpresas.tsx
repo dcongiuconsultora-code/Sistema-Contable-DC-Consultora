@@ -5,6 +5,7 @@ import type { Empresa, Repositorio } from "@/lib/datos/repositorio";
 import { cuitConGuiones } from "@/lib/formato";
 import { cuitValido } from "@/lib/tickets/validar";
 import { UnidadesEmpresa } from "./UnidadesEmpresa";
+import { ImpuestosEmpresa, ProximosVencimientos } from "./Vencimientos";
 
 const CONDICIONES = ["Responsable inscripto", "Monotributo", "Exento"];
 
@@ -101,6 +102,7 @@ export function AdminEmpresas({
   empresas,
   sinLeer = {},
   onCreada,
+  onActualizada,
   onAbrir,
   onMensajes,
 }: {
@@ -109,6 +111,7 @@ export function AdminEmpresas({
   /** Mensajes del cliente sin leer, por empresa. */
   sinLeer?: Record<string, number>;
   onCreada: (e: Empresa) => void;
+  onActualizada?: (e: Empresa) => void;
   onAbrir: (e: Empresa) => void;
   onMensajes?: (e: Empresa) => void;
 }) {
@@ -118,6 +121,7 @@ export function AdminEmpresas({
   const [error, setError] = useState<string | null>(null);
   const [abierta, setAbierta] = useState<string | null>(null);
   const [conUnidades, setConUnidades] = useState<string | null>(null);
+  const [conImpuestos, setConImpuestos] = useState<string | null>(null);
 
   async function crear(e: React.FormEvent) {
     e.preventDefault();
@@ -146,6 +150,7 @@ export function AdminEmpresas({
 
   return (
     <div className="mx-auto max-w-4xl space-y-6 px-4 py-8">
+      <ProximosVencimientos empresas={empresas} />
       <section>
         <h1 className="text-2xl font-semibold">Empresas</h1>
         <p className="mt-1 text-stone-600">
@@ -236,6 +241,15 @@ export function AdminEmpresas({
                   <button
                     type="button"
                     onClick={() =>
+                      setConImpuestos(conImpuestos === e.id ? null : e.id)
+                    }
+                    className="rounded-md px-3 py-1.5 text-sm text-stone-600 hover:bg-stone-100"
+                  >
+                    {conImpuestos === e.id ? "Ocultar impuestos" : "Impuestos"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
                       setConUnidades(conUnidades === e.id ? null : e.id)
                     }
                     className="rounded-md px-3 py-1.5 text-sm text-stone-600 hover:bg-stone-100"
@@ -260,6 +274,13 @@ export function AdminEmpresas({
                   </button>
                 </div>
               </div>
+              {conImpuestos === e.id && (
+                <ImpuestosEmpresa
+                  repo={repo}
+                  empresa={e}
+                  onCambio={(nueva) => onActualizada?.(nueva)}
+                />
+              )}
               {conUnidades === e.id && (
                 <UnidadesEmpresa repo={repo} empresaId={e.id} />
               )}

@@ -2,6 +2,7 @@
 
 import { Mensajes } from "@/components/mensajes/Mensajes";
 import { Marca } from "@/components/Marca";
+import { Balance } from "@/components/balance/Balance";
 import {
   type ReactNode,
   useCallback,
@@ -54,7 +55,8 @@ type Seccion =
   | "tickets"
   | "movimientos"
   | "cuentas"
-  | "mensajes";
+  | "mensajes"
+  | "balance";
 
 // Saldos del último balance de la empresa de ejemplo (al 31/08/2026). El banco coincide con el
 // saldo inicial del resumen bancario de ejemplo; los sueldos a pagar son los de agosto.
@@ -687,6 +689,7 @@ export function Importador({
                 ["movimientos", "Cobros y pagos"],
                 ["cuentas", "Cuentas corrientes"],
                 ["tickets", "Tickets"],
+                ["balance", "Balance"],
                 ["mensajes", "Mensajes"],
               ] as [Seccion, string][]
             )
@@ -787,6 +790,21 @@ export function Importador({
             fechaCorte={fechaCorte}
           />
         </div>
+        {conexion?.rol !== "cliente" && seccion === "balance" && (
+          <Balance
+            repo={conexion?.repo}
+            empresa={
+              conexion?.empresa ?? {
+                id: "prototipo",
+                razon_social: empresa,
+                cuit: cuitCliente,
+                condicion_iva: "Responsable inscripto",
+              }
+            }
+            asientos={asientos}
+            iniciales={iniciales}
+          />
+        )}
         {conexion && (
           <div hidden={seccion !== "mensajes"}>
             <Mensajes

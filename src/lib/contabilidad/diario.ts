@@ -14,7 +14,7 @@ import {
 
 export interface Asiento {
   fecha: string;
-  origen: "ARCA" | "Cliente" | "Banco";
+  origen: "ARCA" | "Cliente" | "Banco" | "Cierre";
   descripcion: string;
   lineas: LineaAsiento[];
   /** Unidad de negocio; null = de toda la empresa (o compartido entre unidades). */

@@ -92,7 +92,8 @@ export function App() {
         setEmpresaId(
           lista.find((e) => e.id === guardada)?.id ?? lista[0]?.id ?? null,
         );
-        if (p?.rol === "estudio" && lista.length === 0) setVerEmpresas(true);
+        // El estudio entra a su pantalla: vencimientos, mensajes y empresas.
+        if (p?.rol === "estudio") setVerEmpresas(true);
       })
       .catch((e) => setError(e instanceof Error ? e.message : String(e)));
   }, [repo, usuarioId]);
@@ -164,7 +165,7 @@ export function App() {
           onClick={() => setVerEmpresas(true)}
           className="rounded-md px-3 py-1.5 font-medium opacity-80 hover:bg-white/10 hover:opacity-100"
         >
-          Empresas
+          Mi estudio
           {Object.keys(sinLeer).some((id) => id !== empresaId) && (
             <span
               title="Hay mensajes sin leer de otros clientes"
@@ -214,6 +215,9 @@ export function App() {
           repo={repo}
           empresas={empresas}
           sinLeer={sinLeer}
+          onActualizada={(e) =>
+            setEmpresas(empresas.map((x) => (x.id === e.id ? e : x)))
+          }
           onCreada={(e) =>
             setEmpresas(
               [...empresas, e].sort((a, b) =>
