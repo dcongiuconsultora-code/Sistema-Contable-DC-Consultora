@@ -57,6 +57,12 @@ Sistema contable interno de la consultora: los clientes cargan su operación y e
 - Los tickets confirmados se suman al Libro IVA Compras y, cuando el comprobante aparece en ARCA, se usa el de ARCA (se cruzan por CUIT, punto de venta y número).
 - La ruta `/api/tickets/leer` necesita la variable de entorno `ANTHROPIC_API_KEY` en el servidor.
 
+## Mensajes
+
+- El cliente escribe dudas o avisos en la pestaña **Mensajes**; el estudio los ve por empresa y contesta ahí mismo.
+- Los mensajes sin leer se marcan en la pestaña, en el selector de empresa y en la pantalla Empresas (se actualiza cada 30 segundos).
+- Cada uno ve si su mensaje fue leído.
+
 Por ahora no guarda nada: los archivos se leen en el navegador. En `public/ejemplos/` hay dos archivos de prueba.
 
 ## Base de datos (Supabase)
@@ -108,4 +114,5 @@ npm test        # pruebas del importador y la liquidación
 | `src/lib/tickets/` | Lectura de tickets: QR de ARCA, instrucciones para Claude, controles |
 | `src/app/api/tickets/leer/` | Ruta del servidor que lee la foto con la API de Anthropic |
 | `src/components/tickets/` | Pantalla de carga de tickets |
+| `src/components/mensajes/` | Mensajes entre el cliente y el estudio |
 | `public/ejemplos/` | Archivos de ejemplo de Mis Comprobantes |

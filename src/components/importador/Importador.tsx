@@ -1,5 +1,7 @@
 "use client";
 
+import { Mensajes } from "@/components/mensajes/Mensajes";
+import { Marca } from "@/components/Marca";
 import {
   type ReactNode,
   useCallback,
@@ -51,7 +53,8 @@ type Seccion =
   | "bancos"
   | "tickets"
   | "movimientos"
-  | "cuentas";
+  | "cuentas"
+  | "mensajes";
 
 // Saldos del último balance de la empresa de ejemplo (al 31/08/2026). El banco coincide con el
 // saldo inicial del resumen bancario de ejemplo; los sueldos a pagar son los de agosto.
@@ -199,6 +202,7 @@ const SECCIONES_CLIENTE: Seccion[] = [
   "movimientos",
   "cuentas",
   "tickets",
+  "mensajes",
 ];
 
 export function Importador({
@@ -224,7 +228,16 @@ export function Importador({
     deducciones: File[];
     banco: File;
   } | null>(null);
-  const [seccion, setSeccion] = useState<Seccion>("inicio");
+  const [seccion, setSeccion] = useState<Seccion>(() => {
+    try {
+      const pedida = sessionStorage.getItem("seccion-al-abrir");
+      sessionStorage.removeItem("seccion-al-abrir");
+      if (pedida === "mensajes" && conexion) return "mensajes";
+    } catch {
+      // Sin almacenamiento abre en el inicio.
+    }
+    return "inicio";
+  });
   const [resumenBanco, setResumenBanco] = useState<ResumenBancario | null>(
     null,
   );
@@ -248,6 +261,7 @@ export function Importador({
 
   // --- Base de datos ---------------------------------------------------------------------------
   const [cargando, setCargando] = useState(Boolean(conexion));
+  const [noLeidos, setNoLeidos] = useState(0);
   const [errorDatos, setErrorDatos] = useState<string | null>(null);
   const [resumenGuardado, setResumenGuardado] =
     useState<ResumenBancario | null>(null);
@@ -663,9 +677,7 @@ export function Importador({
     <div className="min-h-screen">
       <header className="bg-marca text-white">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-4 py-3">
-          <span className="text-lg font-semibold">
-            DC Consultora · Sistema Contable
-          </span>
+          <Marca />
           <nav className="flex flex-wrap gap-1 text-sm">
             {(
               [
@@ -675,11 +687,14 @@ export function Importador({
                 ["movimientos", "Cobros y pagos"],
                 ["cuentas", "Cuentas corrientes"],
                 ["tickets", "Tickets"],
+                ["mensajes", "Mensajes"],
               ] as [Seccion, string][]
             )
               .filter(
                 ([id]) =>
-                  conexion?.rol !== "cliente" || SECCIONES_CLIENTE.includes(id),
+                  (conexion?.rol !== "cliente" ||
+                    SECCIONES_CLIENTE.includes(id)) &&
+                  (id !== "mensajes" || conexion),
               )
               .map(([id, texto]) => (
                 <button
@@ -689,6 +704,14 @@ export function Importador({
                   className={`rounded-md px-3 py-1.5 font-medium ${seccion === id ? "bg-white/20" : "opacity-80 hover:bg-white/10 hover:opacity-100"}`}
                 >
                   {texto}
+                  {id === "mensajes" && noLeidos > 0 && (
+                    <span
+                      aria-label={`${noLeidos} sin leer`}
+                      className="ml-1.5 inline-flex min-w-5 items-center justify-center rounded-full bg-white px-1.5 text-xs font-semibold text-marca"
+                    >
+                      {noLeidos}
+                    </span>
+                  )}
                 </button>
               ))}
           </nav>
@@ -764,6 +787,17 @@ export function Importador({
             fechaCorte={fechaCorte}
           />
         </div>
+        {conexion && (
+          <div hidden={seccion !== "mensajes"}>
+            <Mensajes
+              repo={conexion.repo}
+              empresaId={conexion.empresa.id}
+              soyEstudio={conexion.rol === "estudio"}
+              visible={seccion === "mensajes"}
+              onNoLeidos={setNoLeidos}
+            />
+          </div>
+        )}
         <div hidden={seccion !== "tickets"}>
           <section className="mb-6">
             <h1 className="text-2xl font-semibold">Tickets del cliente</h1>

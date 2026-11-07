@@ -47,6 +47,14 @@ export function Ingreso({ db }: { db: SupabaseClient }) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-marca to-[#7a2412] px-4 py-10">
       <div className="w-full max-w-sm rounded-2xl bg-white p-8 shadow-xl">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/logo-dc.png"
+          alt=""
+          width={64}
+          height={64}
+          className="mb-3 h-16 w-16"
+        />
         <p className="text-sm font-medium text-marca">DC Consultora</p>
         <h1 className="mt-1 text-2xl font-semibold">Sistema Contable</h1>
 

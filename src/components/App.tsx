@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Ingreso } from "@/components/acceso/Ingreso";
 import { AdminEmpresas } from "@/components/empresas/AdminEmpresas";
 import { Importador } from "@/components/importador/Importador";
+import { Marca } from "@/components/Marca";
 import {
   crearCliente,
   type Empresa,
@@ -27,6 +28,15 @@ function recordarEmpresa(id: string) {
     localStorage.setItem(CLAVE_EMPRESA, id);
   } catch {
     // Sin almacenamiento local se elige de nuevo al entrar.
+  }
+}
+
+/** La pantalla con la que abre la próxima empresa (por ejemplo, ir directo a los mensajes). */
+function recordarSeccion(seccion: string) {
+  try {
+    sessionStorage.setItem("seccion-al-abrir", seccion);
+  } catch {
+    // Sin almacenamiento abre en el inicio.
   }
 }
 
@@ -60,6 +70,8 @@ export function App() {
   const [empresaId, setEmpresaId] = useState<string | null>(null);
   const [verEmpresas, setVerEmpresas] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Mensajes del cliente sin leer, por empresa (solo para el estudio).
+  const [sinLeer, setSinLeer] = useState<Record<string, number>>({});
 
   useEffect(() => {
     if (!db) return;
@@ -84,6 +96,15 @@ export function App() {
       })
       .catch((e) => setError(e instanceof Error ? e.message : String(e)));
   }, [repo, usuarioId]);
+
+  const soyEstudio = perfil?.rol === "estudio";
+  useEffect(() => {
+    if (!repo || !soyEstudio) return;
+    const contar = () => repo.noLeidos(true).then(setSinLeer, () => {});
+    contar();
+    const t = setInterval(contar, 30_000);
+    return () => clearInterval(t);
+  }, [repo, soyEstudio, empresaId, verEmpresas]);
 
   // Sin base de datos configurada: la app funciona como prototipo, con datos que no se guardan.
   if (!db || !repo) return <Importador />;
@@ -130,6 +151,9 @@ export function App() {
           {empresas.map((e) => (
             <option key={e.id} value={e.id} className="text-stone-900">
               {e.razon_social}
+              {sinLeer[e.id] && e.id !== empresaId
+                ? ` (✉ ${sinLeer[e.id]})`
+                : ""}
             </option>
           ))}
         </select>
@@ -141,6 +165,12 @@ export function App() {
           className="rounded-md px-3 py-1.5 font-medium opacity-80 hover:bg-white/10 hover:opacity-100"
         >
           Empresas
+          {Object.keys(sinLeer).some((id) => id !== empresaId) && (
+            <span
+              title="Hay mensajes sin leer de otros clientes"
+              className="ml-1.5 inline-block h-2 w-2 rounded-full bg-amber-300 align-middle"
+            />
+          )}
         </button>
       )}
       <button
@@ -159,9 +189,7 @@ export function App() {
       <div className="min-h-screen">
         <header className="bg-marca text-white">
           <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3">
-            <span className="text-lg font-semibold">
-              DC Consultora · Sistema Contable
-            </span>
+            <Marca />
             <div className="flex items-center gap-2 text-sm">
               {empresa && (
                 <button
@@ -185,6 +213,7 @@ export function App() {
         <AdminEmpresas
           repo={repo}
           empresas={empresas}
+          sinLeer={sinLeer}
           onCreada={(e) =>
             setEmpresas(
               [...empresas, e].sort((a, b) =>
@@ -193,6 +222,10 @@ export function App() {
             )
           }
           onAbrir={(e) => elegir(e.id)}
+          onMensajes={(e) => {
+            recordarSeccion("mensajes");
+            elegir(e.id);
+          }}
         />
       </div>
     );

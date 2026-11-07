@@ -99,13 +99,18 @@ function Invitaciones({
 export function AdminEmpresas({
   repo,
   empresas,
+  sinLeer = {},
   onCreada,
   onAbrir,
+  onMensajes,
 }: {
   repo: Repositorio;
   empresas: Empresa[];
+  /** Mensajes del cliente sin leer, por empresa. */
+  sinLeer?: Record<string, number>;
   onCreada: (e: Empresa) => void;
   onAbrir: (e: Empresa) => void;
+  onMensajes?: (e: Empresa) => void;
 }) {
   const [razonSocial, setRazonSocial] = useState("");
   const [cuit, setCuit] = useState("");
@@ -216,6 +221,18 @@ export function AdminEmpresas({
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-2">
+                  {sinLeer[e.id] ? (
+                    <button
+                      type="button"
+                      onClick={() => onMensajes?.(e)}
+                      className="rounded-md bg-amber-100 px-3 py-1.5 text-sm font-medium text-amber-900 hover:bg-amber-200"
+                    >
+                      ✉ {sinLeer[e.id]}{" "}
+                      {sinLeer[e.id] === 1
+                        ? "mensaje nuevo"
+                        : "mensajes nuevos"}
+                    </button>
+                  ) : null}
                   <button
                     type="button"
                     onClick={() =>

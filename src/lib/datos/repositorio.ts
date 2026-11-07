@@ -29,6 +29,14 @@ export interface Empresa {
   condicion_iva: string;
 }
 
+export interface Mensaje {
+  id: string;
+  texto: string;
+  deEstudio: boolean;
+  creadoEn: string;
+  leido: boolean;
+}
+
 export interface Perfil {
   usuario_id: string;
   nombre: string;
@@ -242,6 +250,58 @@ export class Repositorio {
     };
   }
 
+  // Mensajes entre el cliente y el estudio ------------------------------------------------------
+
+  async mensajes(empresaId: string): Promise<Mensaje[]> {
+    const { data, error } = await this.db
+      .from("mensajes")
+      .select("id, texto, de_estudio, creado_en, leido")
+      .eq("empresa_id", empresaId)
+      .order("creado_en")
+      .limit(500);
+    fallar(error, "leer los mensajes");
+    return (data ?? []).map((m) => ({
+      id: m.id,
+      texto: m.texto,
+      deEstudio: m.de_estudio,
+      creadoEn: m.creado_en,
+      leido: m.leido,
+    }));
+  }
+
+  async enviarMensaje(empresaId: string, texto: string) {
+    const { error } = await this.db
+      .from("mensajes")
+      .insert({ empresa_id: empresaId, texto: texto.trim() });
+    fallar(error, "enviar el mensaje");
+  }
+
+  /** Marca como leídos los mensajes que escribió la otra parte (la base no deja marcar los propios). */
+  async marcarLeidos(empresaId: string, deEstudio: boolean) {
+    const { error } = await this.db
+      .from("mensajes")
+      .update({ leido: true })
+      .eq("empresa_id", empresaId)
+      .eq("de_estudio", deEstudio)
+      .eq("leido", false);
+    fallar(error, "marcar los mensajes como leídos");
+  }
+
+  /** Cuántos mensajes de la otra parte faltan leer, por empresa. */
+  async noLeidos(soyEstudio: boolean): Promise<Record<string, number>> {
+    const { data, error } = await this.db
+      .from("mensajes")
+      .select("empresa_id")
+      .eq("de_estudio", !soyEstudio)
+      .eq("leido", false)
+      .limit(1000);
+    fallar(error, "contar los mensajes sin leer");
+    const cuenta: Record<string, number> = {};
+    for (const m of data ?? [])
+      cuenta[m.empresa_id] = (cuenta[m.empresa_id] ?? 0) + 1;
+    return cuenta;
+  }
+
   // Unidades de negocio ------------------------------------------------------------------------
 
   async unidades(empresaId: string): Promise<Unidad[]> {
@@ -263,16 +323,24 @@ export class Repositorio {
   async configUnidades(empresaId: string): Promise<ConfigUnidades> {
     const [unidades, proveedores] = await Promise.all([
       this.unidades(empresaId),
-      this.db.from("proveedores_unidad").select("cuit, unidad_id").eq("empresa_id", empresaId),
+      this.db
+        .from("proveedores_unidad")
+        .select("cuit, unidad_id")
+        .eq("empresa_id", empresaId),
     ]);
     fallar(proveedores.error, "leer los proveedores por unidad");
     return {
       unidades,
-      proveedores: Object.fromEntries((proveedores.data ?? []).map((p) => [p.cuit, p.unidad_id])),
+      proveedores: Object.fromEntries(
+        (proveedores.data ?? []).map((p) => [p.cuit, p.unidad_id]),
+      ),
     };
   }
 
-  async guardarUnidad(empresaId: string, u: Omit<Unidad, "id"> & { id?: string }) {
+  async guardarUnidad(
+    empresaId: string,
+    u: Omit<Unidad, "id"> & { id?: string },
+  ) {
     const { error } = await this.db.from("unidades_negocio").upsert({
       ...(u.id ? { id: u.id } : {}),
       empresa_id: empresaId,
@@ -284,15 +352,28 @@ export class Repositorio {
   }
 
   async borrarUnidad(id: string) {
-    const { error } = await this.db.from("unidades_negocio").delete().eq("id", id);
+    const { error } = await this.db
+      .from("unidades_negocio")
+      .delete()
+      .eq("id", id);
     fallar(error, "borrar la unidad de negocio");
   }
 
   /** Indica a qué unidad le vende un proveedor; null la quita. */
-  async asignarProveedor(empresaId: string, cuit: string, unidadId: string | null) {
+  async asignarProveedor(
+    empresaId: string,
+    cuit: string,
+    unidadId: string | null,
+  ) {
     const { error } = unidadId
-      ? await this.db.from("proveedores_unidad").upsert({ empresa_id: empresaId, cuit, unidad_id: unidadId })
-      : await this.db.from("proveedores_unidad").delete().eq("empresa_id", empresaId).eq("cuit", cuit);
+      ? await this.db
+          .from("proveedores_unidad")
+          .upsert({ empresa_id: empresaId, cuit, unidad_id: unidadId })
+      : await this.db
+          .from("proveedores_unidad")
+          .delete()
+          .eq("empresa_id", empresaId)
+          .eq("cuit", cuit);
     fallar(error, "asignar el proveedor a la unidad");
   }
 
@@ -423,7 +504,12 @@ export class Repositorio {
 
   async guardarTicket(
     empresaId: string,
-    ticket: { id: string; datos: TicketExtraido; porQr: boolean; unidad?: string },
+    ticket: {
+      id: string;
+      datos: TicketExtraido;
+      porQr: boolean;
+      unidad?: string;
+    },
     foto: Blob | null,
   ) {
     let ruta: string | undefined;
