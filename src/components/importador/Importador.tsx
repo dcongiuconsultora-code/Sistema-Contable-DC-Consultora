@@ -183,9 +183,11 @@ export interface Conexion {
   encabezado: ReactNode;
 }
 
-// El cliente ve su tablero y carga cobros, pagos y tickets; lo de ARCA y bancos lo hace el estudio.
+// El cliente ve su tablero, carga cobros, pagos y tickets y sube sus resúmenes bancarios;
+// lo de ARCA lo carga solo el estudio.
 const SECCIONES_CLIENTE: Seccion[] = [
   "inicio",
+  "bancos",
   "movimientos",
   "cuentas",
   "tickets",
@@ -527,7 +529,16 @@ export function Importador({
       ? titulo(resumenBanco.titular)
       : "tu empresa";
 
-  const registrarDesdeBanco = (nuevos: Movimiento[]) => {
+  const registrarDesdeBanco = (registrados: Movimiento[]) => {
+    // Lo que identifica el cliente desde el banco lo revisa el estudio, como cualquier otro movimiento.
+    const nuevos =
+      conexion?.rol === "cliente"
+        ? registrados.map((m) => ({
+            ...m,
+            estado: "enviado" as const,
+            origen: "cliente" as const,
+          }))
+        : registrados;
     const ids = new Set(nuevos.map((m) => m.id));
     actualizarMovimientos(
       [...movimientos.filter((m) => !ids.has(m.id)), ...nuevos].sort((a, b) =>
@@ -754,10 +765,9 @@ export function Importador({
           <section className="mb-6">
             <h1 className="text-2xl font-semibold">Bancos</h1>
             <p className="mt-1 max-w-3xl text-stone-600">
-              Subí el resumen del banco en PDF. El sistema lee todas las
-              cuentas, controla que los saldos cierren y clasifica cada
-              movimiento con las cuentas del plan. Los que necesitan tu criterio
-              quedan marcados para revisar.
+              {conexion?.rol === "cliente"
+                ? "Subí el resumen del banco en PDF, tal como lo descargás del home banking. El sistema lo lee solo; si hay movimientos que no reconoce, podés indicar qué fueron y el estudio los revisa."
+                : "Subí el resumen del banco en PDF. El sistema lee todas las cuentas, controla que los saldos cierren y clasifica cada movimiento con las cuentas del plan. Los que necesitan tu criterio quedan marcados para revisar."}
             </p>
           </section>
           <Bancos
