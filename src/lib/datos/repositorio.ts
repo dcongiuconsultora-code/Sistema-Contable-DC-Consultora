@@ -309,22 +309,23 @@ export class Repositorio {
     const r = await this.db
       .from("archivos_importados")
       .delete()
-      .eq("id", archivoId);
+      .eq("id", archivoId)
+      .select("id");
     fallar(r.error, "borrar el archivo");
+    if (!r.data?.length)
+      throw new Error("Solo puede quitar este archivo quien lo subió.");
   }
 
   // Movimientos del cliente ----------------------------------------------------------------------
 
   async guardarMovimientos(empresaId: string, movimientos: Movimiento[]) {
     if (movimientos.length === 0) return;
-    const { error } = await this.db
-      .from("movimientos")
-      .upsert(
-        movimientos.map((m) => ({
-          ...movimientoAFila(m, empresaId),
-          actualizado_en: new Date().toISOString(),
-        })),
-      );
+    const { error } = await this.db.from("movimientos").upsert(
+      movimientos.map((m) => ({
+        ...movimientoAFila(m, empresaId),
+        actualizado_en: new Date().toISOString(),
+      })),
+    );
     fallar(error, "guardar los movimientos");
   }
 
@@ -372,15 +373,13 @@ export class Repositorio {
         .upload(ruta, foto, { upsert: true, contentType: foto.type });
       fallar(subida.error, "subir la foto del ticket");
     }
-    const { error } = await this.db
-      .from("tickets")
-      .upsert({
-        id: ticket.id,
-        empresa_id: empresaId,
-        datos: ticket.datos,
-        por_qr: ticket.porQr,
-        ...(ruta ? { foto: ruta } : {}),
-      });
+    const { error } = await this.db.from("tickets").upsert({
+      id: ticket.id,
+      empresa_id: empresaId,
+      datos: ticket.datos,
+      por_qr: ticket.porQr,
+      ...(ruta ? { foto: ruta } : {}),
+    });
     fallar(error, "guardar el ticket");
   }
 

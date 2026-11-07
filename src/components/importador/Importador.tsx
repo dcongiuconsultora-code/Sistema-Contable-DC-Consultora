@@ -183,10 +183,11 @@ export interface Conexion {
   encabezado: ReactNode;
 }
 
-// El cliente ve su tablero, carga cobros, pagos y tickets y sube sus resúmenes bancarios;
-// lo de ARCA lo carga solo el estudio.
+// El cliente ve todo lo de su empresa y también importa ARCA y bancos; lo que lo diferencia del
+// estudio es que no aprueba movimientos ni cambia los saldos de inicio.
 const SECCIONES_CLIENTE: Seccion[] = [
   "inicio",
+  "arca",
   "bancos",
   "movimientos",
   "cuentas",

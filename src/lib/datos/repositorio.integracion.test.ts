@@ -183,7 +183,7 @@ describe.skipIf(!URL || !ANON || !SERVICIO)(
       expect((await estudio.cargar(empresaId)).archivosDeducciones).toEqual([]);
     });
 
-    it("el cliente carga y corrige movimientos, pero no los aprueba ni carga comprobantes", async () => {
+    it("el cliente carga y corrige movimientos e importa ARCA, pero no aprueba movimientos", async () => {
       const m: Movimiento = {
         id: crypto.randomUUID(),
         tipo: "gasto",
@@ -202,9 +202,10 @@ describe.skipIf(!URL || !ANON || !SERVICIO)(
       await expect(
         cliente.guardarMovimientos(empresaId, [{ ...m, estado: "aprobado" }]),
       ).rejects.toThrow(/No se pudo guardar los movimientos/);
+      // El cliente también puede importar archivos de ARCA de su empresa.
       await expect(
         cliente.guardarComprobantes(empresaId, "ventas", [], "x.csv"),
-      ).rejects.toThrow();
+      ).resolves.toBeUndefined();
 
       await estudio.guardarMovimientos(empresaId, [
         { ...m, importe: 1800, estado: "aprobado" },
