@@ -11,9 +11,16 @@ import {
   mayor,
   resultados,
   type SaldosIniciales,
+  flujoDeCaja,
+  type FiltroUnidad,
 } from "@/lib/contabilidad/indicadores";
 import { fechaCorta, nombrePeriodo, pesos } from "@/lib/formato";
 import { cuenta as datosCuenta, PLAN_MODELO } from "@/lib/plan/plan";
+import {
+  type ConfigUnidades,
+  nombreUnidad,
+  SIN_UNIDADES,
+} from "@/lib/unidades/unidades";
 
 export interface Alertas {
   observados: number;
@@ -33,6 +40,108 @@ interface Props {
   onIr: (seccion: "movimientos" | "cuentas" | "bancos" | "tickets") => void;
   /** false para los clientes: ven cómo se calcula pero no cambian los saldos de inicio. */
   puedeEditarSaldos?: boolean;
+  /** Unidades de negocio de la empresa (vacío si no tiene). */
+  unidades?: ConfigUnidades;
+}
+
+const TODAS = "todas";
+const COMPARTIDO = "compartido";
+
+/** Tabla con el resultado del mes de cada unidad de negocio. */
+function PorUnidad({
+  asientos,
+  desde,
+  hasta,
+  unidades,
+  onElegir,
+}: {
+  asientos: Asiento[];
+  desde: string;
+  hasta: string;
+  unidades: ConfigUnidades;
+  onElegir: (id: string) => void;
+}) {
+  const filas: [string, string, FiltroUnidad][] = [
+    ...unidades.unidades.map(
+      (u) => [u.id, u.nombre, u.id] as [string, string, FiltroUnidad],
+    ),
+    [COMPARTIDO, "Compartido (sin unidad)", null],
+  ];
+  const datos = filas.map(([id, nombre, filtro]) => ({
+    id,
+    nombre,
+    r: resultados(asientos, desde, hasta, filtro),
+    caja: flujoDeCaja(asientos, desde, hasta, filtro).neto,
+  }));
+  const total = resultados(asientos, desde, hasta);
+  const cajaTotal = flujoDeCaja(asientos, desde, hasta).neto;
+  const pct = (m: number | null) =>
+    m === null ? "—" : `${Math.round(m * 1000) / 10}%`.replace(".", ",");
+  return (
+    <section className="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
+      <h2 className="border-b border-stone-200 px-5 py-3 font-semibold">
+        Por unidad de negocio
+      </h2>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="bg-stone-50 text-left text-xs uppercase tracking-wide text-stone-500">
+            <tr>
+              <th className="px-4 py-2">Unidad</th>
+              <th className="px-4 py-2 text-right">Ventas</th>
+              <th className="px-4 py-2 text-right">Compras</th>
+              <th className="px-4 py-2 text-right">Gastos</th>
+              <th className="px-4 py-2 text-right">Resultado</th>
+              <th className="px-4 py-2 text-right">Rentabilidad</th>
+              <th className="px-4 py-2 text-right">Caja del mes</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-stone-100">
+            {datos.map((d) => (
+              <tr
+                key={d.id}
+                onClick={() => onElegir(d.id)}
+                className="cursor-pointer hover:bg-stone-50"
+                title="Ver el tablero de esta unidad"
+              >
+                <td className="px-4 py-2 font-medium">{d.nombre}</td>
+                <td className="cifra px-4 py-2">{pesos(d.r.ventas)}</td>
+                <td className="cifra px-4 py-2">{pesos(d.r.costos)}</td>
+                <td className="cifra px-4 py-2">{pesos(d.r.gastos)}</td>
+                <td
+                  className={`cifra px-4 py-2 font-semibold ${d.r.resultado < 0 ? "text-red-700" : ""}`}
+                >
+                  {pesos(d.r.resultado)}
+                </td>
+                <td className="cifra px-4 py-2">{pct(d.r.margen)}</td>
+                <td
+                  className={`cifra px-4 py-2 ${d.caja < 0 ? "text-red-700" : ""}`}
+                >
+                  {pesos(d.caja)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+          <tfoot className="border-t-2 border-stone-200 bg-stone-50 font-semibold">
+            <tr>
+              <td className="px-4 py-2">Toda la empresa</td>
+              <td className="cifra px-4 py-2">{pesos(total.ventas)}</td>
+              <td className="cifra px-4 py-2">{pesos(total.costos)}</td>
+              <td className="cifra px-4 py-2">{pesos(total.gastos)}</td>
+              <td className="cifra px-4 py-2">{pesos(total.resultado)}</td>
+              <td className="cifra px-4 py-2">{pct(total.margen)}</td>
+              <td className="cifra px-4 py-2">{pesos(cajaTotal)}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      <p className="border-t border-stone-200 px-5 py-2 text-xs text-stone-500">
+        Ventas por punto de venta, compras por proveedor, cobros y pagos según
+        la unidad elegida al cargarlos. &quot;Compartido&quot; es lo que no es
+        de una sola unidad (por ejemplo, gastos de la cuenta bancaria común).
+        Caja del mes = entradas − salidas de caja y bancos.
+      </p>
+    </section>
+  );
 }
 
 // Colores del gráfico (paleta categórica validada: azul y naranja) y de estado (fijos).
@@ -481,7 +590,22 @@ export function Tablero({
   alertas,
   onIr,
   puedeEditarSaldos = true,
+  unidades = SIN_UNIDADES,
 }: Props) {
+  const [vistaUnidad, setVistaUnidad] = useState<string>(TODAS);
+  const conUnidades = unidades.unidades.length > 0;
+  const filtro: FiltroUnidad =
+    !conUnidades || vistaUnidad === TODAS
+      ? undefined
+      : vistaUnidad === COMPARTIDO
+        ? null
+        : vistaUnidad;
+  const nombreVista =
+    filtro === undefined
+      ? null
+      : filtro === null
+        ? "Lo compartido"
+        : nombreUnidad(filtro, unidades);
   const periodos = useMemo(() => {
     const todos = new Set(
       asientos
@@ -511,16 +635,18 @@ export function Tablero({
   const hasta = finDeMes(periodo);
   const desde = `${periodo}-01`;
   const b = balance(mayor(asientos, iniciales, hasta));
-  const r = resultados(asientos, desde, hasta);
+  const r = resultados(asientos, desde, hasta, filtro);
   const anterior = resultados(
     asientos,
     `${mesAnterior(periodo)}-01`,
     finDeMes(mesAnterior(periodo)),
+    filtro,
   );
+  const caja = flujoDeCaja(asientos, desde, hasta, filtro);
   const lista = indicadores(b, r);
   const varVentas = variacion(r.ventas, anterior.ventas);
   const mensual: PuntoMes[] = periodos.slice(-6).map((p) => {
-    const x = resultados(asientos, `${p}-01`, finDeMes(p));
+    const x = resultados(asientos, `${p}-01`, finDeMes(p), filtro);
     return { periodo: p, ventas: x.ventas, compras: x.costos };
   });
 
@@ -580,9 +706,32 @@ export function Tablero({
           <div className="min-w-0">
             <p className="text-sm opacity-80">Hola, {empresa}</p>
             <h1 className="mt-1 text-2xl font-semibold sm:text-3xl">
-              Así está tu empresa en{" "}
+              Así está {nombreVista ?? "tu empresa"} en{" "}
               <span className="capitalize">{nombrePeriodo(periodo)}</span>
             </h1>
+            {conUnidades && (
+              <label className="mr-4 mt-3 inline-flex items-center gap-2 text-sm">
+                <span className="opacity-80">Unidad</span>
+                <select
+                  id="unidad-tablero"
+                  value={vistaUnidad}
+                  onChange={(e) => setVistaUnidad(e.target.value)}
+                  className="rounded-md border border-white/30 bg-white/10 px-2 py-1 text-white"
+                >
+                  <option value={TODAS} className="text-stone-900">
+                    Toda la empresa
+                  </option>
+                  {unidades.unidades.map((u) => (
+                    <option key={u.id} value={u.id} className="text-stone-900">
+                      {u.nombre}
+                    </option>
+                  ))}
+                  <option value={COMPARTIDO} className="text-stone-900">
+                    Compartido
+                  </option>
+                </select>
+              </label>
+            )}
             <label className="mt-3 inline-flex items-center gap-2 text-sm">
               <span className="opacity-80">Ver otro mes</span>
               <select
@@ -632,24 +781,47 @@ export function Tablero({
                   ? "text-emerald-700"
                   : "text-red-700",
           },
-          {
-            titulo: "Plata disponible",
-            valor: b.disponibilidades,
-            extra: "caja y bancos",
-            tono: "",
-          },
-          {
-            titulo: "Te deben",
-            valor: b.creditosPorVentas,
-            extra: "clientes",
-            tono: "",
-          },
-          {
-            titulo: "Debés",
-            valor: b.deudasComerciales,
-            extra: "proveedores",
-            tono: "",
-          },
+          ...(filtro === undefined
+            ? [
+                {
+                  titulo: "Plata disponible",
+                  valor: b.disponibilidades,
+                  extra: "caja y bancos",
+                  tono: "",
+                },
+                {
+                  titulo: "Te deben",
+                  valor: b.creditosPorVentas,
+                  extra: "clientes",
+                  tono: "",
+                },
+                {
+                  titulo: "Debés",
+                  valor: b.deudasComerciales,
+                  extra: "proveedores",
+                  tono: "",
+                },
+              ]
+            : [
+                {
+                  titulo: "Compras del mes",
+                  valor: r.costos,
+                  extra: "netas de IVA",
+                  tono: "",
+                },
+                {
+                  titulo: "Gastos del mes",
+                  valor: r.gastos,
+                  extra: "sueldos, servicios y otros",
+                  tono: "",
+                },
+                {
+                  titulo: "Caja del mes",
+                  valor: caja.neto,
+                  extra: `entraron ${compacto(caja.entradas)}, salieron ${compacto(caja.salidas)}`,
+                  tono: caja.neto < 0 ? "text-red-700" : "",
+                },
+              ]),
         ].map((k) => (
           <div
             key={k.titulo}
@@ -675,11 +847,23 @@ export function Tablero({
           ))}
         </div>
         <p className="mt-2 text-xs text-stone-500">
-          Índices al {fechaCorta(hasta)}. Los rangos de &quot;bien&quot; y
-          &quot;atención&quot; son referencias generales: el estudio los ajusta
-          según el rubro.
+          Índices al {fechaCorta(hasta)}.
+          {filtro !== undefined &&
+            " La rentabilidad es de la unidad; liquidez, prueba ácida y endeudamiento son de toda la empresa (la razón social)."}{" "}
+          Los rangos de &quot;bien&quot; y &quot;atención&quot; son referencias
+          generales: el estudio los ajusta según el rubro.
         </p>
       </section>
+
+      {conUnidades && filtro === undefined && (
+        <PorUnidad
+          asientos={asientos}
+          desde={desde}
+          hasta={hasta}
+          unidades={unidades}
+          onElegir={setVistaUnidad}
+        />
+      )}
 
       <section className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
         <div className="min-w-0 rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">

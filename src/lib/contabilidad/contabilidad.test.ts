@@ -184,3 +184,161 @@ describe("Balance e índices", () => {
     );
   });
 });
+
+describe("Unidades de negocio", async () => {
+  const { flujoDeCaja } = await import("./indicadores");
+  const cfg = {
+    unidades: [
+      {
+        id: "fab",
+        nombre: "Fabriestant",
+        puntosVenta: [2],
+        cuentasBancarias: ["3-1"],
+      },
+      {
+        id: "dru",
+        nombre: "Drugstore",
+        puntosVenta: [3],
+        cuentasBancarias: ["3-1"],
+      },
+      {
+        id: "min",
+        nombre: "Minimarket",
+        puntosVenta: [4],
+        cuentasBancarias: ["4-2"],
+      },
+    ],
+    proveedores: { "30733333331": "min" },
+  };
+  const fila = (
+    cuenta: string,
+    importe: number,
+    concepto: string,
+    cta: string,
+  ) => ({
+    fila: {
+      movimiento: {
+        fecha: "2026-09-15",
+        descripcion: concepto,
+        referencia: "",
+        importe,
+        saldo: null,
+        pagina: 1,
+      },
+      cuenta,
+      estado: "automatico" as const,
+      clasificacion: {
+        concepto,
+        cuenta: cta,
+        nombreCuenta: null,
+        automatica: true,
+      },
+    },
+    cuentaBanco: cuenta === "4-2" ? "1.1.01.007" : "1.1.01.006",
+  });
+  const diario = generarDiario({
+    ventas: [
+      comp({ puntoVenta: 2 }),
+      comp({
+        puntoVenta: 4,
+        numeroDesde: 9,
+        netoGravado: 100000,
+        iva: 21000,
+        total: 121000,
+      }),
+      comp({ puntoVenta: 9, numeroDesde: 10 }),
+    ],
+    compras: [
+      comp({
+        cuitContraparte: "30733333331",
+        contraparte: "Proveedor Uno",
+        netoGravado: 50000,
+        iva: 10500,
+        total: 60500,
+      }),
+      comp({
+        cuitContraparte: "30744444445",
+        netoGravado: 20000,
+        iva: 4200,
+        total: 24200,
+        unidad: "dru",
+      }),
+    ],
+    movimientos: [
+      {
+        id: "g",
+        tipo: "gasto",
+        fecha: "2026-09-20",
+        importe: 7000,
+        medio: "efectivo",
+        contraparte: "",
+        cuitContraparte: "",
+        nota: "",
+        estado: "aprobado",
+        cuenta: "5.3.01.018",
+        conFactura: false,
+        unidad: "fab",
+      },
+      {
+        id: "p",
+        tipo: "pago_proveedor",
+        fecha: "2026-09-21",
+        importe: 60500,
+        medio: "banco_ca",
+        contraparte: "Proveedor Uno",
+        cuitContraparte: "30733333331",
+        nota: "",
+        estado: "aprobado",
+      },
+    ],
+    banco: [
+      fila("4-2", -100, "Gastos bancarios", "5.3.01.024"),
+      fila("3-1", -50, "Gastos bancarios", "5.3.01.024"),
+    ],
+    unidades: cfg,
+  });
+
+  it("asigna ventas por punto de venta, compras por proveedor o a mano, pagos y banco", () => {
+    const por = (texto: string) =>
+      diario.filter((a) => a.descripcion.includes(texto)).map((a) => a.unidad);
+    expect(
+      diario.filter((a) => a.origen === "ARCA").map((a) => a.unidad),
+    ).toEqual(["fab", "min", null, "min", "dru"]);
+    expect(
+      diario.find((a) => a.lineas.some((l) => l.cuenta === "5.3.01.018"))
+        ?.unidad,
+    ).toBe("fab");
+    expect(por("Proveedor Uno")).toEqual(["min", "min"]); // compra y pago, por proveedor
+    // La caja de ahorro es solo de Minimarket; la cuenta corriente la comparten dos unidades.
+    expect(
+      diario.filter((a) => a.origen === "Banco").map((a) => a.unidad),
+    ).toEqual(["min", null]);
+  });
+
+  it("calcula el resultado y la caja de cada unidad", () => {
+    expect(resultados(diario, "2026-09-01", "2026-09-30", "min")).toMatchObject(
+      { ventas: 100000, costos: 50000, gastos: 100, resultado: 49900 },
+    );
+    expect(resultados(diario, "2026-09-01", "2026-09-30", "fab")).toMatchObject(
+      { ventas: 1000000, gastos: 7000, resultado: 993000 },
+    );
+    expect(resultados(diario, "2026-09-01", "2026-09-30", null)).toMatchObject({
+      ventas: 1000000,
+      gastos: 50,
+    });
+    expect(flujoDeCaja(diario, "2026-09-01", "2026-09-30", "fab")).toEqual({
+      entradas: 0,
+      salidas: 7000,
+      neto: -7000,
+    });
+    expect(flujoDeCaja(diario, "2026-09-01", "2026-09-30", "min").neto).toBe(
+      -60600,
+    );
+    const total = resultados(diario, "2026-09-01", "2026-09-30");
+    const suma = ["fab", "dru", "min", null].reduce(
+      (t, u) => t + resultados(diario, "2026-09-01", "2026-09-30", u).resultado,
+      0,
+    );
+    expect(Math.round(suma * 100) / 100).toBe(total.resultado);
+  });
+});

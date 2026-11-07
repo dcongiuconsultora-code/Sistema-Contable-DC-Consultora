@@ -5,6 +5,7 @@ import type { ResumenBancario } from "@/lib/bancos/tipos";
 import type { SaldosIniciales } from "@/lib/contabilidad/indicadores";
 import type { Movimiento } from "@/lib/movimientos/tipos";
 import type { TicketExtraido } from "@/lib/tickets/esquema";
+import type { ConfigUnidades, Unidad } from "@/lib/unidades/unidades";
 import {
   comprobanteAFila,
   type DatosResumen,
@@ -40,6 +41,7 @@ export interface TicketGuardado {
   /** URL temporal para mostrar la foto. */
   foto: string;
   porQr: boolean;
+  unidad?: string;
 }
 
 export interface ArchivoDeduccionesGuardado {
@@ -57,6 +59,7 @@ export interface DatosEmpresa {
   archivosDeducciones: ArchivoDeduccionesGuardado[];
   saldos: SaldosIniciales;
   resumen: ResumenBancario | null;
+  unidades: ConfigUnidades;
 }
 
 /** null si la app corre sin base de datos (el prototipo). */
@@ -158,6 +161,7 @@ export class Repositorio {
       archivos,
       saldos,
       resumen,
+      unidades,
     ] = await Promise.all([
       todas<FilaComprobante>(
         (d, h) =>
@@ -201,6 +205,7 @@ export class Repositorio {
         .select("fecha, cuenta, importe")
         .eq("empresa_id", empresaId),
       this.ultimoResumen(empresaId),
+      this.configUnidades(empresaId),
     ]);
     fallar(archivos.error, "leer los archivos importados");
     fallar(saldos.error, "leer los saldos de inicio");
@@ -233,7 +238,62 @@ export class Repositorio {
         ),
       },
       resumen,
+      unidades,
     };
+  }
+
+  // Unidades de negocio ------------------------------------------------------------------------
+
+  async unidades(empresaId: string): Promise<Unidad[]> {
+    const { data, error } = await this.db
+      .from("unidades_negocio")
+      .select("id, nombre, puntos_venta, cuentas_bancarias")
+      .eq("empresa_id", empresaId)
+      .order("orden")
+      .order("nombre");
+    fallar(error, "leer las unidades de negocio");
+    return (data ?? []).map((u) => ({
+      id: u.id,
+      nombre: u.nombre,
+      puntosVenta: u.puntos_venta ?? [],
+      cuentasBancarias: u.cuentas_bancarias ?? [],
+    }));
+  }
+
+  async configUnidades(empresaId: string): Promise<ConfigUnidades> {
+    const [unidades, proveedores] = await Promise.all([
+      this.unidades(empresaId),
+      this.db.from("proveedores_unidad").select("cuit, unidad_id").eq("empresa_id", empresaId),
+    ]);
+    fallar(proveedores.error, "leer los proveedores por unidad");
+    return {
+      unidades,
+      proveedores: Object.fromEntries((proveedores.data ?? []).map((p) => [p.cuit, p.unidad_id])),
+    };
+  }
+
+  async guardarUnidad(empresaId: string, u: Omit<Unidad, "id"> & { id?: string }) {
+    const { error } = await this.db.from("unidades_negocio").upsert({
+      ...(u.id ? { id: u.id } : {}),
+      empresa_id: empresaId,
+      nombre: u.nombre.trim(),
+      puntos_venta: u.puntosVenta,
+      cuentas_bancarias: u.cuentasBancarias,
+    });
+    fallar(error, "guardar la unidad de negocio");
+  }
+
+  async borrarUnidad(id: string) {
+    const { error } = await this.db.from("unidades_negocio").delete().eq("id", id);
+    fallar(error, "borrar la unidad de negocio");
+  }
+
+  /** Indica a qué unidad le vende un proveedor; null la quita. */
+  async asignarProveedor(empresaId: string, cuit: string, unidadId: string | null) {
+    const { error } = unidadId
+      ? await this.db.from("proveedores_unidad").upsert({ empresa_id: empresaId, cuit, unidad_id: unidadId })
+      : await this.db.from("proveedores_unidad").delete().eq("empresa_id", empresaId).eq("cuit", cuit);
+    fallar(error, "asignar el proveedor a la unidad");
   }
 
   private async registrarArchivo(
@@ -340,7 +400,7 @@ export class Repositorio {
   private async tickets(empresaId: string): Promise<TicketGuardado[]> {
     const { data, error } = await this.db
       .from("tickets")
-      .select("id, datos, foto, por_qr")
+      .select("id, datos, foto, por_qr, unidad_id")
       .eq("empresa_id", empresaId)
       .order("creado_en");
     fallar(error, "leer los tickets");
@@ -357,12 +417,13 @@ export class Repositorio {
       datos: t.datos,
       foto: (t.foto && url.get(t.foto)) || "",
       porQr: t.por_qr,
+      unidad: t.unidad_id ?? undefined,
     }));
   }
 
   async guardarTicket(
     empresaId: string,
-    ticket: { id: string; datos: TicketExtraido; porQr: boolean },
+    ticket: { id: string; datos: TicketExtraido; porQr: boolean; unidad?: string },
     foto: Blob | null,
   ) {
     let ruta: string | undefined;
@@ -378,6 +439,7 @@ export class Repositorio {
       empresa_id: empresaId,
       datos: ticket.datos,
       por_qr: ticket.porQr,
+      unidad_id: ticket.unidad ?? null,
       ...(ruta ? { foto: ruta } : {}),
     });
     fallar(error, "guardar el ticket");

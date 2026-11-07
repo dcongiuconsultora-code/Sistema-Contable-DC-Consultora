@@ -29,6 +29,13 @@ Sistema contable interno de la consultora: los clientes cargan su operación y e
 - Gráfico de ventas y compras por mes y lista de cosas para atender (observados, cobranzas de más de 60 días, banco sin conciliar).
 - Se calcula con un libro diario armado solo (facturas de ARCA, tickets, cobros y pagos, movimientos del banco) más los saldos de inicio del último balance, que carga el estudio.
 
+## Unidades de negocio
+
+- Para empresas que llevan varios negocios dentro de una razón social (por ejemplo, Grupo N&P).
+- Se definen en Empresas → Unidades de negocio: nombre, puntos de venta y cuentas bancarias propias.
+- Las ventas se asignan por punto de venta, las compras por proveedor (ARCA → Unidades), el banco por cuenta (si es de una sola unidad) y los cobros, pagos y tickets según la unidad que se elige al cargarlos. Lo que no es de una sola unidad queda como "Compartido".
+- El tablero tiene un selector de unidad y una tabla con ventas, compras, gastos, resultado, rentabilidad y caja de cada una. Liquidez y endeudamiento son siempre de toda la empresa.
+
 ## Cuentas corrientes
 
 - Clientes: facturas de Mis Comprobantes emitidos, menos cobros y retenciones. Proveedores: recibidos y tickets, menos pagos.
@@ -94,6 +101,8 @@ npm test        # pruebas del importador y la liquidación
 | `src/components/acceso/` | Ingreso con el mail |
 | `src/components/empresas/` | Alta de empresas y accesos de los clientes |
 | `supabase/` | Migraciones de la base y prueba de permisos |
+| `src/lib/unidades/` | Asignación de ventas, compras, pagos y banco a cada unidad de negocio |
+| `src/components/unidades/` | Asignación de proveedores a unidades |
 | `src/lib/plan/` | Plan de cuentas modelo |
 | `src/components/movimientos/` | Pantalla de cobros y pagos |
 | `src/lib/tickets/` | Lectura de tickets: QR de ARCA, instrucciones para Claude, controles |

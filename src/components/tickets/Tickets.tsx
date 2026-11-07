@@ -5,6 +5,7 @@ import type { Comprobante } from "@/lib/arca/tipos";
 import { cuitConGuiones, fechaCorta, pesos } from "@/lib/formato";
 import type { TicketExtraido } from "@/lib/tickets/esquema";
 import type { LectorTicket } from "@/lib/tickets/lector";
+import { type ConfigUnidades, SIN_UNIDADES } from "@/lib/unidades/unidades";
 import { leerQrDeImagen } from "@/lib/tickets/qr";
 import {
   claveComprobante,
@@ -18,6 +19,8 @@ export interface TicketCargado {
   foto: string; // URL local de la imagen, para mostrarla
   datos: TicketExtraido;
   porQr: boolean;
+  /** Unidad de negocio, en empresas que las tienen. */
+  unidad?: string;
 }
 
 interface Props {
@@ -33,6 +36,8 @@ interface Props {
   sinLector?: string;
   /** Si se indica, se ofrece probar con una foto de ejemplo. */
   ticketEjemplo?: () => Promise<File>;
+  /** Unidades de negocio de la empresa (vacío si no tiene). */
+  unidades?: ConfigUnidades;
 }
 
 const VACIO: TicketExtraido = {
@@ -105,6 +110,7 @@ export function Tickets({
   lector,
   sinLector,
   ticketEjemplo,
+  unidades = SIN_UNIDADES,
 }: Props) {
   const input = useRef<HTMLInputElement>(null);
   const [borrador, setBorrador] = useState<TicketCargado | null>(null);
@@ -145,6 +151,10 @@ export function Tickets({
     : null;
   const hayErrores =
     revision?.observaciones.some((o) => o.gravedad === "error") ?? false;
+  const faltaUnidad =
+    unidades.unidades.length > 0 &&
+    borrador !== null &&
+    !(borrador.unidad ?? unidades.proveedores[borrador.datos.cuitEmisor]);
   const cambiar = (cambios: Partial<TicketExtraido>) =>
     borrador &&
     setBorrador({ ...borrador, datos: { ...borrador.datos, ...cambios } });
@@ -318,6 +328,33 @@ export function Tickets({
                   </label>
                 ))}
               </div>
+              {unidades.unidades.length > 0 && (
+                <label className="block text-sm sm:w-1/2">
+                  <span className="text-stone-600">Unidad de negocio</span>
+                  <select
+                    id="unidad-ticket"
+                    value={
+                      borrador.unidad ??
+                      unidades.proveedores[borrador.datos.cuitEmisor] ??
+                      ""
+                    }
+                    onChange={(e) =>
+                      setBorrador({
+                        ...borrador,
+                        unidad: e.target.value || undefined,
+                      })
+                    }
+                    className="mt-1 block w-full rounded-md border border-stone-300 bg-white px-2 py-2"
+                  >
+                    <option value="">Elegí…</option>
+                    {unidades.unidades.map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {u.nombre}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
               <div className="space-y-2 text-sm">
                 <p
                   className={`font-medium ${revision.computaIva ? "text-emerald-700" : "text-stone-600"}`}
@@ -338,11 +375,15 @@ export function Tickets({
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
-                  disabled={hayErrores}
+                  disabled={hayErrores || faltaUnidad}
                   onClick={() => {
+                    // Si no se eligió, queda la unidad del proveedor.
+                    const unidad =
+                      borrador.unidad ??
+                      unidades.proveedores[borrador.datos.cuitEmisor];
                     onTickets([
                       ...tickets.filter((t) => t.id !== borrador.id),
-                      borrador,
+                      { ...borrador, unidad },
                     ]);
                     setBorrador(null);
                   }}
@@ -360,6 +401,11 @@ export function Tickets({
                 {hayErrores && (
                   <span className="self-center text-sm text-red-700">
                     Corregí lo marcado en rojo para confirmar.
+                  </span>
+                )}
+                {!hayErrores && faltaUnidad && (
+                  <span className="self-center text-sm text-red-700">
+                    Elegí la unidad de negocio.
                   </span>
                 )}
               </div>

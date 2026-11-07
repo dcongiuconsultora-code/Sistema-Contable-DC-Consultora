@@ -1,5 +1,11 @@
 "use client";
 
+import {
+  type ConfigUnidades,
+  nombreUnidad,
+  SIN_UNIDADES,
+  unidadDeMovimiento,
+} from "@/lib/unidades/unidades";
 import { useState } from "react";
 import { JURISDICCIONES } from "@/lib/arca/retenciones";
 import { cuitConGuiones, fechaCorta, pesos } from "@/lib/formato";
@@ -34,6 +40,8 @@ interface Props {
   proveedores: Contraparte[];
   /** Con usuarios reales, la vista la da el rol y no se puede cambiar. */
   vistaFija?: Vista;
+  /** Unidades de negocio de la empresa (vacío si no tiene). */
+  unidades?: ConfigUnidades;
 }
 
 export type Vista = "cliente" | "estudio";
@@ -109,19 +117,27 @@ function Formulario({
   inicial,
   clientes,
   proveedores,
+  unidades,
   onGuardar,
   onCancelar,
 }: {
   inicial: Movimiento;
   clientes: Contraparte[];
   proveedores: Contraparte[];
+  unidades: ConfigUnidades;
   onGuardar: (m: Movimiento) => void;
   onCancelar: () => void;
 }) {
   const [m, setM] = useState(inicial);
   const [intento, setIntento] = useState(false);
   const cambiar = (c: Partial<Movimiento>) => setM({ ...m, ...c });
-  const errores = validarMovimiento(m);
+  const conUnidades = unidades.unidades.length > 0;
+  // La unidad del proveedor se propone sola; quien carga la puede cambiar.
+  const unidadSugerida = unidadDeMovimiento(m, unidades) ?? undefined;
+  const errores = [
+    ...validarMovimiento(m),
+    ...(conUnidades && !unidadSugerida ? ["Elegí la unidad de negocio."] : []),
+  ];
   const tipo = TIPOS.find((t) => t.id === m.tipo)!;
   const sugerencias =
     m.tipo === "cobro"
@@ -190,7 +206,12 @@ function Formulario({
           e.preventDefault();
           setIntento(true);
           if (errores.length === 0)
-            onGuardar({ ...m, estado: "enviado", observacion: undefined });
+            onGuardar({
+              ...m,
+              unidad: conUnidades ? unidadSugerida : undefined,
+              estado: "enviado",
+              observacion: undefined,
+            });
         }}
       >
         <div className="grid gap-3 sm:grid-cols-3">
@@ -377,6 +398,24 @@ function Formulario({
           </fieldset>
         )}
 
+        {conUnidades && (
+          <Etiqueta texto="Unidad de negocio" className="sm:w-1/2">
+            <select
+              id={`unidad-${m.id}`}
+              value={unidadSugerida ?? ""}
+              onChange={(e) => cambiar({ unidad: e.target.value || undefined })}
+              className={campo}
+            >
+              <option value="">Elegí…</option>
+              {unidades.unidades.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.nombre}
+                </option>
+              ))}
+            </select>
+          </Etiqueta>
+        )}
+
         <Etiqueta texto="Nota (opcional)">
           <input
             id={`nota-${m.id}`}
@@ -461,6 +500,7 @@ export function Movimientos({
   clientes,
   proveedores,
   vistaFija,
+  unidades = SIN_UNIDADES,
 }: Props) {
   const [vistaElegida, setVista] = useState<Vista>("cliente");
   const vista = vistaFija ?? vistaElegida;
@@ -547,6 +587,7 @@ export function Movimientos({
           inicial={editando}
           clientes={clientes}
           proveedores={proveedores}
+          unidades={unidades}
           onGuardar={guardar}
           onCancelar={() => setEditando(null)}
         />
@@ -577,6 +618,15 @@ export function Movimientos({
                         {descripcion(m)}
                       </div>
                       <div className="text-xs text-stone-500">
+                        {unidades.unidades.length > 0 && (
+                          <span className="font-medium text-stone-700">
+                            {nombreUnidad(
+                              unidadDeMovimiento(m, unidades),
+                              unidades,
+                            )}{" "}
+                            ·{" "}
+                          </span>
+                        )}
                         {t.nombre} ·{" "}
                         {MEDIOS.find((x) => x.id === m.medio)?.nombre}
                         {m.nota && <> · {m.nota}</>}

@@ -95,17 +95,49 @@ export interface Resultados {
 }
 
 /** Estado de resultados de un período (fechas inclusive). */
+/** undefined = toda la empresa; null = lo compartido (sin unidad); un id = esa unidad. */
+export type FiltroUnidad = string | null | undefined;
+
+function deLaUnidad(a: Asiento, unidad: FiltroUnidad) {
+  return unidad === undefined || (a.unidad ?? null) === unidad;
+}
+
+/** Entradas menos salidas de caja y bancos en el período (para ver la caja de cada unidad). */
+export function flujoDeCaja(
+  asientos: Asiento[],
+  desde: string,
+  hasta: string,
+  unidad?: FiltroUnidad,
+) {
+  let entradas = 0;
+  let salidas = 0;
+  for (const a of asientos) {
+    if (a.fecha < desde || a.fecha > hasta || !deLaUnidad(a, unidad)) continue;
+    for (const l of a.lineas) {
+      if (!l.cuenta.startsWith("1.1.01.")) continue;
+      entradas += l.debe;
+      salidas += l.haber;
+    }
+  }
+  return {
+    entradas: redondear(entradas),
+    salidas: redondear(salidas),
+    neto: redondear(entradas - salidas),
+  };
+}
+
 export function resultados(
   asientos: Asiento[],
   desde: string,
   hasta: string,
+  unidad?: FiltroUnidad,
 ): Resultados {
   let ventas = 0;
   let otrosIngresos = 0;
   let costos = 0;
   let gastos = 0;
   for (const a of asientos) {
-    if (a.fecha < desde || a.fecha > hasta) continue;
+    if (a.fecha < desde || a.fecha > hasta || !deLaUnidad(a, unidad)) continue;
     for (const l of a.lineas) {
       const neto = l.haber - l.debe;
       if (l.cuenta.startsWith("4.1.")) ventas += neto;

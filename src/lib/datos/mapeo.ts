@@ -126,6 +126,7 @@ export interface FilaMovimiento {
   estado: Movimiento["estado"];
   observacion: string | null;
   origen: "cliente" | "banco";
+  unidad_id: string | null;
 }
 
 export function movimientoAFila(
@@ -149,6 +150,7 @@ export function movimientoAFila(
     estado: m.estado,
     observacion: m.observacion ?? null,
     origen: m.origen ?? "cliente",
+    unidad_id: m.unidad ?? null,
   };
 }
 
@@ -172,6 +174,7 @@ export function filaAMovimiento(f: FilaMovimiento): Movimiento {
     estado: f.estado,
     observacion: f.observacion ?? undefined,
     origen: f.origen,
+    unidad: f.unidad_id ?? undefined,
   };
 }
 

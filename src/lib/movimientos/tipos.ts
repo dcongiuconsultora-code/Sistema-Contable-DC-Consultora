@@ -149,6 +149,8 @@ export interface Movimiento {
   observacion?: string;
   /** "banco" si lo registró el estudio desde la conciliación bancaria; si no, lo cargó el cliente. */
   origen?: "cliente" | "banco";
+  /** Unidad de negocio, en empresas que las tienen. */
+  unidad?: string;
 }
 
 export const TIPOS: {

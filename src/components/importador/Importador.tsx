@@ -10,6 +10,8 @@ import {
 } from "react";
 import type { Empresa, Repositorio } from "@/lib/datos/repositorio";
 import { Bancos } from "@/components/bancos/Bancos";
+import { AsignacionUnidades } from "@/components/unidades/AsignacionUnidades";
+import { type ConfigUnidades, SIN_UNIDADES } from "@/lib/unidades/unidades";
 import { type Alertas, Tablero } from "@/components/tablero/Tablero";
 import { conciliarResumen } from "@/lib/bancos/conciliacion";
 import type { ResumenBancario } from "@/lib/bancos/tipos";
@@ -149,7 +151,12 @@ const MOVIMIENTOS_EJEMPLO: Movimiento[] = [
     observacion: "¿Hay tickets de este viaje? Si los hay, cargalos en Tickets.",
   },
 ];
-type Pestana = "ventas" | "compras" | "deducciones" | "liquidacion";
+type Pestana =
+  | "ventas"
+  | "compras"
+  | "deducciones"
+  | "liquidacion"
+  | "unidades";
 
 const MANUAL_INICIAL: DatosManualesIva = {
   saldoTecnicoAnterior: 0,
@@ -230,6 +237,7 @@ export function Importador({
   const [manual, setManual] = useState(MANUAL_INICIAL);
   const [tickets, setTickets] = useState<TicketCargado[]>([]);
   const [movimientos, setMovimientos] = useState<Movimiento[]>([]);
+  const [unidades, setUnidades] = useState<ConfigUnidades>(SIN_UNIDADES);
   const [cuitElegido, setCuitElegido] = useState<string | null>(null);
   const cuitCliente =
     cuitElegido ??
@@ -305,6 +313,7 @@ export function Importador({
           })),
         );
         setIniciales(d.saldos);
+        setUnidades(d.unidades);
         setResumenBanco(d.resumen);
         setResumenGuardado(d.resumen);
       } catch (e) {
@@ -422,12 +431,13 @@ export function Importador({
   const ticketsPendientes = useMemo(() => {
     const enArca = new Set((compras?.comprobantes ?? []).map(claveComprobante));
     return tickets
-      .map((t, i) =>
-        ticketAComprobante(
+      .map((t, i) => ({
+        ...ticketAComprobante(
           revisarTicket(t.datos, cuitCliente || null),
           100000 + i,
         ),
-      )
+        unidad: t.unidad ?? null,
+      }))
       .filter((c) => !enArca.has(claveComprobante(c)))
       .map((c) => ({
         ...c,
@@ -498,8 +508,10 @@ export function Importador({
         fila,
         cuentaBanco: cuentaBanco.get(fila.cuenta) ?? "1.1.01.006",
       })),
+      unidades,
     });
   }, [
+    unidades,
     ventas,
     compras,
     ticketsPendientes,
@@ -633,7 +645,19 @@ export function Importador({
     ["compras", `Libro IVA Compras (${comprasPeriodo.length})`],
     ["deducciones", `Retenciones y percepciones (${deduccionesPeriodo})`],
     ["liquidacion", "Liquidación IVA"],
+    ...(unidades.unidades.length
+      ? ([["unidades", "Unidades"]] as [Pestana, string][])
+      : []),
   ];
+
+  const asignarProveedor = (cuit: string, unidadId: string | null) => {
+    const proveedores = { ...unidades.proveedores };
+    if (unidadId) proveedores[cuit] = unidadId;
+    else delete proveedores[cuit];
+    setUnidades({ ...unidades, proveedores });
+    if (empresaId)
+      guardar(() => repo!.asignarProveedor(empresaId, cuit, unidadId));
+  };
 
   return (
     <div className="min-h-screen">
@@ -702,6 +726,7 @@ export function Importador({
             puedeEditarSaldos={conexion?.rol !== "cliente"}
             alertas={alertas}
             onIr={setSeccion}
+            unidades={unidades}
           />
         </div>
         <div hidden={seccion !== "movimientos"}>
@@ -719,6 +744,7 @@ export function Importador({
             movimientos={movimientos}
             onMovimientos={actualizarMovimientos}
             vistaFija={conexion?.rol}
+            unidades={unidades}
             clientes={contrapartes(ventas?.comprobantes ?? [])}
             proveedores={contrapartes(compras?.comprobantes ?? [])}
           />
@@ -760,6 +786,7 @@ export function Importador({
             ticketEjemplo={() =>
               descargarEjemplo("ticket-ejemplo.jpg", "image/jpeg")
             }
+            unidades={unidades}
           />
         </div>
         <div hidden={seccion !== "bancos"}>
@@ -871,6 +898,17 @@ export function Importador({
               )}
               {pestana === "deducciones" && (
                 <TablaDeducciones deducciones={deducciones} periodo={periodo} />
+              )}
+              {pestana === "unidades" && (
+                <AsignacionUnidades
+                  unidades={unidades}
+                  ventas={ventas?.comprobantes ?? []}
+                  compras={[
+                    ...(compras?.comprobantes ?? []),
+                    ...ticketsPendientes,
+                  ]}
+                  onAsignarProveedor={asignarProveedor}
+                />
               )}
               {pestana === "liquidacion" && (
                 <PanelLiquidacion

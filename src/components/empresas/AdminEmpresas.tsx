@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { Empresa, Repositorio } from "@/lib/datos/repositorio";
 import { cuitConGuiones } from "@/lib/formato";
 import { cuitValido } from "@/lib/tickets/validar";
+import { UnidadesEmpresa } from "./UnidadesEmpresa";
 
 const CONDICIONES = ["Responsable inscripto", "Monotributo", "Exento"];
 
@@ -111,6 +112,7 @@ export function AdminEmpresas({
   const [condicion, setCondicion] = useState(CONDICIONES[0]);
   const [error, setError] = useState<string | null>(null);
   const [abierta, setAbierta] = useState<string | null>(null);
+  const [conUnidades, setConUnidades] = useState<string | null>(null);
 
   async function crear(e: React.FormEvent) {
     e.preventDefault();
@@ -213,7 +215,18 @@ export function AdminEmpresas({
                     CUIT {cuitConGuiones(e.cuit)} · {e.condicion_iva}
                   </div>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setConUnidades(conUnidades === e.id ? null : e.id)
+                    }
+                    className="rounded-md px-3 py-1.5 text-sm text-stone-600 hover:bg-stone-100"
+                  >
+                    {conUnidades === e.id
+                      ? "Ocultar unidades"
+                      : "Unidades de negocio"}
+                  </button>
                   <button
                     type="button"
                     onClick={() => setAbierta(abierta === e.id ? null : e.id)}
@@ -230,6 +243,9 @@ export function AdminEmpresas({
                   </button>
                 </div>
               </div>
+              {conUnidades === e.id && (
+                <UnidadesEmpresa repo={repo} empresaId={e.id} />
+              )}
               {abierta === e.id && <Invitaciones repo={repo} empresa={e} />}
             </div>
           ))

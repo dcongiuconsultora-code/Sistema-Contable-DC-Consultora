@@ -39,6 +39,8 @@ export interface Comprobante {
   total: number;
   /** false para facturas B y C recibidas: no generan crédito fiscal y todo va a no gravado. */
   computaIva: boolean;
+  /** Unidad de negocio elegida a mano (los tickets la traen); si no, se deduce. */
+  unidad?: string | null;
   advertencias: string[];
 }
 

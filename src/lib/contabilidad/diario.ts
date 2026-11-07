@@ -3,12 +3,22 @@ import type { FilaConciliacion } from "@/lib/bancos/conciliacion";
 import { generarAsiento, type LineaAsiento } from "@/lib/movimientos/asiento";
 import type { Movimiento } from "@/lib/movimientos/tipos";
 import { nombreCuenta } from "@/lib/plan/plan";
+import {
+  type ConfigUnidades,
+  SIN_UNIDADES,
+  unidadDeCompra,
+  unidadDeCuenta,
+  unidadDeMovimiento,
+  unidadDeVenta,
+} from "@/lib/unidades/unidades";
 
 export interface Asiento {
   fecha: string;
   origen: "ARCA" | "Cliente" | "Banco";
   descripcion: string;
   lineas: LineaAsiento[];
+  /** Unidad de negocio; null = de toda la empresa (o compartido entre unidades). */
+  unidad?: string | null;
 }
 
 // Cuentas por defecto mientras no haya una configuración por cliente o por proveedor.
@@ -119,13 +129,21 @@ export interface FuentesDiario {
   compras: Comprobante[];
   movimientos: Movimiento[];
   banco: { fila: FilaConciliacion; cuentaBanco: string }[];
+  unidades?: ConfigUnidades;
 }
 
 /** Libro diario con todo lo que entró al sistema, ordenado por fecha. */
 export function generarDiario(f: FuentesDiario): Asiento[] {
+  const cfg = f.unidades ?? SIN_UNIDADES;
   const asientos: Asiento[] = [
-    ...f.ventas.map(asientoVenta),
-    ...f.compras.map(asientoCompra),
+    ...f.ventas.map((c) => ({
+      ...asientoVenta(c),
+      unidad: unidadDeVenta(c, cfg),
+    })),
+    ...f.compras.map((c) => ({
+      ...asientoCompra(c),
+      unidad: unidadDeCompra(c, cfg),
+    })),
     ...f.movimientos
       .filter((m) => m.estado !== "observado")
       .map((m) => ({
@@ -134,9 +152,13 @@ export function generarDiario(f: FuentesDiario): Asiento[] {
           m.origen === "banco" ? ("Banco" as const) : ("Cliente" as const),
         descripcion: m.contraparte || m.nota || m.tipo,
         lineas: generarAsiento(m),
+        unidad: unidadDeMovimiento(m, cfg),
       })),
     ...f.banco
-      .map(({ fila, cuentaBanco }) => asientoBancario(fila, cuentaBanco))
+      .map(({ fila, cuentaBanco }): Asiento | null => {
+        const a = asientoBancario(fila, cuentaBanco);
+        return a && { ...a, unidad: unidadDeCuenta(fila.cuenta, cfg) };
+      })
       .filter((a): a is Asiento => a !== null),
   ];
   return asientos.sort((a, b) => a.fecha.localeCompare(b.fecha));
