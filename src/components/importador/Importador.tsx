@@ -3,6 +3,8 @@
 import { Mensajes } from "@/components/mensajes/Mensajes";
 import { Marca } from "@/components/Marca";
 import { CajaDiaria } from "@/components/caja/CajaDiaria";
+import { CuentasBancarias } from "@/components/cuentas-bancarias/CuentasBancarias";
+import type { CuentaBancaria } from "@/lib/cuentas-bancarias/cuentas";
 import {
   Contabilidad,
   MENU_CONTABLE,
@@ -78,7 +80,8 @@ type Seccion =
   | "mensajes"
   | "contabilidad"
   | "caja"
-  | "inventarios";
+  | "inventarios"
+  | "cuentasBancarias";
 
 // Saldos del último balance de la empresa de ejemplo (al 31/08/2026). El banco coincide con el
 // saldo inicial del resumen bancario de ejemplo; los sueldos a pagar son los de agosto.
@@ -293,6 +296,9 @@ export function Importador({
   const [movimientos, setMovimientos] = useState<Movimiento[]>([]);
   const [manuales, setManuales] = useState<Asiento[]>([]);
   const [inventarios, setInventarios] = useState<Inventario[]>([]);
+  const [cuentasBancarias, setCuentasBancarias] = useState<CuentaBancaria[]>(
+    [],
+  );
   const [unidades, setUnidades] = useState<ConfigUnidades>(SIN_UNIDADES);
   const [cuitElegido, setCuitElegido] = useState<string | null>(null);
   const cuitCliente =
@@ -361,6 +367,7 @@ export function Importador({
         setManuales(await repo.asientosManuales(empresaId));
         setInventarios(await repo.inventarios(empresaId));
         setIvaGuardadas(await repo.liquidacionesIva(empresaId));
+        setCuentasBancarias(await repo.cuentasBancarias(empresaId));
         if (esMonotributo(condicionIva)) {
           const d = new Date();
           d.setMonth(d.getMonth() - 24);
@@ -883,6 +890,7 @@ export function Importador({
                   "bancos",
                   "caja",
                   "cuentas",
+                  "cuentasBancarias",
                 ].includes(seccion),
                 grupos: [
                   [
@@ -908,6 +916,10 @@ export function Importador({
                       {
                         texto: "Resumen y conciliación bancaria",
                         destino: { seccion: "bancos" },
+                      },
+                      {
+                        texto: "Cuentas bancarias y billeteras",
+                        destino: { seccion: "cuentasBancarias" },
                       },
                     ],
                   ],
@@ -1007,6 +1019,7 @@ export function Importador({
           pedido={cobroPago}
           esEstudio={esEstudio}
           unidades={unidades}
+          cuentas={cuentasBancarias.filter((c) => c.activa)}
           onRegistrar={(m) => {
             actualizarMovimientos(
               [...movimientos, m].sort((a, b) =>
@@ -1093,6 +1106,7 @@ export function Importador({
             onMovimientos={actualizarMovimientos}
             vistaFija={conexion?.rol}
             unidades={unidades}
+            cuentas={cuentasBancarias.filter((c) => c.activa)}
             clientes={contrapartes(ventas?.comprobantes ?? [])}
             proveedores={contrapartes(compras?.comprobantes ?? [])}
           />
@@ -1154,6 +1168,28 @@ export function Importador({
             asientos={asientos}
             iniciales={iniciales}
             unidades={unidades}
+          />
+        )}
+        {seccion === "cuentasBancarias" && !cargando && (
+          <CuentasBancarias
+            cuentas={cuentasBancarias}
+            unidades={unidades}
+            onGuardar={async (c) => {
+              const id = conexion
+                ? await conexion.repo.guardarCuentaBancaria(
+                    conexion.empresa.id,
+                    c,
+                  )
+                : (c.id ?? crypto.randomUUID());
+              setCuentasBancarias((lista) => [
+                ...lista.filter((x) => x.id !== c.id),
+                { ...c, id },
+              ]);
+            }}
+            onBorrar={async (id) => {
+              if (conexion) await conexion.repo.borrarCuentaBancaria(id);
+              setCuentasBancarias((lista) => lista.filter((x) => x.id !== id));
+            }}
           />
         )}
         {seccion === "inventarios" && !cargando && (

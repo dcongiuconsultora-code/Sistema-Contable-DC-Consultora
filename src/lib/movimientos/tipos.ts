@@ -138,6 +138,8 @@ export interface Movimiento {
    * Para pagos con factura: se usa Proveedores.
    */
   cuenta?: string;
+  /** Cuenta bancaria o billetera de la empresa por la que entró o salió la plata. */
+  cuentaBancaria?: string;
   /** Cuenta contable elegida a mano por quien carga o por el estudio: tiene prioridad. */
   imputacion?: string;
   /** Si el gasto u honorario tiene factura (que llega por ARCA o como ticket). */

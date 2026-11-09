@@ -13,6 +13,7 @@ import { nombreCuenta } from "@/lib/plan/plan";
 import type { Inventario } from "@/lib/inventarios/inventarios";
 import type { Plantilla } from "@/lib/avisos/avisos";
 import type { LiquidacionGuardada } from "@/lib/iva/liquidacion";
+import type { CuentaBancaria } from "@/lib/cuentas-bancarias/cuentas";
 import {
   comprobanteAFila,
   type DatosResumen,
@@ -455,6 +456,66 @@ export class Repositorio {
     for (const f of filas)
       r[f.empresa_id] = (r[f.empresa_id] ?? 0) + Number(f.total);
     return r;
+  }
+
+  // Cuentas bancarias y billeteras ---------------------------------------------------------------
+
+  async cuentasBancarias(empresaId: string): Promise<CuentaBancaria[]> {
+    const { data, error } = await this.db
+      .from("cuentas_bancarias")
+      .select(
+        "id, clase, entidad, tipo_cuenta, moneda, numero, cbu, alias, cuenta_contable, unidad_id, activa",
+      )
+      .eq("empresa_id", empresaId)
+      .order("creada_en");
+    fallar(error, "leer las cuentas bancarias");
+    return (data ?? []).map((f) => ({
+      id: f.id,
+      clase: f.clase,
+      entidad: f.entidad,
+      tipoCuenta: f.tipo_cuenta,
+      moneda: f.moneda,
+      numero: f.numero,
+      cbu: f.cbu,
+      alias: f.alias,
+      cuentaContable: f.cuenta_contable,
+      unidad: f.unidad_id,
+      activa: f.activa,
+    }));
+  }
+
+  async guardarCuentaBancaria(
+    empresaId: string,
+    c: CuentaBancaria,
+  ): Promise<string> {
+    const { data, error } = await this.db
+      .from("cuentas_bancarias")
+      .upsert({
+        ...(c.id ? { id: c.id } : {}),
+        empresa_id: empresaId,
+        clase: c.clase,
+        entidad: c.entidad.trim(),
+        tipo_cuenta: c.tipoCuenta,
+        moneda: c.moneda,
+        numero: c.numero.trim(),
+        cbu: c.cbu,
+        alias: c.alias.trim(),
+        cuenta_contable: c.cuentaContable,
+        unidad_id: c.unidad ?? null,
+        activa: c.activa,
+      })
+      .select("id")
+      .single();
+    fallar(error, "guardar la cuenta");
+    return data!.id;
+  }
+
+  async borrarCuentaBancaria(id: string) {
+    const { error } = await this.db
+      .from("cuentas_bancarias")
+      .delete()
+      .eq("id", id);
+    fallar(error, "borrar la cuenta");
   }
 
   // Liquidaciones de IVA -----------------------------------------------------------------------

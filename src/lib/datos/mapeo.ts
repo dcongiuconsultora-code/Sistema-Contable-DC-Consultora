@@ -120,6 +120,7 @@ export interface FilaMovimiento {
   cuit_contraparte: string;
   cuenta: string | null;
   imputacion?: string | null;
+  cuenta_bancaria_id?: string | null;
   con_factura: boolean | null;
   retenciones: NonNullable<Movimiento["retenciones"]>;
   periodo: string | null;
@@ -145,6 +146,7 @@ export function movimientoAFila(
     cuit_contraparte: m.cuitContraparte,
     cuenta: m.cuenta ?? null,
     imputacion: m.imputacion ?? null,
+    cuenta_bancaria_id: m.cuentaBancaria ?? null,
     con_factura: m.conFactura ?? null,
     retenciones: m.retenciones ?? [],
     periodo: m.periodo ?? null,
@@ -167,6 +169,7 @@ export function filaAMovimiento(f: FilaMovimiento): Movimiento {
     cuitContraparte: f.cuit_contraparte,
     cuenta: f.cuenta ?? undefined,
     imputacion: f.imputacion ?? undefined,
+    cuentaBancaria: f.cuenta_bancaria_id ?? undefined,
     conFactura: f.con_factura ?? undefined,
     retenciones:
       f.tipo === "cobro"

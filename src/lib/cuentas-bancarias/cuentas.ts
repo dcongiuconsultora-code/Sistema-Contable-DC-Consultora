@@ -96,3 +96,9 @@ export function coincideNumero(c: CuentaBancaria, numeroResumen: string) {
     Boolean(a) && Boolean(b) && (a === b || a.endsWith(b) || b.endsWith(a))
   );
 }
+
+/** Medio de pago (para el asiento y la conciliación) que corresponde a una cuenta de la empresa. */
+export function medioDeCuenta(c: CuentaBancaria) {
+  if (c.clase === "billetera") return "mercadopago";
+  return c.tipoCuenta === "ca" ? "banco_ca" : "banco_cc";
+}

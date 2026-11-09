@@ -10,6 +10,11 @@ import {
   type RetencionSufrida,
 } from "@/lib/movimientos/tipos";
 import type { ConfigUnidades } from "@/lib/unidades/unidades";
+import {
+  type CuentaBancaria,
+  medioDeCuenta,
+  nombreCuentaBancaria,
+} from "@/lib/cuentas-bancarias/cuentas";
 
 /** Lo que se quiere cobrar o pagar: un comprobante o el saldo de una cuenta corriente. */
 export interface PedidoCobroPago {
@@ -53,12 +58,14 @@ export function CobrarPagar({
   pedido,
   esEstudio,
   unidades,
+  cuentas = [],
   onRegistrar,
   onCerrar,
 }: {
   pedido: PedidoCobroPago;
   esEstudio: boolean;
   unidades: ConfigUnidades;
+  cuentas?: CuentaBancaria[];
   onRegistrar: (m: Movimiento) => void;
   onCerrar: () => void;
 }) {
@@ -99,12 +106,14 @@ export function CobrarPagar({
 
   function registrar(e: React.FormEvent) {
     e.preventDefault();
+    const cuenta = cuentas.find((c) => `cuenta:${c.id}` === medio);
     const m: Movimiento = {
       id: crypto.randomUUID(),
       tipo: pedido.tipo,
       fecha,
       importe: neto,
-      medio,
+      medio: cuenta ? medioDeCuenta(cuenta) : medio,
+      cuentaBancaria: cuenta?.id,
       contraparte: pedido.contraparte || "Consumidor final",
       cuitContraparte: pedido.cuit,
       retenciones: esCobro ? retenciones : undefined,
@@ -174,7 +183,23 @@ export function CobrarPagar({
             {esCobro ? "¿Cómo te pagaron?" : "¿Cómo pagaste?"}
           </legend>
           <div className="mt-1 grid gap-1.5">
-            {MEDIOS.map((m) => (
+            {[
+              ...MEDIOS.filter((m) => m.id === "efectivo"),
+              ...cuentas.map((c) => ({
+                id: `cuenta:${c.id}`,
+                nombre: nombreCuentaBancaria(c),
+                bancario: true,
+              })),
+              ...MEDIOS.filter(
+                (m) =>
+                  m.id !== "efectivo" &&
+                  // Si la empresa cargó sus cuentas, se usan esas en lugar de las genéricas.
+                  !(
+                    cuentas.length &&
+                    ["banco_cc", "banco_ca", "mercadopago"].includes(m.id)
+                  ),
+              ),
+            ].map((m) => (
               <label
                 key={m.id}
                 className={`flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm ${medio === m.id ? "border-marca bg-marca-claro" : "border-stone-200"}`}
@@ -190,7 +215,8 @@ export function CobrarPagar({
               </label>
             ))}
           </div>
-          {MEDIOS.find((m) => m.id === medio)?.bancario && (
+          {(medio.startsWith("cuenta:") ||
+            MEDIOS.find((m) => m.id === medio)?.bancario) && (
             <p className="mt-1 text-xs text-stone-500">
               Cuando subas el resumen del banco se va a conciliar solo con el
               movimiento del mismo importe.

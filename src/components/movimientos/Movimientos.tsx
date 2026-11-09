@@ -1,6 +1,11 @@
 "use client";
 
 import { nombreCuenta, PLAN_MODELO } from "@/lib/plan/plan";
+import {
+  type CuentaBancaria,
+  medioDeCuenta,
+  nombreCuentaBancaria,
+} from "@/lib/cuentas-bancarias/cuentas";
 
 import {
   type ConfigUnidades,
@@ -45,6 +50,8 @@ interface Props {
   vistaFija?: Vista;
   /** Unidades de negocio de la empresa (vacío si no tiene). */
   unidades?: ConfigUnidades;
+  /** Cuentas bancarias y billeteras de la empresa. */
+  cuentas?: CuentaBancaria[];
 }
 
 export type Vista = "cliente" | "estudio";
@@ -123,6 +130,7 @@ function Formulario({
   clientes,
   proveedores,
   unidades,
+  cuentas,
   onGuardar,
   onCancelar,
 }: {
@@ -130,6 +138,7 @@ function Formulario({
   clientes: Contraparte[];
   proveedores: Contraparte[];
   unidades: ConfigUnidades;
+  cuentas: CuentaBancaria[];
   onGuardar: (m: Movimiento) => void;
   onCancelar: () => void;
 }) {
@@ -249,15 +258,34 @@ function Formulario({
           <Etiqueta texto={entraPlata(m) ? "Cómo entró" : "Cómo se pagó"}>
             <select
               id={`medio-${m.id}`}
-              value={m.medio}
-              onChange={(e) => cambiar({ medio: e.target.value })}
+              value={m.cuentaBancaria ? `cuenta:${m.cuentaBancaria}` : m.medio}
+              onChange={(e) => {
+                const v = e.target.value;
+                const c = cuentas.find((x) => `cuenta:${x.id}` === v);
+                cambiar(
+                  c
+                    ? { medio: medioDeCuenta(c), cuentaBancaria: c.id }
+                    : { medio: v, cuentaBancaria: undefined },
+                );
+              }}
               className={campo}
             >
-              {MEDIOS.map((x) => (
-                <option key={x.id} value={x.id}>
-                  {x.nombre}
-                </option>
-              ))}
+              {cuentas.length > 0 && (
+                <optgroup label="Cuentas de la empresa">
+                  {cuentas.map((c) => (
+                    <option key={c.id} value={`cuenta:${c.id}`}>
+                      {nombreCuentaBancaria(c)}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
+              <optgroup label={cuentas.length ? "Otros medios" : "Medios"}>
+                {MEDIOS.map((x) => (
+                  <option key={x.id} value={x.id}>
+                    {x.nombre}
+                  </option>
+                ))}
+              </optgroup>
             </select>
           </Etiqueta>
         </div>
@@ -549,6 +577,7 @@ export function Movimientos({
   proveedores,
   vistaFija,
   unidades = SIN_UNIDADES,
+  cuentas = [],
 }: Props) {
   const [vistaElegida, setVista] = useState<Vista>("cliente");
   const vista = vistaFija ?? vistaElegida;
@@ -636,6 +665,7 @@ export function Movimientos({
           clientes={clientes}
           proveedores={proveedores}
           unidades={unidades}
+          cuentas={cuentas}
           onGuardar={guardar}
           onCancelar={() => setEditando(null)}
         />
@@ -676,7 +706,14 @@ export function Movimientos({
                           </span>
                         )}
                         {t.nombre} ·{" "}
-                        {MEDIOS.find((x) => x.id === m.medio)?.nombre}
+                        {(() => {
+                          const c = cuentas.find(
+                            (x) => x.id === m.cuentaBancaria,
+                          );
+                          return c
+                            ? nombreCuentaBancaria(c)
+                            : MEDIOS.find((x) => x.id === m.medio)?.nombre;
+                        })()}
                         {m.nota && <> · {m.nota}</>}
                       </div>
                     </div>
