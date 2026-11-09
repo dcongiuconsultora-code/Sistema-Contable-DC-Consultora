@@ -37,6 +37,8 @@ export interface Empresa {
   mes_cierre?: number;
   /** Impuestos para los vencimientos; null = los de su condición frente al IVA. */
   impuestos?: string[] | null;
+  categoria_monotributo?: string | null;
+  actividad_monotributo?: "servicios" | "bienes" | null;
 }
 
 /** Lo que el estudio completa al cerrar un ejercicio. */
@@ -138,7 +140,9 @@ export class Repositorio {
   async empresas(): Promise<Empresa[]> {
     const { data, error } = await this.db
       .from("empresas")
-      .select("id, razon_social, cuit, condicion_iva, mes_cierre, impuestos")
+      .select(
+        "id, razon_social, cuit, condicion_iva, mes_cierre, impuestos, categoria_monotributo, actividad_monotributo",
+      )
       .order("razon_social");
     fallar(error, "leer las empresas");
     return data ?? [];
@@ -148,7 +152,9 @@ export class Repositorio {
     const { data, error } = await this.db
       .from("empresas")
       .insert(e)
-      .select("id, razon_social, cuit, condicion_iva, mes_cierre, impuestos")
+      .select(
+        "id, razon_social, cuit, condicion_iva, mes_cierre, impuestos, categoria_monotributo, actividad_monotributo",
+      )
       .single();
     fallar(error, "crear la empresa");
     return data!;
@@ -156,7 +162,15 @@ export class Repositorio {
 
   async actualizarEmpresa(
     id: string,
-    cambios: Partial<Pick<Empresa, "mes_cierre" | "impuestos">>,
+    cambios: Partial<
+      Pick<
+        Empresa,
+        | "mes_cierre"
+        | "impuestos"
+        | "categoria_monotributo"
+        | "actividad_monotributo"
+      >
+    >,
   ) {
     const { error } = await this.db
       .from("empresas")
@@ -360,6 +374,74 @@ export class Repositorio {
       resumen,
       unidades,
     };
+  }
+
+  /** Créditos en pesos de todos los resúmenes bancarios subidos desde una fecha. */
+  async acreditacionesBanco(
+    empresaId: string,
+    desde: string,
+  ): Promise<{ fecha: string; importe: number }[]> {
+    const filas = await todas<{
+      fecha: string;
+      importe: number;
+      tipo_cuenta: string;
+    }>(
+      (d, h) =>
+        this.db
+          .from("movimientos_bancarios")
+          .select("fecha, importe, tipo_cuenta")
+          .eq("empresa_id", empresaId)
+          .gt("importe", 0)
+          .gte("fecha", desde)
+          .order("fecha")
+          .range(d, h),
+      "leer los movimientos del banco",
+    );
+    return filas
+      .filter((f) => !/U\$S|USD|D[OÓ]LAR/i.test(f.tipo_cuenta))
+      .map((f) => ({ fecha: f.fecha, importe: Number(f.importe) }));
+  }
+
+  /** Lo facturado por empresa desde una fecha (para las alertas de monotributo del estudio). */
+  async facturadoPorEmpresa(
+    empresaIds: string[],
+    desde: string,
+  ): Promise<Record<string, number>> {
+    if (!empresaIds.length) return {};
+    const filas = await todas<{ empresa_id: string; total: number }>(
+      (d, h) =>
+        this.db
+          .from("comprobantes")
+          .select("empresa_id, total")
+          .in("empresa_id", empresaIds)
+          .eq("operacion", "ventas")
+          .gte("fecha", desde)
+          .range(d, h),
+      "leer lo facturado",
+    );
+    const r: Record<string, number> = {};
+    for (const f of filas)
+      r[f.empresa_id] = (r[f.empresa_id] ?? 0) + Number(f.total);
+    return r;
+  }
+
+  // Parámetros del estudio ---------------------------------------------------------------------
+
+  async parametro<T>(clave: string): Promise<T | null> {
+    const { data, error } = await this.db
+      .from("parametros")
+      .select("valor")
+      .eq("clave", clave)
+      .maybeSingle();
+    fallar(error, "leer los parámetros");
+    return (data?.valor as T) ?? null;
+  }
+
+  async guardarParametro(clave: string, valor: unknown) {
+    const { error } = await this.db
+      .from("parametros")
+      .upsert({ clave, valor, actualizado_en: new Date().toISOString() });
+    fallar(error, "guardar los parámetros");
   }
 
   // Inventarios ---------------------------------------------------------------------------------

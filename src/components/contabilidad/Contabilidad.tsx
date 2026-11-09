@@ -21,6 +21,7 @@ export type VistaContable =
   | "mensuales"
   | "estados"
   | "axi"
+  | "rt6"
   | "saldos";
 
 /** Menú de Contabilidad: grupos y vistas (como en el encabezado). */
@@ -38,12 +39,14 @@ export const MENU_CONTABLE: [string, [VistaContable, string][]][] = [
     [
       ["sumas", "Sumas y saldos"],
       ["mensuales", "Resultados mensuales"],
-      ["axi", "Ajuste por inflación impositivo"],
     ],
   ],
   [
     "Estados contables",
-    [["estados", "Balance y estados (anual o intermedio)"]],
+    [
+      ["estados", "Balance y estados (anual o intermedio)"],
+      ["rt6", "Ajuste por inflación contable (RT 6)"],
+    ],
   ],
   ["Configuración", [["saldos", "Ejercicio y saldos de inicio"]]],
 ];
@@ -214,7 +217,7 @@ export function Contabilidad({
         </label>
         <label className="block text-sm">
           <span className="text-stone-600">
-            {vista === "estados" || vista === "axi"
+            {vista === "estados" || vista === "axi" || vista === "rt6"
               ? "Cierre (anual o intermedio)"
               : "Hasta"}
           </span>
@@ -273,7 +276,7 @@ export function Contabilidad({
           desde={desdeEfectivo}
           hasta={hasta}
         />
-      ) : vista === "estados" || vista === "axi" ? (
+      ) : vista === "estados" || vista === "axi" || vista === "rt6" ? (
         <Balance
           key={vista}
           modo={vista}

@@ -220,6 +220,103 @@ function Vista({ e }: { e: EstadosContables }) {
   );
 }
 
+/** Detalle de la reexpresión contable: índices, ajuste por cuenta, RECPAM y asiento. */
+function AjusteContable({
+  e,
+  homogenea,
+}: {
+  e: EstadosContables;
+  homogenea: boolean;
+}) {
+  const r = e.reexpresion;
+  if (!homogenea || !r)
+    return (
+      <p className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+        Los estados están en cifras históricas. Activá “En moneda homogénea” en
+        Estados contables para ver el ajuste.
+      </p>
+    );
+  const filas = [...r.ajustes.entries()]
+    .filter(([, a]) => a)
+    .map(([codigo, ajuste]) => {
+      const reexpresado = e.saldos.get(codigo) ?? 0;
+      return { codigo, ajuste, reexpresado, historico: reexpresado - ajuste };
+    });
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-3 text-sm sm:grid-cols-4">
+        {(
+          [
+            [
+              "Índice cierre anterior",
+              `${r.indiceInicio.valor.toLocaleString("es-AR")} (${nombreMes(r.indiceInicio.mes)})`,
+            ],
+            [
+              "Índice de cierre",
+              `${r.indiceCierre.valor.toLocaleString("es-AR")} (${nombreMes(r.indiceCierre.mes)})${r.indiceCierre.estimado ? " *" : ""}`,
+            ],
+            ["Coeficiente de inicio", r.coeficienteInicio.toFixed(4)],
+            ["RECPAM del ejercicio", pesos(r.recpam)],
+          ] as const
+        ).map(([t, v]) => (
+          <div
+            key={t}
+            className="rounded-xl border border-stone-200 bg-white p-4 shadow-sm"
+          >
+            <div className="text-stone-500">{t}</div>
+            <div className="mt-0.5 font-semibold tabular-nums">{v}</div>
+          </div>
+        ))}
+      </div>
+      {r.indiceCierre.estimado && (
+        <p className="text-xs text-amber-700">
+          * Todavía no está el índice del mes de cierre: se usó el último
+          publicado.
+        </p>
+      )}
+      <section className="overflow-x-auto rounded-xl border border-stone-200 bg-white shadow-sm">
+        <table className="w-full text-sm">
+          <thead className="bg-stone-50 text-left text-xs uppercase tracking-wide text-stone-500">
+            <tr>
+              <th className="px-3 py-2">Cuenta</th>
+              <th className="px-3 py-2 text-right">Saldo histórico</th>
+              <th className="px-3 py-2 text-right">Ajuste</th>
+              <th className="px-3 py-2 text-right">Saldo reexpresado</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-stone-100">
+            {filas.map((f) => (
+              <tr key={f.codigo}>
+                <td className="px-3 py-1.5">
+                  <span className="text-stone-400 tabular-nums">
+                    {f.codigo}
+                  </span>{" "}
+                  {nombreCuenta(f.codigo)}
+                </td>
+                <td className="cifra px-3 py-1.5">{pesos(f.historico)}</td>
+                <td className="cifra px-3 py-1.5">{pesos(f.ajuste)}</td>
+                <td className="cifra px-3 py-1.5">{pesos(f.reexpresado)}</td>
+              </tr>
+            ))}
+            <tr className="bg-stone-50 font-semibold">
+              <td className="px-3 py-1.5">RECPAM (contrapartida)</td>
+              <td />
+              <td className="cifra px-3 py-1.5">{pesos(-r.recpam)}</td>
+              <td />
+            </tr>
+          </tbody>
+        </table>
+        <p className="border-t border-stone-200 px-4 py-2 text-xs text-stone-500">
+          Saldos positivos = deudores, negativos = acreedores. El capital queda
+          a valor nominal y su reexpresión va a “Ajuste de capital”. El asiento
+          y los índices también salen en la hoja “Ajuste por inflación” del
+          Excel de estados contables.
+        </p>
+      </section>
+    </div>
+  );
+}
+
 export function Balance({
   repo,
   empresa,
@@ -237,7 +334,7 @@ export function Balance({
   inventarios?: Inventario[];
   iniciales: SaldosIniciales;
   /** Estados contables o papel de trabajo del ajuste por inflación impositivo. */
-  modo?: "estados" | "axi";
+  modo?: "estados" | "axi" | "rt6";
   /** Fecha de cierre elegida en la barra de Contabilidad (anual o intermedio). */
   cierre?: string;
   onCierre?: (fecha: string) => void;
@@ -416,12 +513,16 @@ export function Balance({
         <h1 className="text-2xl font-semibold">
           {modo === "axi"
             ? "Ajuste por inflación impositivo"
-            : "Estados contables"}
+            : modo === "rt6"
+              ? "Ajuste por inflación contable (RT 6)"
+              : "Estados contables"}
         </h1>
         <p className="mt-1 max-w-3xl text-stone-600">
           {modo === "axi"
             ? "Papel de trabajo para Ganancias, con el IPC, a la fecha de cierre elegida arriba."
-            : "Balance anual o intermedio (según la fecha de cierre de arriba) con el modelo de la RT 54: situación patrimonial, resultados, evolución del patrimonio neto, flujo de efectivo, anexos y notas, en moneda homogénea (RT 6) con los índices de la FACPCE."}
+            : modo === "rt6"
+              ? "Reexpresión de los estados en moneda de cierre con los índices FACPCE: cuánto se ajusta cada cuenta no monetaria, el RECPAM y el asiento. Es el mismo ajuste que va en el balance."
+              : "Balance anual o intermedio (según la fecha de cierre de arriba) con el modelo de la RT 54: situación patrimonial, resultados, evolución del patrimonio neto, flujo de efectivo, anexos y notas, en moneda homogénea (RT 6) con los índices de la FACPCE."}
         </p>
       </section>
 
@@ -431,10 +532,7 @@ export function Balance({
           de inicio”. Son el punto de partida del ejercicio.
         </p>
       ) : (
-        <div
-          className={`grid gap-4 ${modo === "axi" ? "" : "lg:grid-cols-3"}`}
-          hidden={modo === "axi"}
-        >
+        <div className="grid gap-4 lg:grid-cols-3" hidden={modo !== "estados"}>
           <section className="space-y-3 rounded-xl border border-stone-200 bg-white p-5 shadow-sm">
             <h3 className="font-semibold">Ejercicio</h3>
             <p className="text-sm text-stone-600">
@@ -542,6 +640,9 @@ export function Balance({
         </div>
       )}
 
+      {estados && modo === "rt6" && (
+        <AjusteContable e={estados} homogenea={homogenea} />
+      )}
       {estados && modo === "axi" && (
         <AxiImpositivo
           asientos={asientos}

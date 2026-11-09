@@ -54,3 +54,23 @@ describe("inventarios", () => {
     expect(t).toEqual({ "1.1.05.001": 1500, "1.1.05.002": 50 });
   });
 });
+
+describe("modelo de Excel", () => {
+  it("el modelo se puede volver a leer", async () => {
+    const { modeloExcelInventario } = await import("./inventarios");
+    const { leerXlsx } = await import("@/lib/arca/leer-archivo");
+    const filas = await leerXlsx(await modeloExcelInventario());
+    const { lineas } = inventarioDesdeFilas(filas, "1.1.05.001");
+    expect(lineas.map((l) => l.cuenta)).toEqual([
+      "1.1.05.001",
+      "1.1.05.002",
+      "1.1.05.003",
+      "1.1.05.004",
+    ]);
+    expect(lineas[0]).toMatchObject({
+      cantidad: 48,
+      costo: 1850,
+      medida: "unidad",
+    });
+  });
+});

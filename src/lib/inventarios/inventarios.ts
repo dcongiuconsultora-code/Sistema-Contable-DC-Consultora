@@ -158,3 +158,88 @@ export function inventarioDesdeFilas(
   }
   return { lineas, errores };
 }
+
+/** Nombres cortos para la lista desplegable del modelo (sin comas). */
+export const RUBROS_MODELO = [
+  "Mercaderías",
+  "Materia prima",
+  "En proceso",
+  "Terminados",
+  "Insumos y envases",
+];
+
+/** Modelo de Excel para cargar el inventario: misma planilla para todos los clientes. */
+export async function modeloExcelInventario(): Promise<ArrayBuffer> {
+  const ExcelJS = (await import("exceljs")).default;
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet("Inventario");
+  ws.columns = [
+    { header: "Rubro", key: "rubro", width: 20 },
+    { header: "Producto", key: "producto", width: 40 },
+    { header: "Cantidad", key: "cantidad", width: 12 },
+    { header: "Unidad de medida", key: "medida", width: 18 },
+    { header: "Costo unitario", key: "costo", width: 16 },
+    { header: "Total", key: "total", width: 16 },
+  ];
+  const encabezado = ws.getRow(1);
+  encabezado.font = { bold: true, color: { argb: "FFFFFFFF" } };
+  encabezado.fill = {
+    type: "pattern",
+    pattern: "solid",
+    fgColor: { argb: "FF591101" },
+  };
+  const ejemplos: [string, string, number, string, number][] = [
+    [
+      "Mercaderías",
+      "Gaseosa cola 2,25 l (ejemplo: borrar)",
+      48,
+      "unidad",
+      1850,
+    ],
+    ["Materia prima", "Harina 000 (ejemplo: borrar)", 250, "kg", 620],
+    ["En proceso", "Masa preparada (ejemplo: borrar)", 40, "kg", 1100],
+    [
+      "Terminados",
+      "Tapas de empanadas x 12 (ejemplo: borrar)",
+      300,
+      "paquete",
+      2400,
+    ],
+  ];
+  for (let i = 0; i < 300; i++) {
+    const fila = i + 2;
+    const e = ejemplos[i];
+    if (e) ws.getRow(fila).values = [...e];
+    ws.getCell(`F${fila}`).value = {
+      formula: `IF(C${fila}="","",C${fila}*E${fila})`,
+    };
+    ws.getCell(`A${fila}`).dataValidation = {
+      type: "list",
+      allowBlank: true,
+      formulae: [`"${RUBROS_MODELO.join(",")}"`],
+    };
+  }
+  for (const c of ["C", "E", "F"]) ws.getColumn(c).numFmt = "#,##0.00";
+  ws.views = [{ state: "frozen", ySplit: 1 }];
+
+  const ayuda = wb.addWorksheet("Cómo completarlo");
+  ayuda.getColumn(1).width = 110;
+  [
+    "MODELO DE INVENTARIO · DC Consultora",
+    "",
+    "1. Completá la hoja «Inventario»: un renglón por producto. Borrá los renglones de ejemplo.",
+    "2. Rubro: elegilo de la lista (Mercaderías, Materia prima, En proceso, Terminados, Insumos y envases).",
+    "   Kioscos y comercios: todo va en «Mercaderías». Fábrica: materia prima, en proceso y terminados.",
+    "3. Cantidad: lo que hay contado el día del inventario (se pueden usar decimales).",
+    "4. Costo unitario: lo que costó cada unidad (la última compra, sin IVA si son responsables inscriptos).",
+    "5. Guardalo y subilo en el sistema: Inventarios → Nuevo inventario → Importar de Excel.",
+    "",
+    "Si tu sistema de caja exporta el stock a Excel, también sirve: el sistema busca solo las columnas",
+    "Producto (o Descripción / Artículo), Cantidad (o Stock) y Costo (o Precio de costo).",
+  ].forEach((t, i) => {
+    const c = ayuda.getCell(`A${i + 1}`);
+    c.value = t;
+    if (i === 0) c.font = { bold: true, size: 14 };
+  });
+  return (await wb.xlsx.writeBuffer()) as ArrayBuffer;
+}

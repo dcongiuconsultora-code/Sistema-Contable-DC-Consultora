@@ -6,6 +6,7 @@ import { fechaCorta, pesos } from "@/lib/formato";
 import {
   type Inventario,
   inventarioDesdeFilas,
+  modeloExcelInventario,
   type LineaInventario,
   RUBROS_STOCK,
   totalesPorCuenta,
@@ -47,6 +48,16 @@ const aForm = (l: LineaInventario): LineaForm => ({
   medida: l.medida ?? "",
   costo: String(l.costo).replace(".", ","),
 });
+
+async function descargarModelo() {
+  const archivo = await modeloExcelInventario();
+  const url = URL.createObjectURL(new Blob([archivo]));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "Modelo de inventario.xlsx";
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 10_000);
+}
 
 function Editor({
   inicial,
@@ -193,8 +204,17 @@ function Editor({
         </label>
       </div>
       <p className="text-xs text-stone-500">
-        La planilla tiene que tener columnas Producto, Cantidad y Costo unitario
-        (y si querés Rubro: mercaderías, materia prima, en proceso, terminados).
+        Usá el{" "}
+        <button
+          type="button"
+          onClick={descargarModelo}
+          className="font-medium text-marca underline"
+        >
+          modelo de Excel
+        </button>{" "}
+        (Rubro, Producto, Cantidad, Unidad de medida, Costo unitario). También
+        sirve el Excel que exporte el sistema de caja si tiene columnas de
+        producto, cantidad y costo.
       </p>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
@@ -366,6 +386,13 @@ export function Inventarios({
                 </option>
               ))}
             </select>
+            <button
+              type="button"
+              onClick={descargarModelo}
+              className="rounded-md border border-stone-300 bg-white px-3 py-2 text-sm hover:bg-stone-50"
+            >
+              Descargar modelo de Excel
+            </button>
             <button
               type="button"
               onClick={() => setEditando("nuevo")}

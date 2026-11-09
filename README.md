@@ -73,7 +73,14 @@ Sistema contable interno de la consultora: los clientes cargan su operación y e
 
 - **Caja y bancos día por día**: saldo al empezar, lo que entró y salió cada día y el saldo al cierre de cada día; por cuenta y por unidad.
 - Al cargar un cobro o pago se ve (y se puede cambiar) la **imputación contable**, con el asiento que genera.
-- **Inventarios**: conteos de stock valuados por fecha y unidad (mercaderías, materias primas, en proceso, terminados), a mano o desde Excel. El de la fecha de cierre se usa como existencia final en los estados.
+- **Inventarios**: con modelo de Excel para descargar; conteos de stock valuados por fecha y unidad (mercaderías, materias primas, en proceso, terminados), a mano o desde Excel. El de la fecha de cierre se usa como existencia final en los estados.
+
+## Monotributistas
+
+- Para las empresas en Monotributo, el inicio es un tablero propio (sin contabilidad): facturado en los últimos 12 meses, categoría que corresponde, cuánto falta para el tope, cuota y próxima recategorización (enero y julio).
+- Alertas al llegar al 80 % del tope y al pasarlo; también en Mi estudio, para todos los monotributistas.
+- Compara lo facturado con lo que entró al banco según los resúmenes subidos.
+- La tabla de categorías vigente la pega el estudio (desde ARCA o un Excel) y sirve para todos.
 
 ## Avisos a clientes
 

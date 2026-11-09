@@ -11,6 +11,8 @@ import {
 import { Inventarios } from "@/components/inventarios/Inventarios";
 import { MenuPrincipal } from "@/components/importador/MenuPrincipal";
 import type { Inventario } from "@/lib/inventarios/inventarios";
+import { Monotributo } from "@/components/monotributo/Monotributo";
+import { esMonotributo } from "@/lib/monotributo/monotributo";
 import {
   type ReactNode,
   useCallback,
@@ -250,6 +252,18 @@ export function Importador({
     return "inicio";
   });
   const [vistaContable, setVistaContable] = useState<VistaContable>("diario");
+  const [empresaMono, setEmpresaMono] = useState<Empresa>(
+    conexion?.empresa ?? {
+      id: "prototipo",
+      razon_social: "tu empresa",
+      cuit: "",
+      condicion_iva: "Responsable inscripto",
+    },
+  );
+  const esMono = esMonotributo(empresaMono.condicion_iva);
+  const [acreditaciones, setAcreditaciones] = useState<
+    { fecha: string; importe: number }[]
+  >([]);
   const esEstudio = conexion?.rol !== "cliente";
   const ir = (d: Destino) => {
     setSeccion(d.seccion);
@@ -288,6 +302,7 @@ export function Importador({
     useState<ResumenBancario | null>(null);
   const repo = conexion?.repo;
   const empresaId = conexion?.empresa.id;
+  const condicionIva = conexion?.empresa.condicion_iva ?? "";
 
   const comoResultado = useCallback(
     (
@@ -337,6 +352,16 @@ export function Importador({
         setMovimientos(d.movimientos);
         setManuales(await repo.asientosManuales(empresaId));
         setInventarios(await repo.inventarios(empresaId));
+        if (esMonotributo(condicionIva)) {
+          const d = new Date();
+          d.setMonth(d.getMonth() - 24);
+          setAcreditaciones(
+            await repo.acreditacionesBanco(
+              empresaId,
+              d.toISOString().slice(0, 10),
+            ),
+          );
+        }
         setTickets(d.tickets);
         setArchivosDeducciones(
           d.archivosDeducciones.map((a) => ({
@@ -359,7 +384,7 @@ export function Importador({
         setCargando(false);
       }
     },
-    [repo, empresaId, comoResultado],
+    [repo, empresaId, comoResultado, condicionIva],
   );
 
   useEffect(() => {
@@ -720,45 +745,86 @@ export function Importador({
               {
                 texto: "Impuestos",
                 activo: seccion === "arca" && pestana !== "unidades",
-                grupos: [
-                  [
-                    "IVA",
-                    [
-                      {
-                        texto: "Importar de ARCA · Libro IVA Ventas",
-                        destino: { seccion: "arca", pestana: "ventas" },
-                      },
-                      {
-                        texto: "Libro IVA Compras",
-                        destino: { seccion: "arca", pestana: "compras" },
-                      },
-                      {
-                        texto: "Liquidación de IVA",
-                        destino: { seccion: "arca", pestana: "liquidacion" },
-                      },
-                    ],
-                  ],
-                  [
-                    "Retenciones y percepciones",
-                    [
-                      {
-                        texto: "Retenciones, percepciones y SIRCREB",
-                        destino: { seccion: "arca", pestana: "deducciones" },
-                      },
-                    ],
-                  ],
-                  [
-                    "Ganancias",
-                    esEstudio
-                      ? [
+                grupos: esMono
+                  ? [
+                      [
+                        "Monotributo",
+                        [
                           {
-                            texto: "Ajuste por inflación impositivo",
-                            destino: { seccion: "contabilidad", vista: "axi" },
+                            texto: "Categoría, topes y recategorización",
+                            destino: { seccion: "inicio" },
                           },
-                        ]
-                      : [],
-                  ],
-                ],
+                          {
+                            texto: "Importar facturas de ARCA",
+                            destino: { seccion: "arca", pestana: "ventas" },
+                          },
+                          {
+                            texto: "Compras y gastos",
+                            destino: { seccion: "arca", pestana: "compras" },
+                          },
+                        ],
+                      ],
+                      [
+                        "Retenciones y percepciones",
+                        [
+                          {
+                            texto: "Retenciones, percepciones y SIRCREB",
+                            destino: {
+                              seccion: "arca",
+                              pestana: "deducciones",
+                            },
+                          },
+                        ],
+                      ],
+                    ]
+                  : [
+                      [
+                        "IVA",
+                        [
+                          {
+                            texto: "Importar de ARCA · Libro IVA Ventas",
+                            destino: { seccion: "arca", pestana: "ventas" },
+                          },
+                          {
+                            texto: "Libro IVA Compras",
+                            destino: { seccion: "arca", pestana: "compras" },
+                          },
+                          {
+                            texto: "Liquidación de IVA",
+                            destino: {
+                              seccion: "arca",
+                              pestana: "liquidacion",
+                            },
+                          },
+                        ],
+                      ],
+                      [
+                        "Retenciones y percepciones",
+                        [
+                          {
+                            texto: "Retenciones, percepciones y SIRCREB",
+                            destino: {
+                              seccion: "arca",
+                              pestana: "deducciones",
+                            },
+                          },
+                        ],
+                      ],
+                      [
+                        "Ganancias",
+                        esEstudio
+                          ? [
+                              {
+                                texto: "Ajuste por inflación impositivo",
+                                destino: {
+                                  seccion: "contabilidad",
+                                  vista: "axi",
+                                },
+                              },
+                            ]
+                          : [],
+                      ],
+                    ],
               },
               {
                 texto: "Finanzas",
@@ -834,15 +900,16 @@ export function Importador({
               {
                 texto: "Contabilidad",
                 activo: seccion === "contabilidad",
-                grupos: esEstudio
-                  ? MENU_CONTABLE.map(([titulo, items]) => [
-                      titulo,
-                      items.map(([vista, texto]) => ({
-                        texto,
-                        destino: { seccion: "contabilidad" as const, vista },
-                      })),
-                    ])
-                  : [],
+                grupos:
+                  esEstudio && !esMono
+                    ? MENU_CONTABLE.map(([titulo, items]) => [
+                        titulo,
+                        items.map(([vista, texto]) => ({
+                          texto,
+                          destino: { seccion: "contabilidad" as const, vista },
+                        })),
+                      ])
+                    : [],
               },
               ...(conexion
                 ? [
@@ -907,7 +974,18 @@ export function Importador({
             Cargando los datos de {empresa}…
           </p>
         )}
-        <div hidden={seccion !== "inicio"}>
+        {esMono && seccion === "inicio" && !cargando && (
+          <Monotributo
+            repo={conexion?.repo}
+            empresa={empresaMono}
+            ventas={ventas?.comprobantes ?? []}
+            compras={[...(compras?.comprobantes ?? []), ...ticketsPendientes]}
+            acreditaciones={acreditaciones}
+            esEstudio={esEstudio}
+            onEmpresa={setEmpresaMono}
+          />
+        )}
+        <div hidden={seccion !== "inicio" || esMono}>
           <Tablero
             empresa={empresa}
             asientos={asientos}
