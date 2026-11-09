@@ -10,6 +10,8 @@ import { INDICES_FACPCE, type Indices } from "@/lib/inflacion/indices";
 import type { CorreccionesAxi } from "@/lib/impuestos/axi";
 import type { Asiento } from "@/lib/contabilidad/diario";
 import { nombreCuenta } from "@/lib/plan/plan";
+import type { Inventario } from "@/lib/inventarios/inventarios";
+import type { Plantilla } from "@/lib/avisos/avisos";
 import {
   comprobanteAFila,
   type DatosResumen,
@@ -49,6 +51,8 @@ export interface DatosCierre {
 
 export interface Mensaje {
   id: string;
+  /** Solo los avisos del estudio tienen asunto. */
+  asunto?: string | null;
   texto: string;
   deEstudio: boolean;
   creadoEn: string;
@@ -358,6 +362,47 @@ export class Repositorio {
     };
   }
 
+  // Inventarios ---------------------------------------------------------------------------------
+
+  async inventarios(empresaId: string): Promise<Inventario[]> {
+    const { data, error } = await this.db
+      .from("inventarios")
+      .select("id, fecha, unidad_id, descripcion, lineas")
+      .eq("empresa_id", empresaId)
+      .order("fecha", { ascending: false });
+    fallar(error, "leer los inventarios");
+    return (data ?? []).map((f) => ({
+      id: f.id,
+      fecha: f.fecha,
+      unidad: f.unidad_id,
+      descripcion: f.descripcion,
+      lineas: f.lineas,
+    }));
+  }
+
+  async guardarInventario(empresaId: string, inv: Inventario): Promise<string> {
+    const { data, error } = await this.db
+      .from("inventarios")
+      .upsert({
+        ...(inv.id ? { id: inv.id } : {}),
+        empresa_id: empresaId,
+        fecha: inv.fecha,
+        unidad_id: inv.unidad ?? null,
+        descripcion: inv.descripcion,
+        lineas: inv.lineas,
+        actualizado_en: new Date().toISOString(),
+      })
+      .select("id")
+      .single();
+    fallar(error, "guardar el inventario");
+    return data!.id;
+  }
+
+  async borrarInventario(id: string) {
+    const { error } = await this.db.from("inventarios").delete().eq("id", id);
+    fallar(error, "borrar el inventario");
+  }
+
   // Asientos manuales ---------------------------------------------------------------------------
 
   async asientosManuales(empresaId: string): Promise<Asiento[]> {
@@ -422,13 +467,14 @@ export class Repositorio {
   async mensajes(empresaId: string): Promise<Mensaje[]> {
     const { data, error } = await this.db
       .from("mensajes")
-      .select("id, texto, de_estudio, creado_en, leido")
+      .select("id, asunto, texto, de_estudio, creado_en, leido")
       .eq("empresa_id", empresaId)
       .order("creado_en")
       .limit(500);
     fallar(error, "leer los mensajes");
     return (data ?? []).map((m) => ({
       id: m.id,
+      asunto: m.asunto,
       texto: m.texto,
       deEstudio: m.de_estudio,
       creadoEn: m.creado_en,
@@ -441,6 +487,87 @@ export class Repositorio {
       .from("mensajes")
       .insert({ empresa_id: empresaId, texto: texto.trim() });
     fallar(error, "enviar el mensaje");
+  }
+
+  /** Aviso del estudio a una empresa: queda en sus mensajes, con constancia de lectura. */
+  async enviarAviso(empresaId: string, asunto: string, texto: string) {
+    const { error } = await this.db.from("mensajes").insert({
+      empresa_id: empresaId,
+      asunto: asunto.trim(),
+      texto: texto.trim(),
+    });
+    fallar(error, "enviar el aviso");
+  }
+
+  /** Avisos enviados (los más nuevos primero), con si el cliente ya los leyó. */
+  async avisosEnviados(): Promise<
+    {
+      id: string;
+      empresaId: string;
+      asunto: string;
+      creadoEn: string;
+      leido: boolean;
+    }[]
+  > {
+    const { data, error } = await this.db
+      .from("mensajes")
+      .select("id, empresa_id, asunto, creado_en, leido")
+      .not("asunto", "is", null)
+      .eq("de_estudio", true)
+      .order("creado_en", { ascending: false })
+      .limit(200);
+    fallar(error, "leer los avisos enviados");
+    return (data ?? []).map((m) => ({
+      id: m.id,
+      empresaId: m.empresa_id,
+      asunto: m.asunto,
+      creadoEn: m.creado_en,
+      leido: m.leido,
+    }));
+  }
+
+  async plantillas(): Promise<Plantilla[]> {
+    const { data, error } = await this.db
+      .from("plantillas_aviso")
+      .select("id, nombre, asunto, cuerpo")
+      .order("nombre");
+    fallar(error, "leer los modelos de aviso");
+    return data ?? [];
+  }
+
+  async guardarPlantilla(p: Plantilla): Promise<string> {
+    const { data, error } = await this.db
+      .from("plantillas_aviso")
+      .upsert({
+        ...(p.id ? { id: p.id } : {}),
+        nombre: p.nombre,
+        asunto: p.asunto,
+        cuerpo: p.cuerpo,
+        actualizado_en: new Date().toISOString(),
+      })
+      .select("id")
+      .single();
+    fallar(error, "guardar el modelo");
+    return data!.id;
+  }
+
+  async borrarPlantilla(id: string) {
+    const { error } = await this.db
+      .from("plantillas_aviso")
+      .delete()
+      .eq("id", id);
+    fallar(error, "borrar el modelo");
+  }
+
+  /** Mails de los usuarios invitados a cada empresa (para mandarles el aviso por correo). */
+  async mailsPorEmpresa(): Promise<Record<string, string[]>> {
+    const { data, error } = await this.db
+      .from("invitaciones")
+      .select("email, empresa_id");
+    fallar(error, "leer los mails de los clientes");
+    const r: Record<string, string[]> = {};
+    for (const f of data ?? []) (r[f.empresa_id] ??= []).push(f.email);
+    return r;
   }
 
   /** Marca como leídos los mensajes que escribió la otra parte (la base no deja marcar los propios). */

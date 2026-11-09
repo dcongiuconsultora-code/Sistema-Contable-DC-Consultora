@@ -22,6 +22,7 @@ const CUENTAS_RETENCION = {
 
 /** La cuenta que va contra el medio de pago. */
 export function cuentaDelMovimiento(m: Movimiento): string {
+  if (m.imputacion) return m.imputacion;
   switch (m.tipo) {
     case "cobro":
       return "1.1.03.001"; // Deudores por ventas: la factura ya entró por Mis Comprobantes emitidos

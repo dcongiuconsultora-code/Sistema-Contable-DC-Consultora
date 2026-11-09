@@ -117,6 +117,9 @@ export function Mensajes({
                         {m.deEstudio ? "Estudio" : "Cliente"}
                       </div>
                     )}
+                    {m.asunto && (
+                      <p className="mb-1 font-semibold">📌 {m.asunto}</p>
+                    )}
                     <p className="whitespace-pre-wrap break-words">{m.texto}</p>
                     <div
                       className={`mt-1 text-right text-[11px] ${mio ? "text-white/70" : "text-stone-500"}`}

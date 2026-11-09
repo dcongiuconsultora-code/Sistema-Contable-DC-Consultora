@@ -64,6 +64,21 @@ Sistema contable interno de la consultora: los clientes cargan su operación y e
 - **Moneda homogénea (RT 6)**: reexpresa las partidas no monetarias con los índices FACPCE (Res. JG 539/18), calcula el RECPAM, deja el capital nominal con su "Ajuste de capital" y reexpresa los comparativos. Una hoja extra muestra los índices, el coeficiente y el asiento de reexpresión.
 - Índices: vienen con la app (`src/lib/inflacion/indices-facpce.json`) y cada mes se sube el Excel nuevo de la FACPCE desde la misma pantalla.
 
+## Menú por áreas
+
+- **Impuestos** (ARCA, libros IVA, liquidación, retenciones, AXI), **Finanzas** (cobros y pagos, tickets, caja diaria, bancos y conciliación, cuentas corrientes, unidades), **Inventarios**, **Contabilidad** (solo el estudio) y **Mensajes**.
+- Contabilidad: asientos manuales, libro diario, libro mayor, sumas y saldos, resultados mensuales, ajuste por inflación impositivo, estados contables (anual o intermedio) y ejercicio y saldos de inicio, con un período común arriba.
+
+## Caja diaria, imputación e inventarios
+
+- **Caja y bancos día por día**: saldo al empezar, lo que entró y salió cada día y el saldo al cierre de cada día; por cuenta y por unidad.
+- Al cargar un cobro o pago se ve (y se puede cambiar) la **imputación contable**, con el asiento que genera.
+- **Inventarios**: conteos de stock valuados por fecha y unidad (mercaderías, materias primas, en proceso, terminados), a mano o desde Excel. El de la fecha de cierre se usa como existencia final en los estados.
+
+## Avisos a clientes
+
+- En Mi estudio: modelos de aviso (vencimientos del mes, pedido de documentación, libre) que se completan solos por empresa. Se envían a los mensajes de la app con constancia de lectura y se pueden abrir en Gmail ya escritos.
+
 ## Libro diario, asientos manuales y sumas y saldos
 
 - Pestaña **Libro diario** (estudio): todos los asientos, los automáticos (ARCA, cobros y pagos, banco) y los manuales.

@@ -1,5 +1,7 @@
 "use client";
 
+import { nombreCuenta, PLAN_MODELO } from "@/lib/plan/plan";
+
 import {
   type ConfigUnidades,
   nombreUnidad,
@@ -10,6 +12,7 @@ import { useState } from "react";
 import { JURISDICCIONES } from "@/lib/arca/retenciones";
 import { cuitConGuiones, fechaCorta, pesos } from "@/lib/formato";
 import {
+  cuentaDelMovimiento,
   generarAsiento,
   totalesAsiento,
   validarMovimiento,
@@ -112,6 +115,8 @@ function Etiqueta({
     </label>
   );
 }
+
+const IMPUTABLES = PLAN_MODELO.filter((c) => c.imputable);
 
 function Formulario({
   inicial,
@@ -415,6 +420,49 @@ function Formulario({
             </select>
           </Etiqueta>
         )}
+
+        <details
+          className="rounded-lg border border-stone-200 bg-stone-50 p-3 text-sm"
+          open={Boolean(m.imputacion)}
+        >
+          <summary className="cursor-pointer">
+            Imputación contable:{" "}
+            <strong>
+              {cuentaDelMovimiento(m)} {nombreCuenta(cuentaDelMovimiento(m))}
+            </strong>{" "}
+            <span className="text-stone-500">(cambiar)</span>
+          </summary>
+          <div className="mt-2 space-y-2">
+            <input
+              id={`imputacion-${m.id}`}
+              list="cuentas-imputacion"
+              defaultValue={
+                m.imputacion
+                  ? `${m.imputacion} ${nombreCuenta(m.imputacion)}`
+                  : ""
+              }
+              onChange={(e) => {
+                const codigo = e.target.value.trim().split(/\s+/)[0];
+                if (!e.target.value.trim()) cambiar({ imputacion: undefined });
+                else if (IMPUTABLES.some((c) => c.codigo === codigo))
+                  cambiar({ imputacion: codigo });
+              }}
+              placeholder="Escribí el código o el nombre de la cuenta"
+              className={campo}
+            />
+            <datalist id="cuentas-imputacion">
+              {IMPUTABLES.map((c) => (
+                <option key={c.codigo} value={`${c.codigo} ${c.nombre}`} />
+              ))}
+            </datalist>
+            <p className="text-xs text-stone-500">
+              Vacío = la cuenta que corresponde según el concepto. Si la factura
+              ya entra por ARCA, dejá Proveedores o Deudores por ventas para no
+              registrarla dos veces.
+            </p>
+            <Asiento m={{ ...m, unidad: unidadSugerida }} />
+          </div>
+        </details>
 
         <Etiqueta texto="Nota (opcional)">
           <input

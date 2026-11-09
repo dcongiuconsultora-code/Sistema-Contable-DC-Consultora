@@ -470,7 +470,7 @@ function GraficoMensual({ datos }: { datos: PuntoMes[] }) {
   );
 }
 
-function EditorSaldos({
+export function EditorSaldos({
   iniciales,
   onIniciales,
 }: {

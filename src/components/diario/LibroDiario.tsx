@@ -20,12 +20,6 @@ function hoy() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-function diaSiguiente(fecha: string) {
-  const d = new Date(`${fecha}T12:00:00Z`);
-  d.setUTCDate(d.getUTCDate() + 1);
-  return d.toISOString().slice(0, 10);
-}
-
 function numero(texto: string) {
   const limpio = texto.replace(/\./g, "").replace(",", ".").trim();
   const n = Number(limpio);
@@ -365,33 +359,42 @@ async function descargarSumasSaldos(
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
 
-/** Libro diario completo, asientos manuales y balance de sumas y saldos. */
+/** Libro diario, asientos manuales o balance de sumas y saldos, según la vista. */
 export function LibroDiario({
+  vista,
+  desde,
+  hasta,
   asientos,
   iniciales,
   unidades,
   empresa,
   onGuardar,
   onBorrar,
+  onVerMayor,
 }: {
+  vista: "asientos" | "diario" | "sumas";
+  desde: string;
+  hasta: string;
   asientos: Asiento[];
   iniciales: SaldosIniciales;
   unidades: ConfigUnidades;
   empresa: string;
   onGuardar: (a: Asiento) => Promise<void>;
   onBorrar: (id: string) => Promise<void>;
+  /** Abre el mayor de una cuenta (desde sumas y saldos). */
+  onVerMayor?: (codigo: string) => void;
 }) {
-  const inicioEjercicio = iniciales.fecha ? diaSiguiente(iniciales.fecha) : "";
-  const [vista, setVista] = useState<"sumas" | "diario">("sumas");
-  const [desde, setDesde] = useState(inicioEjercicio);
-  const [hasta, setHasta] = useState(hoy());
-  const [origen, setOrigen] = useState<(typeof ORIGENES)[number]>("Todos");
+  const [origen, setOrigen] = useState<(typeof ORIGENES)[number]>(
+    vista === "asientos" ? "Manual" : "Todos",
+  );
   const [buscar, setBuscar] = useState("");
   const [cantidad, setCantidad] = useState(100);
-  const [editando, setEditando] = useState<Asiento | null | "nuevo">(null);
+  const [editando, setEditando] = useState<Asiento | null | "nuevo">(
+    vista === "asientos" ? "nuevo" : null,
+  );
   const [error, setError] = useState<string | null>(null);
 
-  const desdeEfectivo = desde || inicioEjercicio || "1900-01-01";
+  const desdeEfectivo = desde || "1900-01-01";
   const ss = useMemo(
     () => sumasYSaldos(asientos, iniciales, desdeEfectivo, hasta),
     [asientos, iniciales, desdeEfectivo, hasta],
@@ -413,68 +416,33 @@ export function LibroDiario({
 
   return (
     <div className="space-y-5">
-      <section>
-        <h1 className="text-2xl font-semibold">Libro diario</h1>
-        <p className="mt-1 max-w-3xl text-stone-600">
-          Todos los asientos: los que arma el sistema solo (ARCA, cobros y
-          pagos, banco) y los que cargás a mano (ajustes, amortizaciones,
-          refundiciones). El balance de sumas y saldos sale de cualquier
-          período, para el balance anual o uno intermedio.
-        </p>
-      </section>
-
-      <div className="flex flex-wrap items-end gap-3">
-        <label className="block text-sm">
-          <span className="text-stone-600">Desde</span>
-          <input
-            id="diario-desde"
-            type="date"
-            value={desde}
-            onChange={(e) => setDesde(e.target.value)}
-            className="mt-1 block rounded-md border border-stone-300 px-2 py-1.5"
-          />
-        </label>
-        <label className="block text-sm">
-          <span className="text-stone-600">Hasta</span>
-          <input
-            id="diario-hasta"
-            type="date"
-            value={hasta}
-            onChange={(e) => setHasta(e.target.value)}
-            className="mt-1 block rounded-md border border-stone-300 px-2 py-1.5"
-          />
-        </label>
-        <div className="flex gap-1 rounded-lg bg-stone-100 p-1 text-sm">
-          {(
-            [
-              ["sumas", "Sumas y saldos"],
-              ["diario", "Asientos"],
-            ] as const
-          ).map(([id, texto]) => (
-            <button
-              key={id}
-              type="button"
-              onClick={() => setVista(id)}
-              className={`rounded-md px-3 py-1 ${vista === id ? "bg-white font-medium shadow-sm" : "text-stone-600"}`}
-            >
-              {texto}
-            </button>
-          ))}
-        </div>
-        <button
-          type="button"
-          onClick={() => setEditando("nuevo")}
-          className="rounded-md bg-marca px-4 py-2 text-sm font-medium text-white hover:opacity-90"
-        >
-          + Nuevo asiento
-        </button>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <section>
+          <h1 className="text-2xl font-semibold">
+            {vista === "sumas"
+              ? "Sumas y saldos"
+              : vista === "asientos"
+                ? "Asientos manuales"
+                : "Libro diario"}
+          </h1>
+          <p className="mt-1 max-w-3xl text-stone-600">
+            {vista === "sumas"
+              ? "Saldo anterior, sumas del debe y del haber y saldo final de cada cuenta en el período elegido (anual o intermedio). Tocá una cuenta para ver su mayor."
+              : vista === "asientos"
+                ? "Ajustes, amortizaciones, refundiciones y asientos de cierre que cargás a mano. Entran al mayor, a los estados contables y al tablero."
+                : "Todos los asientos del período: los que arma el sistema solo (ARCA, cobros y pagos, banco) y los manuales."}
+          </p>
+        </section>
+        {vista !== "sumas" && !editando && (
+          <button
+            type="button"
+            onClick={() => setEditando("nuevo")}
+            className="rounded-md bg-marca px-4 py-2 text-sm font-medium text-white hover:opacity-90"
+          >
+            + Nuevo asiento
+          </button>
+        )}
       </div>
-      {!iniciales.fecha && (
-        <p className="text-sm text-amber-700">
-          Sin saldos de inicio cargados: el saldo anterior de cada cuenta
-          arranca en cero.
-        </p>
-      )}
 
       {editando && (
         <FormAsiento
@@ -522,10 +490,16 @@ export function LibroDiario({
                 {ss.filas.map((f) => (
                   <tr key={f.codigo}>
                     <td className="px-3 py-1.5">
-                      <span className="text-stone-400 tabular-nums">
-                        {f.codigo}
-                      </span>{" "}
-                      {f.nombre}
+                      <button
+                        type="button"
+                        onClick={() => onVerMayor?.(f.codigo)}
+                        className="text-left hover:text-marca hover:underline"
+                      >
+                        <span className="text-stone-400 tabular-nums">
+                          {f.codigo}
+                        </span>{" "}
+                        {f.nombre}
+                      </button>
                     </td>
                     <td className="cifra px-3 py-1.5 text-stone-500">
                       {f.anterior ? pesos(f.anterior) : ""}

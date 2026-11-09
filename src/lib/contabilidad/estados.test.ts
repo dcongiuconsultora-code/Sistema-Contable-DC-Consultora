@@ -209,3 +209,28 @@ describe("sumas y saldos", () => {
     ]);
   });
 });
+
+describe("mayor y resultados mensuales", () => {
+  it("mayor de una cuenta con saldo acumulado", async () => {
+    const { mayorDeCuenta } = await import("./sumas-saldos");
+    const m = mayorDeCuenta(
+      asientos,
+      iniciales,
+      "1.1.01.001",
+      "2026-01-01",
+      "2026-12-31",
+    );
+    expect(m.anterior).toBe(1000);
+    expect(m.renglones.map((r) => r.saldo)).toEqual([2210, 1726]);
+  });
+
+  it("resultados por mes", async () => {
+    const { resultadosMensuales } = await import("./sumas-saldos");
+    const r = resultadosMensuales(asientos, "2026-01-01", "2026-12-31");
+    expect(r.meses).toHaveLength(12);
+    const resultado = r.filas.find((f) => f.clave === "resultado")!;
+    expect(resultado.valores[2]).toBe(1000);
+    expect(resultado.valores[5]).toBe(-400);
+    expect(resultado.total).toBe(600);
+  });
+});

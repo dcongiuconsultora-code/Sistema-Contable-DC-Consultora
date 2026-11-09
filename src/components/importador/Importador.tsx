@@ -2,8 +2,15 @@
 
 import { Mensajes } from "@/components/mensajes/Mensajes";
 import { Marca } from "@/components/Marca";
-import { Balance } from "@/components/balance/Balance";
-import { LibroDiario } from "@/components/diario/LibroDiario";
+import { CajaDiaria } from "@/components/caja/CajaDiaria";
+import {
+  Contabilidad,
+  MENU_CONTABLE,
+  type VistaContable,
+} from "@/components/contabilidad/Contabilidad";
+import { Inventarios } from "@/components/inventarios/Inventarios";
+import { MenuPrincipal } from "@/components/importador/MenuPrincipal";
+import type { Inventario } from "@/lib/inventarios/inventarios";
 import {
   type ReactNode,
   useCallback,
@@ -57,8 +64,9 @@ type Seccion =
   | "movimientos"
   | "cuentas"
   | "mensajes"
-  | "balance"
-  | "diario";
+  | "contabilidad"
+  | "caja"
+  | "inventarios";
 
 // Saldos del último balance de la empresa de ejemplo (al 31/08/2026). El banco coincide con el
 // saldo inicial del resumen bancario de ejemplo; los sueldos a pagar son los de agosto.
@@ -201,15 +209,12 @@ export interface Conexion {
 
 // El cliente ve todo lo de su empresa y también importa ARCA y bancos; lo que lo diferencia del
 // estudio es que no aprueba movimientos ni cambia los saldos de inicio.
-const SECCIONES_CLIENTE: Seccion[] = [
-  "inicio",
-  "arca",
-  "bancos",
-  "movimientos",
-  "cuentas",
-  "tickets",
-  "mensajes",
-];
+/** A dónde lleva cada opción del menú. */
+interface Destino {
+  seccion: Seccion;
+  pestana?: Pestana;
+  vista?: VistaContable;
+}
 
 export function Importador({
   cargarEjemploAlInicio = false,
@@ -244,6 +249,14 @@ export function Importador({
     }
     return "inicio";
   });
+  const [vistaContable, setVistaContable] = useState<VistaContable>("diario");
+  const esEstudio = conexion?.rol !== "cliente";
+  const ir = (d: Destino) => {
+    setSeccion(d.seccion);
+    if (d.pestana) setPestana(d.pestana);
+    if (d.vista) setVistaContable(d.vista);
+    window.scrollTo({ top: 0 });
+  };
   const [resumenBanco, setResumenBanco] = useState<ResumenBancario | null>(
     null,
   );
@@ -257,6 +270,7 @@ export function Importador({
   const [tickets, setTickets] = useState<TicketCargado[]>([]);
   const [movimientos, setMovimientos] = useState<Movimiento[]>([]);
   const [manuales, setManuales] = useState<Asiento[]>([]);
+  const [inventarios, setInventarios] = useState<Inventario[]>([]);
   const [unidades, setUnidades] = useState<ConfigUnidades>(SIN_UNIDADES);
   const [cuitElegido, setCuitElegido] = useState<string | null>(null);
   const cuitCliente =
@@ -322,6 +336,7 @@ export function Importador({
         );
         setMovimientos(d.movimientos);
         setManuales(await repo.asientosManuales(empresaId));
+        setInventarios(await repo.inventarios(empresaId));
         setTickets(d.tickets);
         setArchivosDeducciones(
           d.archivosDeducciones.map((a) => ({
@@ -565,6 +580,12 @@ export function Importador({
     : resumenBanco?.titular
       ? titulo(resumenBanco.titular)
       : "tu empresa";
+  const empresaDatos: Empresa = conexion?.empresa ?? {
+    id: "prototipo",
+    razon_social: empresa,
+    cuit: cuitCliente,
+    condicion_iva: "Responsable inscripto",
+  };
 
   const registrarDesdeBanco = (registrados: Movimiento[]) => {
     // Lo que identifica el cliente desde el banco lo revisa el estudio, como cualquier otro movimiento.
@@ -688,45 +709,161 @@ export function Importador({
       <header className="bg-marca text-white">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-4 py-3">
           <Marca />
-          <nav className="flex flex-wrap gap-1 text-sm">
-            {(
-              [
-                ["inicio", "Inicio"],
-                ["arca", "ARCA"],
-                ["bancos", "Bancos"],
-                ["movimientos", "Cobros y pagos"],
-                ["cuentas", "Cuentas corrientes"],
-                ["tickets", "Tickets"],
-                ["diario", "Libro diario"],
-                ["balance", "Balance"],
-                ["mensajes", "Mensajes"],
-              ] as [Seccion, string][]
-            )
-              .filter(
-                ([id]) =>
-                  (conexion?.rol !== "cliente" ||
-                    SECCIONES_CLIENTE.includes(id)) &&
-                  (id !== "mensajes" || conexion),
-              )
-              .map(([id, texto]) => (
-                <button
-                  key={id}
-                  type="button"
-                  onClick={() => setSeccion(id)}
-                  className={`rounded-md px-3 py-1.5 font-medium ${seccion === id ? "bg-white/20" : "opacity-80 hover:bg-white/10 hover:opacity-100"}`}
-                >
-                  {texto}
-                  {id === "mensajes" && noLeidos > 0 && (
-                    <span
-                      aria-label={`${noLeidos} sin leer`}
-                      className="ml-1.5 inline-flex min-w-5 items-center justify-center rounded-full bg-white px-1.5 text-xs font-semibold text-marca"
-                    >
-                      {noLeidos}
-                    </span>
-                  )}
-                </button>
-              ))}
-          </nav>
+          <MenuPrincipal<Destino>
+            onIr={ir}
+            entradas={[
+              {
+                texto: "Inicio",
+                destino: { seccion: "inicio" },
+                activo: seccion === "inicio",
+              },
+              {
+                texto: "Impuestos",
+                activo: seccion === "arca" && pestana !== "unidades",
+                grupos: [
+                  [
+                    "IVA",
+                    [
+                      {
+                        texto: "Importar de ARCA · Libro IVA Ventas",
+                        destino: { seccion: "arca", pestana: "ventas" },
+                      },
+                      {
+                        texto: "Libro IVA Compras",
+                        destino: { seccion: "arca", pestana: "compras" },
+                      },
+                      {
+                        texto: "Liquidación de IVA",
+                        destino: { seccion: "arca", pestana: "liquidacion" },
+                      },
+                    ],
+                  ],
+                  [
+                    "Retenciones y percepciones",
+                    [
+                      {
+                        texto: "Retenciones, percepciones y SIRCREB",
+                        destino: { seccion: "arca", pestana: "deducciones" },
+                      },
+                    ],
+                  ],
+                  [
+                    "Ganancias",
+                    esEstudio
+                      ? [
+                          {
+                            texto: "Ajuste por inflación impositivo",
+                            destino: { seccion: "contabilidad", vista: "axi" },
+                          },
+                        ]
+                      : [],
+                  ],
+                ],
+              },
+              {
+                texto: "Finanzas",
+                activo: [
+                  "movimientos",
+                  "tickets",
+                  "bancos",
+                  "caja",
+                  "cuentas",
+                ].includes(seccion),
+                grupos: [
+                  [
+                    "Movimientos",
+                    [
+                      {
+                        texto: "Cobros y pagos",
+                        destino: { seccion: "movimientos" },
+                      },
+                      {
+                        texto: "Tickets y facturas (fotos)",
+                        destino: { seccion: "tickets" },
+                      },
+                    ],
+                  ],
+                  [
+                    "Caja y bancos",
+                    [
+                      {
+                        texto: "Caja y bancos día por día",
+                        destino: { seccion: "caja" },
+                      },
+                      {
+                        texto: "Resumen y conciliación bancaria",
+                        destino: { seccion: "bancos" },
+                      },
+                    ],
+                  ],
+                  [
+                    "Cuentas corrientes",
+                    [
+                      {
+                        texto: "Clientes y proveedores",
+                        destino: { seccion: "cuentas" },
+                      },
+                    ],
+                  ],
+                  [
+                    "Unidades de negocio",
+                    [
+                      {
+                        texto: "Proveedores por unidad",
+                        destino: { seccion: "arca", pestana: "unidades" },
+                      },
+                    ],
+                  ],
+                ],
+              },
+              {
+                texto: "Inventarios",
+                activo: seccion === "inventarios",
+                grupos: [
+                  [
+                    "Stock",
+                    [
+                      {
+                        texto: "Inventarios y existencias",
+                        destino: { seccion: "inventarios" },
+                      },
+                    ],
+                  ],
+                ],
+              },
+              {
+                texto: "Contabilidad",
+                activo: seccion === "contabilidad",
+                grupos: esEstudio
+                  ? MENU_CONTABLE.map(([titulo, items]) => [
+                      titulo,
+                      items.map(([vista, texto]) => ({
+                        texto,
+                        destino: { seccion: "contabilidad" as const, vista },
+                      })),
+                    ])
+                  : [],
+              },
+              ...(conexion
+                ? [
+                    {
+                      texto: "Mensajes",
+                      destino: { seccion: "mensajes" as const },
+                      activo: seccion === "mensajes",
+                      extra:
+                        noLeidos > 0 ? (
+                          <span
+                            aria-label={`${noLeidos} sin leer`}
+                            className="ml-1.5 inline-flex min-w-5 items-center justify-center rounded-full bg-white px-1.5 text-xs font-semibold text-marca"
+                          >
+                            {noLeidos}
+                          </span>
+                        ) : undefined,
+                    },
+                  ]
+                : []),
+            ]}
+          />
           {conexion?.encabezado}
         </div>
       </header>
@@ -817,40 +954,62 @@ export function Importador({
             fechaCorte={fechaCorte}
           />
         </div>
-        {conexion?.rol !== "cliente" && seccion === "diario" && !cargando && (
-          <LibroDiario
-            empresa={empresa}
+        {conexion?.rol !== "cliente" &&
+          seccion === "contabilidad" &&
+          !cargando && (
+            <Contabilidad
+              vista={vistaContable}
+              onVista={setVistaContable}
+              repo={conexion?.repo}
+              empresa={empresaDatos}
+              asientos={asientos}
+              inventarios={inventarios}
+              iniciales={iniciales}
+              onIniciales={actualizarIniciales}
+              unidades={unidades}
+              onGuardarAsiento={async (a) => {
+                const id = conexion
+                  ? await conexion.repo.guardarAsiento(conexion.empresa.id, a)
+                  : crypto.randomUUID();
+                setManuales((lista) => [
+                  ...lista.filter((x) => x.id !== a.id),
+                  { ...a, id, origen: "Manual" },
+                ]);
+              }}
+              onBorrarAsiento={async (id) => {
+                if (conexion) await conexion.repo.borrarAsiento(id);
+                setManuales((lista) => lista.filter((x) => x.id !== id));
+              }}
+            />
+          )}
+        {seccion === "caja" && !cargando && (
+          <CajaDiaria
             asientos={asientos}
             iniciales={iniciales}
             unidades={unidades}
-            onGuardar={async (a) => {
-              const id = conexion
-                ? await conexion.repo.guardarAsiento(conexion.empresa.id, a)
-                : crypto.randomUUID();
-              setManuales((lista) => [
-                ...lista.filter((x) => x.id !== a.id),
-                { ...a, id, origen: "Manual" },
-              ]);
-            }}
-            onBorrar={async (id) => {
-              if (conexion) await conexion.repo.borrarAsiento(id);
-              setManuales((lista) => lista.filter((x) => x.id !== id));
-            }}
           />
         )}
-        {conexion?.rol !== "cliente" && seccion === "balance" && !cargando && (
-          <Balance
-            repo={conexion?.repo}
-            empresa={
-              conexion?.empresa ?? {
-                id: "prototipo",
-                razon_social: empresa,
-                cuit: cuitCliente,
-                condicion_iva: "Responsable inscripto",
-              }
-            }
-            asientos={asientos}
-            iniciales={iniciales}
+        {seccion === "inventarios" && !cargando && (
+          <Inventarios
+            inventarios={inventarios}
+            unidades={unidades}
+            onGuardar={async (inv) => {
+              const id = conexion
+                ? await conexion.repo.guardarInventario(
+                    conexion.empresa.id,
+                    inv,
+                  )
+                : crypto.randomUUID();
+              setInventarios((lista) =>
+                [...lista.filter((x) => x.id !== inv.id), { ...inv, id }].sort(
+                  (a, b) => b.fecha.localeCompare(a.fecha),
+                ),
+              );
+            }}
+            onBorrar={async (id) => {
+              if (conexion) await conexion.repo.borrarInventario(id);
+              setInventarios((lista) => lista.filter((x) => x.id !== id));
+            }}
           />
         )}
         {conexion && (

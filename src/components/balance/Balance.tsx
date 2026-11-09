@@ -23,6 +23,10 @@ import {
 } from "@/lib/inflacion/indices";
 import { nombreCuenta } from "@/lib/plan/plan";
 import { AxiImpositivo } from "./AxiImpositivo";
+import {
+  existenciaAFecha,
+  type Inventario,
+} from "@/lib/inventarios/inventarios";
 
 const BIENES_DE_CAMBIO = [
   "1.1.05.001",
@@ -220,14 +224,29 @@ export function Balance({
   repo,
   empresa,
   asientos,
+  inventarios = [],
   iniciales,
+  modo = "estados",
+  cierre: cierreElegido,
+  onCierre,
 }: {
   repo?: Repositorio;
   empresa: Empresa;
   asientos: Asiento[];
+  /** Conteos de stock: el de la fecha de cierre se usa si no se cargó otro valor a mano. */
+  inventarios?: Inventario[];
   iniciales: SaldosIniciales;
+  /** Estados contables o papel de trabajo del ajuste por inflación impositivo. */
+  modo?: "estados" | "axi";
+  /** Fecha de cierre elegida en la barra de Contabilidad (anual o intermedio). */
+  cierre?: string;
+  onCierre?: (fecha: string) => void;
 }) {
-  const [cierre, setCierre] = useState(() => cierreSugerido(iniciales.fecha));
+  const [cierreLocal, setCierreLocal] = useState(() =>
+    cierreSugerido(iniciales.fecha),
+  );
+  const cierre = cierreElegido || cierreLocal;
+  const setCierre = onCierre ?? setCierreLocal;
   const [homogenea, setHomogenea] = useState(true);
   const [indices, setIndices] = useState<Indices>(INDICES_FACPCE);
   const [datos, setDatos] = useState<DatosCierre>({});
@@ -238,7 +257,7 @@ export function Balance({
 
   useEffect(() => {
     if (!cierre && iniciales.fecha) setCierre(cierreSugerido(iniciales.fecha));
-  }, [iniciales.fecha, cierre]);
+  }, [iniciales.fecha, cierre, setCierre]);
 
   useEffect(() => {
     repo?.indices().then(setIndices, (e) => setError(e.message));
@@ -270,14 +289,18 @@ export function Balance({
     };
   }, [repo, empresa.id, cierre]);
 
+  const delConteo = useMemo(
+    () => existenciaAFecha(inventarios, cierre),
+    [inventarios, cierre],
+  );
   const existenciaFinal = useMemo(() => {
     const ef: Record<string, number> = {};
     for (const [c, t] of Object.entries(inventario)) {
       const n = numero(t);
       if (n !== null) ef[c] = n;
     }
-    return ef;
-  }, [inventario]);
+    return Object.keys(ef).length ? ef : (delConteo ?? {});
+  }, [inventario, delConteo]);
 
   const valido = Boolean(iniciales.fecha && cierre && cierre > iniciales.fecha);
   const calculo = useMemo(() => {
@@ -390,23 +413,28 @@ export function Balance({
   return (
     <div className="space-y-6">
       <section>
-        <h1 className="text-2xl font-semibold">Balance</h1>
+        <h1 className="text-2xl font-semibold">
+          {modo === "axi"
+            ? "Ajuste por inflación impositivo"
+            : "Estados contables"}
+        </h1>
         <p className="mt-1 max-w-3xl text-stone-600">
-          Estados contables completos con el modelo de la RT 54: situación
-          patrimonial, resultados, evolución del patrimonio neto, flujo de
-          efectivo, anexos y notas, en moneda homogénea (RT 6) con los índices
-          de la FACPCE. Se arman con todo lo cargado en el sistema más los
-          saldos de inicio del último balance.
+          {modo === "axi"
+            ? "Papel de trabajo para Ganancias, con el IPC, a la fecha de cierre elegida arriba."
+            : "Balance anual o intermedio (según la fecha de cierre de arriba) con el modelo de la RT 54: situación patrimonial, resultados, evolución del patrimonio neto, flujo de efectivo, anexos y notas, en moneda homogénea (RT 6) con los índices de la FACPCE."}
         </p>
       </section>
 
       {!iniciales.fecha ? (
         <p className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-          Primero cargá los saldos del último balance en Inicio → “Cómo se
-          calcula”. Son el punto de partida del ejercicio.
+          Primero cargá los saldos del último balance en Contabilidad → “Saldos
+          de inicio”. Son el punto de partida del ejercicio.
         </p>
       ) : (
-        <div className="grid gap-4 lg:grid-cols-3">
+        <div
+          className={`grid gap-4 ${modo === "axi" ? "" : "lg:grid-cols-3"}`}
+          hidden={modo === "axi"}
+        >
           <section className="space-y-3 rounded-xl border border-stone-200 bg-white p-5 shadow-sm">
             <h3 className="font-semibold">Ejercicio</h3>
             <p className="text-sm text-stone-600">
@@ -458,6 +486,12 @@ export function Balance({
               Valor de las existencias al cierre. El costo de lo vendido se
               calcula con la diferencia de inventarios.
             </p>
+            {delConteo && !Object.values(inventario).some((t) => t.trim()) && (
+              <p className="rounded-md bg-emerald-50 p-2 text-xs text-emerald-800">
+                Se toma el inventario cargado al {fechaCorta(cierre)} en
+                Inventarios. Si escribís un valor acá, se usa el tuyo.
+              </p>
+            )}
             {BIENES_DE_CAMBIO.map((c) => (
               <label key={c} className="flex items-center gap-2 text-sm">
                 <span className="min-w-0 flex-1 truncate text-stone-600">
@@ -471,7 +505,11 @@ export function Balance({
                     setInventario({ ...inventario, [c]: e.target.value });
                     setSucio(true);
                   }}
-                  placeholder="0,00"
+                  placeholder={
+                    delConteo?.[c]
+                      ? delConteo[c].toLocaleString("es-AR")
+                      : "0,00"
+                  }
                   className="w-36 rounded-md border border-stone-300 px-2 py-1 text-right tabular-nums"
                 />
               </label>
@@ -504,7 +542,21 @@ export function Balance({
         </div>
       )}
 
-      {estados && (
+      {estados && modo === "axi" && (
+        <AxiImpositivo
+          asientos={asientos}
+          iniciales={iniciales}
+          cierre={cierre}
+          indices={indices}
+          correcciones={datos.axi ?? {}}
+          onCorrecciones={(axi) => {
+            setDatos({ ...datos, axi });
+            setSucio(true);
+          }}
+          empresa={empresa.razon_social}
+        />
+      )}
+      {estados && modo === "estados" && (
         <>
           <div className="flex flex-wrap items-center gap-3">
             <button
@@ -525,18 +577,6 @@ export function Balance({
             )}
           </div>
           <Vista e={estados} />
-          <AxiImpositivo
-            asientos={asientos}
-            iniciales={iniciales}
-            cierre={cierre}
-            indices={indices}
-            correcciones={datos.axi ?? {}}
-            onCorrecciones={(axi) => {
-              setDatos({ ...datos, axi });
-              setSucio(true);
-            }}
-            empresa={empresa.razon_social}
-          />
         </>
       )}
 

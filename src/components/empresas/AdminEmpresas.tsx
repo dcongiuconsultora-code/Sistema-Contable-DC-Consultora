@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { Empresa, Repositorio } from "@/lib/datos/repositorio";
 import { cuitConGuiones } from "@/lib/formato";
 import { cuitValido } from "@/lib/tickets/validar";
+import { Avisos } from "./Avisos";
 import { UnidadesEmpresa } from "./UnidadesEmpresa";
 import { ImpuestosEmpresa, ProximosVencimientos } from "./Vencimientos";
 
@@ -180,6 +181,7 @@ export function AdminEmpresas({
   return (
     <div className="mx-auto max-w-4xl space-y-6 px-4 py-8">
       <ProximosVencimientos empresas={empresas} />
+      <Avisos repo={repo} empresas={empresas} />
       <section>
         <h1 className="text-2xl font-semibold">Empresas</h1>
         <p className="mt-1 text-stone-600">

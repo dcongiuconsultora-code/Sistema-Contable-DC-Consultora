@@ -138,6 +138,8 @@ export interface Movimiento {
    * Para pagos con factura: se usa Proveedores.
    */
   cuenta?: string;
+  /** Cuenta contable elegida a mano por quien carga o por el estudio: tiene prioridad. */
+  imputacion?: string;
   /** Si el gasto u honorario tiene factura (que llega por ARCA o como ticket). */
   conFactura?: boolean;
   /** Retenciones que el cliente le hizo a la empresa al pagarle. Solo en cobros. */
