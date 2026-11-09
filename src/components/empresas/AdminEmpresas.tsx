@@ -2,12 +2,32 @@
 
 import { useEffect, useState } from "react";
 import type { Empresa, Repositorio } from "@/lib/datos/repositorio";
+import { linkGmail } from "@/lib/avisos/avisos";
 import { cuitConGuiones } from "@/lib/formato";
 import { cuitValido } from "@/lib/tickets/validar";
 import { AlertasMonotributo } from "./AlertasMonotributo";
 import { Avisos } from "./Avisos";
 import { UnidadesEmpresa } from "./UnidadesEmpresa";
 import { ImpuestosEmpresa, ProximosVencimientos } from "./Vencimientos";
+
+/** Mensaje listo para mandarle al cliente con su acceso. */
+function mensajeAcceso(empresa: string, email: string, clave: string) {
+  const sitio =
+    typeof window !== "undefined"
+      ? window.location.origin
+      : "https://sistema-contable-dc-consultora.vercel.app";
+  return `Hola, ¿cómo estás? Ya tenés acceso al sistema del estudio para ${empresa}.
+
+Entrá acá: ${sitio}
+Usuario: ${email}
+Contraseña: ${clave}
+
+Una vez adentro, la podés cambiar desde "Contraseña" (arriba a la derecha).
+Ahí vas a poder cargar tus tickets, cobros y pagos, subir los resúmenes del banco y escribirnos por "Mensajes".
+
+Saludos,
+DC Consultora`;
+}
 
 const CONDICIONES = ["Responsable inscripto", "Monotributo", "Exento"];
 
@@ -42,6 +62,7 @@ function Invitaciones({
   }
 
   const [claves, setClaves] = useState<Record<string, string>>({});
+  const [copiado, setCopiado] = useState<string | null>(null);
   async function crearClave(email: string) {
     setError(null);
     try {
@@ -86,6 +107,41 @@ function Invitaciones({
                       {claves[e]}
                     </code>{" "}
                     · pasásela al cliente (después la puede cambiar).
+                    <span className="mt-1.5 flex flex-wrap gap-1.5">
+                      <a
+                        href={`https://wa.me/?text=${encodeURIComponent(mensajeAcceso(empresa.razon_social, e, claves[e]))}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="rounded-md bg-emerald-600 px-2.5 py-1 font-medium text-white hover:opacity-90"
+                      >
+                        Enviar por WhatsApp
+                      </a>
+                      <a
+                        href={linkGmail(
+                          [e],
+                          "Tu acceso al sistema de DC Consultora",
+                          mensajeAcceso(empresa.razon_social, e, claves[e]),
+                        )}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="rounded-md border border-stone-300 bg-white px-2.5 py-1 font-medium text-stone-700 hover:bg-stone-50"
+                      >
+                        Enviar por Gmail
+                      </a>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          await navigator.clipboard.writeText(
+                            mensajeAcceso(empresa.razon_social, e, claves[e]),
+                          );
+                          setCopiado(e);
+                          setTimeout(() => setCopiado(null), 2500);
+                        }}
+                        className="rounded-md border border-stone-300 bg-white px-2.5 py-1 font-medium text-stone-700 hover:bg-stone-50"
+                      >
+                        {copiado === e ? "✓ Copiado" : "Copiar mensaje"}
+                      </button>
+                    </span>
                   </span>
                 )}
               </span>
