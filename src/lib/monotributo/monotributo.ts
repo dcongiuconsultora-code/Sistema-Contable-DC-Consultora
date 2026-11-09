@@ -7,6 +7,14 @@ export interface Categoria {
   /** Cuota mensual total para servicios y para venta de bienes. */
   cuotaServicios: number;
   cuotaBienes: number;
+  superficie?: string;
+  energia?: string;
+  alquileres?: number;
+  precioMaximo?: number;
+  impuestoServicios?: number;
+  impuestoBienes?: number;
+  sipa?: number;
+  obraSocial?: number;
 }
 
 export type Actividad = "servicios" | "bienes";
@@ -40,14 +48,30 @@ export function categoriasDesdeTexto(texto: string): Categoria[] {
       .map(numero)
       .filter((n) => Number.isFinite(n));
     if (!numeros.length) continue;
-    categorias.push({
+    const textos = partes.slice(1).filter((p) => /hasta/i.test(p));
+    const c: Categoria = {
       letra,
       tope: numeros[0],
       cuotaServicios:
         numeros.length >= 3 ? numeros[numeros.length - 2] : (numeros[1] ?? 0),
       cuotaBienes:
         numeros.length >= 3 ? numeros[numeros.length - 1] : (numeros[1] ?? 0),
-    });
+    };
+    if (textos[0]) c.superficie = textos[0];
+    if (textos[1]) c.energia = textos[1];
+    // Tabla completa de ARCA: ingresos, alquileres, precio máximo, impuesto integrado (servicios y
+    // bienes), SIPA, obra social y totales (servicios y bienes).
+    if (numeros.length >= 9) {
+      [
+        c.alquileres,
+        c.precioMaximo,
+        c.impuestoServicios,
+        c.impuestoBienes,
+        c.sipa,
+        c.obraSocial,
+      ] = numeros.slice(1, 7);
+    }
+    categorias.push(c);
   }
   return categorias.sort((a, b) => a.letra.localeCompare(b.letra));
 }
@@ -129,4 +153,10 @@ export function alertaTope(facturado: number, tope: number) {
   if (!tope) return null;
   const uso = facturado / tope;
   return uso > 1 ? "excedido" : uso >= 0.8 ? "cerca" : null;
+}
+
+/** La categoría que sigue a una letra (null si es la última). */
+export function categoriaSiguiente(letra: string, tabla: Categoria[]) {
+  const i = tabla.findIndex((c) => c.letra === letra);
+  return i >= 0 ? (tabla[i + 1] ?? null) : null;
 }

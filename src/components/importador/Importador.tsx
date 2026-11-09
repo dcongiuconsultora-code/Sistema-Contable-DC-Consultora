@@ -710,15 +710,20 @@ export function Importador({
     if (cargarEjemploAlInicio) cargarEjemplos();
   }, [cargarEjemploAlInicio]);
 
-  const pestanas: [Pestana, string][] = [
-    ["ventas", `Libro IVA Ventas (${ventasPeriodo.length})`],
-    ["compras", `Libro IVA Compras (${comprasPeriodo.length})`],
-    ["deducciones", `Retenciones y percepciones (${deduccionesPeriodo})`],
-    ["liquidacion", "Liquidación IVA"],
-    ...(unidades.unidades.length
-      ? ([["unidades", "Unidades"]] as [Pestana, string][])
-      : []),
-  ];
+  const pestanas: [Pestana, string][] = esMono
+    ? [
+        ["ventas", `Ventas · facturas emitidas (${ventasPeriodo.length})`],
+        ["compras", `Compras y gastos (${comprasPeriodo.length})`],
+      ]
+    : [
+        ["ventas", `Libro IVA Ventas (${ventasPeriodo.length})`],
+        ["compras", `Libro IVA Compras (${comprasPeriodo.length})`],
+        ["deducciones", `Retenciones y percepciones (${deduccionesPeriodo})`],
+        ["liquidacion", "Liquidación IVA"],
+        ...(unidades.unidades.length
+          ? ([["unidades", "Unidades"]] as [Pestana, string][])
+          : []),
+      ];
 
   const asignarProveedor = (cuit: string, unidadId: string | null) => {
     const proveedores = { ...unidades.proveedores };
@@ -754,25 +759,18 @@ export function Importador({
                             texto: "Categoría, topes y recategorización",
                             destino: { seccion: "inicio" },
                           },
+                        ],
+                      ],
+                      [
+                        "Facturas (ARCA)",
+                        [
                           {
-                            texto: "Importar facturas de ARCA",
+                            texto: "Ventas · facturas emitidas",
                             destino: { seccion: "arca", pestana: "ventas" },
                           },
                           {
                             texto: "Compras y gastos",
                             destino: { seccion: "arca", pestana: "compras" },
-                          },
-                        ],
-                      ],
-                      [
-                        "Retenciones y percepciones",
-                        [
-                          {
-                            texto: "Retenciones, percepciones y SIRCREB",
-                            destino: {
-                              seccion: "arca",
-                              pestana: "deducciones",
-                            },
                           },
                         ],
                       ],
@@ -1149,12 +1147,13 @@ export function Importador({
         </div>
         <div hidden={seccion !== "arca"} className="space-y-6">
           <section>
-            <h1 className="text-2xl font-semibold">Importar desde ARCA</h1>
+            <h1 className="text-2xl font-semibold">
+              {esMono ? "Ventas y compras" : "Importar desde ARCA"}
+            </h1>
             <p className="mt-1 max-w-3xl text-stone-600">
-              Descargá de ARCA los comprobantes emitidos y recibidos y las
-              retenciones del cliente, y subilos acá. Se arman solos los libros
-              de IVA, el resumen de retenciones y percepciones y la liquidación
-              del período.
+              {esMono
+                ? "Descargá de ARCA (Mis Comprobantes) las facturas emitidas y las recibidas y subilas acá: se arma el listado de ventas y de compras, y la facturación de 12 meses para controlar la categoría."
+                : "Descargá de ARCA los comprobantes emitidos y recibidos y las retenciones del cliente, y subilos acá. Se arman solos los libros de IVA, el resumen de retenciones y percepciones y la liquidación del período."}
               {conexion
                 ? " Lo que subas queda guardado; si subís dos veces el mismo archivo, no se duplica."
                 : " En el prototipo los archivos se leen en tu navegador y no se guardan."}
@@ -1169,7 +1168,9 @@ export function Importador({
             </button>
           </section>
 
-          <section className="grid gap-4 lg:grid-cols-3">
+          <section
+            className={`grid gap-4 ${esMono ? "lg:grid-cols-2" : "lg:grid-cols-3"}`}
+          >
             <ZonaArchivo
               operacion="ventas"
               resultado={ventas}
@@ -1182,11 +1183,13 @@ export function Importador({
               onResultado={importarComprobantes("compras")}
               archivoExterno={ejemplos?.compras}
             />
-            <ZonaDeducciones
-              archivos={archivosDeducciones}
-              onArchivos={actualizarDeducciones}
-              archivosExternos={ejemplos?.deducciones}
-            />
+            {!esMono && (
+              <ZonaDeducciones
+                archivos={archivosDeducciones}
+                onArchivos={actualizarDeducciones}
+                archivosExternos={ejemplos?.deducciones}
+              />
+            )}
           </section>
 
           {periodo && (
@@ -1226,17 +1229,19 @@ export function Importador({
 
               {pestana === "ventas" && (
                 <LibroIva
-                  titulo={`Libro IVA Ventas · ${nombrePeriodo(periodo)}`}
+                  titulo={`${esMono ? "Ventas" : "Libro IVA Ventas"} · ${nombrePeriodo(periodo)}`}
                   comprobantes={ventasPeriodo}
+                  simple={esMono}
                 />
               )}
               {pestana === "compras" && (
                 <LibroIva
-                  titulo={`Libro IVA Compras · ${nombrePeriodo(periodo)}`}
+                  titulo={`${esMono ? "Compras y gastos" : "Libro IVA Compras"} · ${nombrePeriodo(periodo)}`}
                   comprobantes={comprasPeriodo}
+                  simple={esMono}
                 />
               )}
-              {pestana === "deducciones" && (
+              {pestana === "deducciones" && !esMono && (
                 <TablaDeducciones deducciones={deducciones} periodo={periodo} />
               )}
               {pestana === "unidades" && (
@@ -1250,7 +1255,7 @@ export function Importador({
                   onAsignarProveedor={asignarProveedor}
                 />
               )}
-              {pestana === "liquidacion" && (
+              {pestana === "liquidacion" && !esMono && (
                 <PanelLiquidacion
                   ventas={ventasPeriodo}
                   compras={comprasPeriodo}

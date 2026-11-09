@@ -56,3 +56,37 @@ describe("monotributo", () => {
     expect(proximaRecategorizacion("2027-01-15").cierre).toBe("2026-12");
   });
 });
+
+describe("tabla oficial de ARCA", () => {
+  it("lee todas las columnas", async () => {
+    const { readFileSync, writeFileSync } = await import("node:fs");
+    const texto = readFileSync(
+      "src/lib/monotributo/fixtures/tabla-arca.txt",
+      "utf8",
+    );
+    const t = categoriasDesdeTexto(texto);
+    if (process.env.GUARDAR_TABLA)
+      writeFileSync(process.env.GUARDAR_TABLA, JSON.stringify(t));
+    expect(t).toHaveLength(11);
+    expect(t[0]).toEqual({
+      letra: "A",
+      tope: 12_009_410.45,
+      superficie: "Hasta 30 m²",
+      energia: "Hasta 3330 kWh",
+      alquileres: 2_792_886.15,
+      precioMaximo: 716_840.77,
+      impuestoServicios: 5_585.77,
+      impuestoBienes: 5_585.77,
+      sipa: 18_246.86,
+      obraSocial: 25_694.55,
+      cuotaServicios: 49_527.18,
+      cuotaBienes: 49_527.18,
+    });
+    expect(t[10]).toMatchObject({
+      letra: "K",
+      tope: 126_610_838.75,
+      cuotaServicios: 1_614_446.04,
+      cuotaBienes: 702_103.24,
+    });
+  });
+});

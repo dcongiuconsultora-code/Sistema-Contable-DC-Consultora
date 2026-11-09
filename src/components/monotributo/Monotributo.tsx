@@ -8,6 +8,7 @@ import {
   type Actividad,
   type Categoria,
   categoriaQueCorresponde,
+  categoriaSiguiente,
   categoriasDesdeTexto,
   proximaRecategorizacion,
   ultimos12Meses,
@@ -96,7 +97,7 @@ export function Monotributo({
   const uso = tope ? r.totalFacturado / tope : 0;
   const recat = proximaRecategorizacion(hoy);
   const maximo = Math.max(1, ...r.facturado, ...r.comprado, ...r.banco);
-  const excluido = tabla.length > 0 && !corresponde;
+  const siguiente = actual ? categoriaSiguiente(actual.letra, tabla) : null;
 
   async function cambiarEmpresa(cambios: Partial<Empresa>) {
     if (!repo) return;
@@ -129,30 +130,10 @@ export function Monotributo({
   return (
     <div className="space-y-5">
       <section className="rounded-2xl bg-gradient-to-br from-marca to-[#7a2412] p-6 text-white shadow-sm">
-        <p className="text-sm opacity-80">Hola, {empresa.razon_social}</p>
-        <h1 className="mt-1 text-2xl font-semibold">Tu monotributo</h1>
-        <div className="mt-4 flex flex-wrap items-end gap-x-10 gap-y-3">
+        <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <div className="text-sm opacity-80">
-              Facturado en los últimos 12 meses
-            </div>
-            <div className="text-4xl font-semibold tabular-nums">
-              {pesos(r.totalFacturado)}
-            </div>
-            <div className="text-xs opacity-70">
-              {nombreMes(r.meses[0])} a {nombreMes(r.meses[11])}
-            </div>
-          </div>
-          <div>
-            <div className="text-sm opacity-80">Categoría que corresponde</div>
-            <div className="text-4xl font-semibold">
-              {tabla.length ? (corresponde?.letra ?? "Excede") : "—"}
-            </div>
-            {actual && (
-              <div className="text-xs opacity-70">
-                Hoy está en la {actual.letra}
-              </div>
-            )}
+            <p className="text-sm opacity-80">Hola, {empresa.razon_social}</p>
+            <h1 className="mt-1 text-2xl font-semibold">Tu monotributo</h1>
           </div>
           <label className="text-sm">
             <span className="opacity-80">Ver 12 meses hasta</span>
@@ -165,15 +146,105 @@ export function Monotributo({
             />
           </label>
         </div>
+        <div className="mt-5 grid gap-5 sm:grid-cols-3">
+          <div>
+            <div className="text-sm opacity-80">Categoría actual</div>
+            <div className="text-5xl font-semibold">
+              {empresa.categoria_monotributo || "—"}
+            </div>
+            <div className="text-sm opacity-80">
+              {actual
+                ? `Límite anual: ${pesos(actual.tope)}`
+                : empresa.categoria_monotributo
+                  ? "Falta la tabla de categorías"
+                  : "Sin categoría cargada"}
+            </div>
+          </div>
+          <div>
+            <div className="text-sm opacity-80">
+              Facturado en los últimos 12 meses
+            </div>
+            <div className="text-3xl font-semibold tabular-nums sm:text-4xl">
+              {pesos(r.totalFacturado)}
+            </div>
+            <div className="text-xs opacity-70">
+              {nombreMes(r.meses[0])} a {nombreMes(r.meses[11])}
+            </div>
+          </div>
+          <div>
+            <div className="text-sm opacity-80">
+              {!actual
+                ? "Según lo facturado corresponde"
+                : r.totalFacturado > actual.tope
+                  ? "Te pasaste del límite por"
+                  : "Te queda para facturar"}
+            </div>
+            <div className="text-3xl font-semibold tabular-nums sm:text-4xl">
+              {!actual
+                ? tabla.length
+                  ? `Categoría ${corresponde?.letra ?? "—"}`
+                  : "—"
+                : pesos(Math.abs(actual.tope - r.totalFacturado))}
+            </div>
+            {actual && tabla.length > 0 && (
+              <div className="text-xs opacity-70">
+                Según lo facturado corresponde la{" "}
+                {corresponde ? `categoría ${corresponde.letra}` : "exclusión"}
+              </div>
+            )}
+          </div>
+        </div>
       </section>
 
-      {!excluido && uso >= 0.8 && (
+      {actual && (
         <p
-          className={`rounded-xl border p-4 text-sm ${uso > 1 ? "border-red-200 bg-red-50 text-red-800" : "border-amber-200 bg-amber-50 text-amber-900"}`}
+          className={`rounded-xl border p-4 text-sm ${
+            uso > 1
+              ? "border-red-200 bg-red-50 text-red-800"
+              : uso >= 0.8
+                ? "border-amber-200 bg-amber-50 text-amber-900"
+                : "border-emerald-200 bg-emerald-50 text-emerald-900"
+          }`}
         >
-          {uso > 1
-            ? `⚠ Lo facturado en 12 meses (${pesos(r.totalFacturado)}) ya pasó el tope de la categoría ${actual?.letra ?? ""}: en la próxima recategorización hay que subir a la ${corresponde?.letra ?? "siguiente"}.`
-            : `⚠ Atención: ya se usó el ${(uso * 100).toFixed(0)} % del tope de la categoría ${actual?.letra ?? corresponde?.letra ?? ""}. Quedan ${pesos(tope - r.totalFacturado)} para facturar en 12 meses.`}
+          {uso > 1 ? (
+            <>
+              ⚠{" "}
+              <strong>
+                Pasaste tu límite de facturación de la categoría {actual.letra}.
+              </strong>{" "}
+              El límite anual es {pesos(actual.tope)} y en los últimos 12 meses
+              facturaste {pesos(r.totalFacturado)}.{" "}
+              {corresponde
+                ? `En la recategorización de ${recat.presentarEn} te corresponde la categoría ${corresponde.letra} (límite ${pesos(corresponde.tope)}).`
+                : "Superás el límite de la categoría más alta: hay que revisar la exclusión del monotributo con el estudio."}
+            </>
+          ) : uso >= 0.8 ? (
+            <>
+              ⚠{" "}
+              <strong>
+                Atención: te vas a pasar a la categoría siguiente.
+              </strong>{" "}
+              Estás en la categoría {actual.letra}, con un límite anual de{" "}
+              {pesos(actual.tope)}, y ya facturaste {pesos(r.totalFacturado)} (
+              {(uso * 100).toFixed(0)} %). Te quedan{" "}
+              {pesos(actual.tope - r.totalFacturado)}
+              {siguiente
+                ? `; si los superás, pasás a la categoría ${siguiente.letra} (límite ${pesos(siguiente.tope)}).`
+                : "."}
+            </>
+          ) : (
+            <>
+              ✓ Estás dentro de tu categoría {actual.letra}: facturaste{" "}
+              {pesos(r.totalFacturado)} de un límite anual de{" "}
+              {pesos(actual.tope)} ({(uso * 100).toFixed(0)} %).
+            </>
+          )}
+        </p>
+      )}
+      {!actual && esEstudio && tabla.length > 0 && (
+        <p className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+          Elegí la categoría actual del cliente (abajo, en “Recategorización”)
+          para ver las alertas de su límite.
         </p>
       )}
       {r.mesesConBanco.length > 0 &&
@@ -187,12 +258,6 @@ export function Monotributo({
             también ve.
           </p>
         )}
-      {excluido && (
-        <p className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
-          ⚠ Lo facturado en 12 meses supera el tope de la categoría más alta:
-          hay que revisar la exclusión del monotributo con el estudio.
-        </p>
-      )}
 
       <div className="grid gap-4 md:grid-cols-3">
         <section className="rounded-xl border border-stone-200 bg-white p-5 shadow-sm md:col-span-2">
@@ -406,33 +471,65 @@ export function Monotributo({
             </div>
           )}
           {tabla.length > 0 && (
-            <table className="mt-3 w-full">
-              <thead className="text-left text-xs uppercase tracking-wide text-stone-500">
-                <tr>
-                  <th className="py-1">Cat.</th>
-                  <th className="py-1 text-right">Tope 12 meses</th>
-                  <th className="py-1 text-right">Cuota servicios</th>
-                  <th className="py-1 text-right">Cuota bienes</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-stone-100">
-                {tabla.map((c) => (
-                  <tr
-                    key={c.letra}
-                    className={
-                      c.letra === corresponde?.letra
-                        ? "bg-marca-claro font-medium"
-                        : ""
-                    }
-                  >
-                    <td className="py-1">{c.letra}</td>
-                    <td className="cifra py-1">{pesos(c.tope)}</td>
-                    <td className="cifra py-1">{pesos(c.cuotaServicios)}</td>
-                    <td className="cifra py-1">{pesos(c.cuotaBienes)}</td>
+            <div className="mt-3 overflow-x-auto">
+              <table className="w-full whitespace-nowrap text-xs">
+                <thead className="text-left uppercase tracking-wide text-stone-500">
+                  <tr>
+                    <th className="py-1 pr-2">Cat.</th>
+                    <th className="py-1 pr-2 text-right">Ingresos brutos</th>
+                    <th className="py-1 pr-2">Superficie</th>
+                    <th className="py-1 pr-2">Energía</th>
+                    <th className="py-1 pr-2 text-right">Alquileres</th>
+                    <th className="py-1 pr-2 text-right">Precio máx.</th>
+                    <th className="py-1 pr-2 text-right">Imp. int. serv.</th>
+                    <th className="py-1 pr-2 text-right">Imp. int. bienes</th>
+                    <th className="py-1 pr-2 text-right">SIPA</th>
+                    <th className="py-1 pr-2 text-right">Obra social</th>
+                    <th className="py-1 pr-2 text-right">Total serv.</th>
+                    <th className="py-1 text-right">Total bienes</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-stone-100">
+                  {tabla.map((c) => (
+                    <tr
+                      key={c.letra}
+                      className={
+                        c.letra === empresa.categoria_monotributo
+                          ? "bg-marca-claro font-semibold"
+                          : c.letra === corresponde?.letra
+                            ? "bg-amber-50"
+                            : ""
+                      }
+                    >
+                      <td className="py-1 pr-2">{c.letra}</td>
+                      <td className="cifra py-1 pr-2">{pesos(c.tope)}</td>
+                      <td className="py-1 pr-2">{c.superficie ?? "—"}</td>
+                      <td className="py-1 pr-2">{c.energia ?? "—"}</td>
+                      {[
+                        c.alquileres,
+                        c.precioMaximo,
+                        c.impuestoServicios,
+                        c.impuestoBienes,
+                        c.sipa,
+                        c.obraSocial,
+                      ].map((v, i) => (
+                        <td key={i} className="cifra py-1 pr-2">
+                          {v !== undefined ? pesos(v) : "—"}
+                        </td>
+                      ))}
+                      <td className="cifra py-1 pr-2">
+                        {pesos(c.cuotaServicios)}
+                      </td>
+                      <td className="cifra py-1">{pesos(c.cuotaBienes)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <p className="mt-2 text-xs text-stone-500">
+                En bordó, la categoría actual; en amarillo, la que corresponde
+                según lo facturado.
+              </p>
+            </div>
           )}
         </section>
       )}
