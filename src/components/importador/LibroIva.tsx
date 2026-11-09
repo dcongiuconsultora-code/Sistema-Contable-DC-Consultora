@@ -1,3 +1,7 @@
+"use client";
+
+import { Fragment, useState } from "react";
+import { queHacer } from "@/lib/arca/advertencias";
 import type { Comprobante } from "@/lib/arca/tipos";
 import { claveTasa, totalesLibro } from "@/lib/iva/liquidacion";
 import { cuitConGuiones, fechaCorta, pesos, tasaTexto } from "@/lib/formato";
@@ -73,9 +77,53 @@ function ListaSimple({ titulo, comprobantes }: Props) {
   );
 }
 
+/** Renglón desplegado con los motivos para revisar un comprobante. */
+function DetalleRevisar({ c, columnas }: { c: Comprobante; columnas: number }) {
+  return (
+    <tr className="bg-amber-50/60">
+      <td colSpan={columnas} className="px-4 py-2 text-xs">
+        {c.advertencias.map((a) => (
+          <div key={a} className="mb-1">
+            <div className="font-medium text-amber-800">⚠ {a}</div>
+            <div className="text-stone-700">Qué hacer: {queHacer(a)}</div>
+          </div>
+        ))}
+      </td>
+    </tr>
+  );
+}
+
 export function LibroIva({ titulo, comprobantes, simple }: Props) {
+  const [abiertos, setAbiertos] = useState<Set<number>>(new Set());
+  const [soloRevisar, setSoloRevisar] = useState(false);
+  const paraRevisar = comprobantes.filter((c) => c.advertencias.length).length;
+  const alternar = (fila: number) => {
+    const n = new Set(abiertos);
+    if (n.has(fila)) n.delete(fila);
+    else n.add(fila);
+    setAbiertos(n);
+  };
+  const visibles = soloRevisar
+    ? comprobantes.filter((c) => c.advertencias.length)
+    : comprobantes;
   if (simple && comprobantes.length)
     return <ListaSimple titulo={titulo} comprobantes={comprobantes} />;
+  const barraRevisar = paraRevisar > 0 && (
+    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900">
+      <span>
+        ⚠ {paraRevisar} {paraRevisar === 1 ? "comprobante" : "comprobantes"}{" "}
+        para revisar: tocá la fila para ver el motivo y qué hacer.
+      </span>
+      <label className="flex items-center gap-1.5">
+        <input
+          type="checkbox"
+          checked={soloRevisar}
+          onChange={(e) => setSoloRevisar(e.target.checked)}
+        />
+        Ver solo esos
+      </label>
+    </div>
+  );
   const totales = totalesLibro(comprobantes);
   const tasas = [...totales.porTasa.keys()].sort((a, b) =>
     b === "s/d" ? -1 : a === "s/d" ? 1 : Number(b) - Number(a),
@@ -94,6 +142,7 @@ export function LibroIva({ titulo, comprobantes, simple }: Props) {
       <h3 className="border-b border-stone-200 px-4 py-3 font-semibold">
         {titulo}
       </h3>
+      {barraRevisar}
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="bg-stone-50 text-left text-xs uppercase tracking-wide text-stone-500">
@@ -124,60 +173,68 @@ export function LibroIva({ titulo, comprobantes, simple }: Props) {
             </tr>
           </thead>
           <tbody className="divide-y divide-stone-100">
-            {comprobantes.map((c) => {
+            {visibles.map((c) => {
               const porTasa = new Map(
                 c.alicuotas.map((a) => [claveTasa(a.tasa), a]),
               );
               const revisar = c.advertencias.length > 0;
               return (
-                <tr
-                  key={c.fila}
-                  className={revisar ? "bg-amber-50" : undefined}
-                  title={c.advertencias.join("\n") || undefined}
-                >
-                  <td className="px-3 py-2 whitespace-nowrap">
-                    {fechaCorta(c.fecha)}
-                  </td>
-                  <td className="px-3 py-2 whitespace-nowrap">
-                    <div>{c.tipoNombre}</div>
-                    <div className="text-xs text-stone-500">
-                      {numeroComprobante(c)}
-                    </div>
-                  </td>
-                  <td className="px-3 py-2">
-                    <div className="max-w-56 truncate">
-                      {c.contraparte ||
-                        (c.cuitContraparte ? "—" : "Consumidor final")}
-                    </div>
-                    <div className="text-xs text-stone-500">
-                      {cuitConGuiones(c.cuitContraparte)}
-                      {revisar && (
-                        <span className="ml-2 font-medium text-amber-700">
-                          ⚠ revisar
-                        </span>
-                      )}
-                    </div>
-                  </td>
-                  {tasas.map((t) => [
-                    <td key={`${t}n`} className="cifra px-3 py-2">
-                      {porTasa.has(t) ? pesos(porTasa.get(t)!.neto) : ""}
-                    </td>,
-                    <td key={`${t}i`} className="cifra px-3 py-2">
-                      {porTasa.has(t) ? pesos(porTasa.get(t)!.iva) : ""}
-                    </td>,
-                  ])}
-                  <td className="cifra px-3 py-2">
-                    {c.noGravado + c.exento
-                      ? pesos(c.noGravado + c.exento)
-                      : ""}
-                  </td>
-                  <td className="cifra px-3 py-2">
-                    {c.otrosTributos ? pesos(c.otrosTributos) : ""}
-                  </td>
-                  <td className="cifra px-3 py-2 font-medium">
-                    {pesos(c.total)}
-                  </td>
-                </tr>
+                <Fragment key={c.fila}>
+                  <tr
+                    className={
+                      revisar
+                        ? "cursor-pointer bg-amber-50 hover:bg-amber-100"
+                        : undefined
+                    }
+                    onClick={revisar ? () => alternar(c.fila) : undefined}
+                  >
+                    <td className="px-3 py-2 whitespace-nowrap">
+                      {fechaCorta(c.fecha)}
+                    </td>
+                    <td className="px-3 py-2 whitespace-nowrap">
+                      <div>{c.tipoNombre}</div>
+                      <div className="text-xs text-stone-500">
+                        {numeroComprobante(c)}
+                      </div>
+                    </td>
+                    <td className="px-3 py-2">
+                      <div className="max-w-56 truncate">
+                        {c.contraparte ||
+                          (c.cuitContraparte ? "—" : "Consumidor final")}
+                      </div>
+                      <div className="text-xs text-stone-500">
+                        {cuitConGuiones(c.cuitContraparte)}
+                        {revisar && (
+                          <span className="ml-2 font-medium text-amber-700 underline">
+                            ⚠ revisar {abiertos.has(c.fila) ? "▴" : "▾"}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    {tasas.map((t) => [
+                      <td key={`${t}n`} className="cifra px-3 py-2">
+                        {porTasa.has(t) ? pesos(porTasa.get(t)!.neto) : ""}
+                      </td>,
+                      <td key={`${t}i`} className="cifra px-3 py-2">
+                        {porTasa.has(t) ? pesos(porTasa.get(t)!.iva) : ""}
+                      </td>,
+                    ])}
+                    <td className="cifra px-3 py-2">
+                      {c.noGravado + c.exento
+                        ? pesos(c.noGravado + c.exento)
+                        : ""}
+                    </td>
+                    <td className="cifra px-3 py-2">
+                      {c.otrosTributos ? pesos(c.otrosTributos) : ""}
+                    </td>
+                    <td className="cifra px-3 py-2 font-medium">
+                      {pesos(c.total)}
+                    </td>
+                  </tr>
+                  {revisar && abiertos.has(c.fila) && (
+                    <DetalleRevisar c={c} columnas={6 + tasas.length * 2} />
+                  )}
+                </Fragment>
               );
             })}
           </tbody>

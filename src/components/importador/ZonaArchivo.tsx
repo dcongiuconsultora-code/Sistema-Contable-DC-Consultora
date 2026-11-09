@@ -4,7 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { leerArchivo } from "@/lib/arca/leer-archivo";
 import { importarMisComprobantes } from "@/lib/arca/parse";
 import type { Operacion, ResultadoImportacion } from "@/lib/arca/tipos";
-import { cuitConGuiones } from "@/lib/formato";
+import { queHacer } from "@/lib/arca/advertencias";
+import { cuitConGuiones, fechaCorta, pesos } from "@/lib/formato";
 
 interface Props {
   operacion: Operacion;
@@ -145,10 +146,40 @@ export function ZonaArchivo({
             </details>
           )}
           {conAdvertencias > 0 && (
-            <p className="rounded-md bg-amber-50 p-3 text-amber-900">
-              {conAdvertencias} comprobantes para revisar (marcados en el
-              libro).
-            </p>
+            <details className="rounded-md bg-amber-50 p-3 text-amber-900">
+              <summary className="cursor-pointer font-medium">
+                ⚠ {conAdvertencias}{" "}
+                {conAdvertencias === 1
+                  ? "comprobante para revisar"
+                  : "comprobantes para revisar"}{" "}
+                (tocá para ver cuáles y por qué)
+              </summary>
+              <ul className="mt-2 space-y-2">
+                {resultado.comprobantes
+                  .filter((c) => c.advertencias.length)
+                  .map((c) => (
+                    <li
+                      key={c.fila}
+                      className="rounded-md border border-amber-200 bg-white p-2 text-stone-800"
+                    >
+                      <div className="font-medium">
+                        {fechaCorta(c.fecha)} · {c.tipoNombre}{" "}
+                        {String(c.puntoVenta).padStart(5, "0")}-
+                        {String(c.numeroDesde).padStart(8, "0")} ·{" "}
+                        {c.contraparte || "Consumidor final"} · {pesos(c.total)}
+                      </div>
+                      {c.advertencias.map((a) => (
+                        <div key={a} className="mt-1 text-xs">
+                          <div className="text-amber-800">{a}</div>
+                          <div className="text-stone-600">
+                            Qué hacer: {queHacer(a)}
+                          </div>
+                        </div>
+                      ))}
+                    </li>
+                  ))}
+              </ul>
+            </details>
           )}
           {resultado.avisos.map((a) => (
             <p key={a} className="text-stone-600">
