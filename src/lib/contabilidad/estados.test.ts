@@ -169,3 +169,43 @@ describe("Excel con el modelo RT 54", () => {
     expect(wb.getWorksheet("Ajuste por inflación")).toBeDefined();
   });
 });
+
+describe("sumas y saldos", () => {
+  it("separa el saldo anterior de las sumas del período y balancea", async () => {
+    const { sumasYSaldos } = await import("./sumas-saldos");
+    const ss = sumasYSaldos(asientos, iniciales, "2026-04-01", "2026-12-31");
+    const caja = ss.filas.find((f) => f.codigo === "1.1.01.001");
+    expect(caja).toMatchObject({
+      anterior: 2210,
+      debe: 0,
+      haber: 484,
+      saldo: 1726,
+    });
+    expect(ss.totales.deudor).toBe(ss.totales.acreedor);
+  });
+
+  it("revisa los asientos manuales y arma la refundición de IVA", async () => {
+    const { revisarAsiento, asientoRefundicionIva } =
+      await import("./sumas-saldos");
+    expect(
+      revisarAsiento({
+        fecha: "2026-12-31",
+        lineas: [
+          { cuenta: "5.3.01.019", nombre: "", debe: 100, haber: 0 },
+          { cuenta: "1.2.05.011", nombre: "", debe: 0, haber: 90 },
+        ],
+      }),
+    ).toEqual(["No balancea: debe 100.00 y haber 90.00."]);
+    const iva = asientoRefundicionIva(
+      new Map([
+        ["2.1.04.001", -210],
+        ["1.1.04.004", 84],
+      ]),
+    );
+    expect(iva?.lineas.map((l) => [l.cuenta, l.debe, l.haber])).toEqual([
+      ["2.1.04.001", 210, 0],
+      ["1.1.04.004", 0, 84],
+      ["2.1.04.002", 0, 126],
+    ]);
+  });
+});

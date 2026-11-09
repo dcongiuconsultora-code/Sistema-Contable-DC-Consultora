@@ -39,6 +39,17 @@ function Invitaciones({
     }
   }
 
+  const [claves, setClaves] = useState<Record<string, string>>({});
+  async function crearClave(email: string) {
+    setError(null);
+    try {
+      const clave = await repo.crearClave(email);
+      setClaves({ ...claves, [email]: clave });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
+  }
+
   async function quitar(email: string) {
     try {
       await repo.quitarInvitacion(email, empresa.id);
@@ -64,7 +75,25 @@ function Invitaciones({
               key={e}
               className="flex items-center justify-between gap-2 px-3 py-1.5"
             >
-              <span className="min-w-0 truncate">{e}</span>
+              <span className="min-w-0 flex-1 truncate">
+                {e}
+                {claves[e] && (
+                  <span className="mt-0.5 block text-xs text-emerald-800">
+                    Contraseña:{" "}
+                    <code className="rounded bg-emerald-50 px-1.5 py-0.5 text-sm font-semibold">
+                      {claves[e]}
+                    </code>{" "}
+                    · pasásela al cliente (después la puede cambiar).
+                  </span>
+                )}
+              </span>
+              <button
+                type="button"
+                onClick={() => crearClave(e)}
+                className="shrink-0 rounded px-2 py-0.5 text-marca hover:bg-marca-claro"
+              >
+                {claves[e] ? "Otra contraseña" : "Crear contraseña"}
+              </button>
               <button
                 type="button"
                 onClick={() => quitar(e)}

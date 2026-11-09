@@ -13,8 +13,10 @@ import {
 } from "@/lib/unidades/unidades";
 
 export interface Asiento {
+  /** Solo los asientos manuales, para poder borrarlos. */
+  id?: string;
   fecha: string;
-  origen: "ARCA" | "Cliente" | "Banco" | "Cierre";
+  origen: "ARCA" | "Cliente" | "Banco" | "Manual" | "Cierre";
   descripcion: string;
   lineas: LineaAsiento[];
   /** Unidad de negocio; null = de toda la empresa (o compartido entre unidades). */
@@ -130,6 +132,8 @@ export interface FuentesDiario {
   movimientos: Movimiento[];
   banco: { fila: FilaConciliacion; cuentaBanco: string }[];
   unidades?: ConfigUnidades;
+  /** Asientos que cargó el estudio a mano. */
+  manuales?: Asiento[];
 }
 
 /** Libro diario con todo lo que entró al sistema, ordenado por fecha. */
@@ -160,6 +164,7 @@ export function generarDiario(f: FuentesDiario): Asiento[] {
         return a && { ...a, unidad: unidadDeCuenta(fila.cuenta, cfg) };
       })
       .filter((a): a is Asiento => a !== null),
+    ...(f.manuales ?? []),
   ];
   return asientos.sort((a, b) => a.fecha.localeCompare(b.fecha));
 }

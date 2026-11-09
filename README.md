@@ -64,6 +64,18 @@ Sistema contable interno de la consultora: los clientes cargan su operación y e
 - **Moneda homogénea (RT 6)**: reexpresa las partidas no monetarias con los índices FACPCE (Res. JG 539/18), calcula el RECPAM, deja el capital nominal con su "Ajuste de capital" y reexpresa los comparativos. Una hoja extra muestra los índices, el coeficiente y el asiento de reexpresión.
 - Índices: vienen con la app (`src/lib/inflacion/indices-facpce.json`) y cada mes se sube el Excel nuevo de la FACPCE desde la misma pantalla.
 
+## Libro diario, asientos manuales y sumas y saldos
+
+- Pestaña **Libro diario** (estudio): todos los asientos, los automáticos (ARCA, cobros y pagos, banco) y los manuales.
+- Asientos manuales para ajustes, amortizaciones o cierre: se controla que balanceen y que las cuentas sean imputables. Botón para armar la refundición de IVA a una fecha.
+- **Balance de sumas y saldos** de cualquier período (anual o intermedio): saldo anterior, debe, haber y saldo final; se descarga en Excel.
+- Los asientos manuales entran al tablero, a los estados contables y al AXI.
+
+## Ajuste por inflación impositivo
+
+- En **Balance**: papel de trabajo con la estructura de la planilla del estudio. Ajuste estático (activo y pasivo impositivo al inicio, computable o no según el art. 106) y dinámico (retiros, compras de bienes no computables, aportes, mes a mes) con el IPC.
+- Los importes salen del sistema y se pueden corregir; las correcciones quedan guardadas en el cierre. Descarga en Excel con fórmulas.
+
 ## Vencimientos
 
 - Al entrar, el estudio ve **Mi estudio**: los vencimientos de los próximos 15, 30 o 60 días de todas las empresas, y las empresas.
@@ -81,7 +93,9 @@ Por ahora no guarda nada: los archivos se leen en el navegador. En `public/ejemp
 ## Base de datos (Supabase)
 
 - Esquema y permisos en `supabase/migrations/`. Cada dato pertenece a una empresa; el estudio ve todo y cada cliente solo las empresas a las que fue invitado.
-- Ingreso sin contraseña: llega un mail con un link. Los mails del estudio se listan en la tabla `emails_estudio`.
+- Ingreso con **mail y contraseña**: el estudio crea la contraseña de cada cliente desde Empresas → Accesos ("Crear contraseña") y cada uno la puede cambiar desde "Contraseña". También se puede entrar sin contraseña con un link al mail. Los mails del estudio se listan en la tabla `emails_estudio`.
+- Para crear contraseñas, el servidor necesita `SUPABASE_SERVICE_ROLE_KEY` (clave de servicio de Supabase; nunca va al navegador).
+- El estudio puede **ver la app como el cliente** ("Ver como cliente").
 - La app necesita estas variables (en `.env.local` para correrla en la compu, y en el servicio donde se publique):
 
 ```

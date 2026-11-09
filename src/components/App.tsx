@@ -2,6 +2,7 @@
 
 import type { Session } from "@supabase/supabase-js";
 import { useEffect, useMemo, useState } from "react";
+import { CambiarClave } from "@/components/acceso/CambiarClave";
 import { Ingreso } from "@/components/acceso/Ingreso";
 import { AdminEmpresas } from "@/components/empresas/AdminEmpresas";
 import { Importador } from "@/components/importador/Importador";
@@ -69,6 +70,8 @@ export function App() {
   const [empresas, setEmpresas] = useState<Empresa[] | null>(null);
   const [empresaId, setEmpresaId] = useState<string | null>(null);
   const [verEmpresas, setVerEmpresas] = useState(false);
+  const [comoCliente, setComoCliente] = useState(false);
+  const [cambiandoClave, setCambiandoClave] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // Mensajes del cliente sin leer, por empresa (solo para el estudio).
   const [sinLeer, setSinLeer] = useState<Record<string, number>>({});
@@ -159,10 +162,23 @@ export function App() {
           ))}
         </select>
       )}
+      {esEstudio && !comoCliente && (
+        <button
+          type="button"
+          onClick={() => setComoCliente(true)}
+          title="Ver la app como la ve el cliente de esta empresa"
+          className="rounded-md px-3 py-1.5 font-medium opacity-80 hover:bg-white/10 hover:opacity-100"
+        >
+          Ver como cliente
+        </button>
+      )}
       {esEstudio && (
         <button
           type="button"
-          onClick={() => setVerEmpresas(true)}
+          onClick={() => {
+            setComoCliente(false);
+            setVerEmpresas(true);
+          }}
           className="rounded-md px-3 py-1.5 font-medium opacity-80 hover:bg-white/10 hover:opacity-100"
         >
           Mi estudio
@@ -173,6 +189,16 @@ export function App() {
             />
           )}
         </button>
+      )}
+      <button
+        type="button"
+        onClick={() => setCambiandoClave(true)}
+        className="rounded-md px-3 py-1.5 opacity-80 hover:bg-white/10 hover:opacity-100"
+      >
+        Contraseña
+      </button>
+      {cambiandoClave && (
+        <CambiarClave db={db} onCerrar={() => setCambiandoClave(false)} />
       )}
       <button
         type="button"
@@ -200,6 +226,19 @@ export function App() {
                 >
                   Volver a {empresa.razon_social}
                 </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setCambiandoClave(true)}
+                className="rounded-md px-3 py-1.5 opacity-80 hover:bg-white/10 hover:opacity-100"
+              >
+                Contraseña
+              </button>
+              {cambiandoClave && (
+                <CambiarClave
+                  db={db}
+                  onCerrar={() => setCambiandoClave(false)}
+                />
               )}
               <button
                 type="button"
@@ -254,8 +293,16 @@ export function App() {
 
   return (
     <Importador
-      key={empresa.id}
-      conexion={{ repo, empresa, rol: perfil.rol, encabezado }}
+      key={`${empresa.id}-${comoCliente}`}
+      conexion={{
+        repo,
+        empresa,
+        rol: comoCliente ? "cliente" : perfil.rol,
+        encabezado,
+        salirDeVistaCliente: comoCliente
+          ? () => setComoCliente(false)
+          : undefined,
+      }}
     />
   );
 }

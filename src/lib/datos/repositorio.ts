@@ -7,6 +7,9 @@ import type { Movimiento } from "@/lib/movimientos/tipos";
 import type { TicketExtraido } from "@/lib/tickets/esquema";
 import type { ConfigUnidades, Unidad } from "@/lib/unidades/unidades";
 import { INDICES_FACPCE, type Indices } from "@/lib/inflacion/indices";
+import type { CorreccionesAxi } from "@/lib/impuestos/axi";
+import type { Asiento } from "@/lib/contabilidad/diario";
+import { nombreCuenta } from "@/lib/plan/plan";
 import {
   comprobanteAFila,
   type DatosResumen,
@@ -40,6 +43,8 @@ export interface DatosCierre {
   actividad?: string;
   domicilio?: string;
   ejercicioNumero?: string;
+  /** Correcciones del estudio al ajuste por inflación impositivo. */
+  axi?: CorreccionesAxi;
 }
 
 export interface Mensaje {
@@ -215,6 +220,26 @@ export class Repositorio {
     return filas.length;
   }
 
+  /** El estudio crea (o renueva) la contraseña de un usuario invitado; devuelve la contraseña. */
+  async crearClave(email: string): Promise<string> {
+    const { data } = await this.db.auth.getSession();
+    const respuesta = await fetch("/api/usuarios/clave", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer ${data.session?.access_token ?? ""}`,
+      },
+      body: JSON.stringify({ email }),
+    });
+    const cuerpo = (await respuesta.json().catch(() => ({}))) as {
+      clave?: string;
+      error?: string;
+    };
+    if (!respuesta.ok || !cuerpo.clave)
+      throw new Error(cuerpo.error ?? "No se pudo crear la contraseña.");
+    return cuerpo.clave;
+  }
+
   async invitaciones(empresaId: string): Promise<string[]> {
     const { data, error } = await this.db
       .from("invitaciones")
@@ -331,6 +356,65 @@ export class Repositorio {
       resumen,
       unidades,
     };
+  }
+
+  // Asientos manuales ---------------------------------------------------------------------------
+
+  async asientosManuales(empresaId: string): Promise<Asiento[]> {
+    const filas = await todas<{
+      id: string;
+      fecha: string;
+      descripcion: string;
+      lineas: Asiento["lineas"];
+      unidad_id: string | null;
+    }>(
+      (desde, hasta) =>
+        this.db
+          .from("asientos_manuales")
+          .select("id, fecha, descripcion, lineas, unidad_id")
+          .eq("empresa_id", empresaId)
+          .order("fecha")
+          .range(desde, hasta),
+      "leer los asientos manuales",
+    );
+    return filas.map((f) => ({
+      id: f.id,
+      fecha: f.fecha,
+      origen: "Manual" as const,
+      descripcion: f.descripcion,
+      lineas: f.lineas.map((l) => ({ ...l, nombre: nombreCuenta(l.cuenta) })),
+      unidad: f.unidad_id,
+    }));
+  }
+
+  async guardarAsiento(empresaId: string, a: Asiento): Promise<string> {
+    const { data, error } = await this.db
+      .from("asientos_manuales")
+      .upsert({
+        ...(a.id ? { id: a.id } : {}),
+        empresa_id: empresaId,
+        fecha: a.fecha,
+        descripcion: a.descripcion,
+        lineas: a.lineas.map(({ cuenta, debe, haber, detalle }) => ({
+          cuenta,
+          debe,
+          haber,
+          ...(detalle ? { detalle } : {}),
+        })),
+        unidad_id: a.unidad ?? null,
+      })
+      .select("id")
+      .single();
+    fallar(error, "guardar el asiento");
+    return data!.id;
+  }
+
+  async borrarAsiento(id: string) {
+    const { error } = await this.db
+      .from("asientos_manuales")
+      .delete()
+      .eq("id", id);
+    fallar(error, "borrar el asiento");
   }
 
   // Mensajes entre el cliente y el estudio ------------------------------------------------------

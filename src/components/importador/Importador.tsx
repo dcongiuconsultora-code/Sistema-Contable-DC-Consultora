@@ -3,6 +3,7 @@
 import { Mensajes } from "@/components/mensajes/Mensajes";
 import { Marca } from "@/components/Marca";
 import { Balance } from "@/components/balance/Balance";
+import { LibroDiario } from "@/components/diario/LibroDiario";
 import {
   type ReactNode,
   useCallback,
@@ -18,7 +19,7 @@ import { type ConfigUnidades, SIN_UNIDADES } from "@/lib/unidades/unidades";
 import { type Alertas, Tablero } from "@/components/tablero/Tablero";
 import { conciliarResumen } from "@/lib/bancos/conciliacion";
 import type { ResumenBancario } from "@/lib/bancos/tipos";
-import { generarDiario } from "@/lib/contabilidad/diario";
+import { type Asiento, generarDiario } from "@/lib/contabilidad/diario";
 import type { SaldosIniciales } from "@/lib/contabilidad/indicadores";
 import { CuentasCorrientes } from "@/components/cuentas/CuentasCorrientes";
 import { cuentasCorrientes } from "@/lib/cuentas/cuenta-corriente";
@@ -56,7 +57,8 @@ type Seccion =
   | "movimientos"
   | "cuentas"
   | "mensajes"
-  | "balance";
+  | "balance"
+  | "diario";
 
 // Saldos del último balance de la empresa de ejemplo (al 31/08/2026). El banco coincide con el
 // saldo inicial del resumen bancario de ejemplo; los sueldos a pagar son los de agosto.
@@ -193,6 +195,8 @@ export interface Conexion {
   rol: "estudio" | "cliente";
   /** Va a la derecha del encabezado: empresa elegida, usuario y salir. */
   encabezado: ReactNode;
+  /** El estudio mirando la app como la ve el cliente (rol = "cliente"); con esto vuelve a la suya. */
+  salirDeVistaCliente?: () => void;
 }
 
 // El cliente ve todo lo de su empresa y también importa ARCA y bancos; lo que lo diferencia del
@@ -252,6 +256,7 @@ export function Importador({
   const [manual, setManual] = useState(MANUAL_INICIAL);
   const [tickets, setTickets] = useState<TicketCargado[]>([]);
   const [movimientos, setMovimientos] = useState<Movimiento[]>([]);
+  const [manuales, setManuales] = useState<Asiento[]>([]);
   const [unidades, setUnidades] = useState<ConfigUnidades>(SIN_UNIDADES);
   const [cuitElegido, setCuitElegido] = useState<string | null>(null);
   const cuitCliente =
@@ -316,6 +321,7 @@ export function Importador({
           ),
         );
         setMovimientos(d.movimientos);
+        setManuales(await repo.asientosManuales(empresaId));
         setTickets(d.tickets);
         setArchivosDeducciones(
           d.archivosDeducciones.map((a) => ({
@@ -525,8 +531,10 @@ export function Importador({
         cuentaBanco: cuentaBanco.get(fila.cuenta) ?? "1.1.01.006",
       })),
       unidades,
+      manuales,
     });
   }, [
+    manuales,
     unidades,
     ventas,
     compras,
@@ -689,6 +697,7 @@ export function Importador({
                 ["movimientos", "Cobros y pagos"],
                 ["cuentas", "Cuentas corrientes"],
                 ["tickets", "Tickets"],
+                ["diario", "Libro diario"],
                 ["balance", "Balance"],
                 ["mensajes", "Mensajes"],
               ] as [Seccion, string][]
@@ -722,6 +731,24 @@ export function Importador({
         </div>
       </header>
 
+      {conexion?.salirDeVistaCliente && (
+        <div className="bg-amber-100 text-amber-950">
+          <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-2 px-4 py-2 text-sm">
+            <span>
+              👁 Estás viendo la app como la ve el cliente de{" "}
+              <strong>{conexion.empresa.razon_social}</strong>. Lo que cargues
+              acá se guarda igual.
+            </span>
+            <button
+              type="button"
+              onClick={conexion.salirDeVistaCliente}
+              className="rounded-md bg-amber-950 px-3 py-1 font-medium text-amber-50"
+            >
+              Volver a mi vista
+            </button>
+          </div>
+        </div>
+      )}
       <main className="mx-auto max-w-7xl space-y-6 px-4 py-6">
         {errorDatos && (
           <div
@@ -790,7 +817,28 @@ export function Importador({
             fechaCorte={fechaCorte}
           />
         </div>
-        {conexion?.rol !== "cliente" && seccion === "balance" && (
+        {conexion?.rol !== "cliente" && seccion === "diario" && !cargando && (
+          <LibroDiario
+            empresa={empresa}
+            asientos={asientos}
+            iniciales={iniciales}
+            unidades={unidades}
+            onGuardar={async (a) => {
+              const id = conexion
+                ? await conexion.repo.guardarAsiento(conexion.empresa.id, a)
+                : crypto.randomUUID();
+              setManuales((lista) => [
+                ...lista.filter((x) => x.id !== a.id),
+                { ...a, id, origen: "Manual" },
+              ]);
+            }}
+            onBorrar={async (id) => {
+              if (conexion) await conexion.repo.borrarAsiento(id);
+              setManuales((lista) => lista.filter((x) => x.id !== id));
+            }}
+          />
+        )}
+        {conexion?.rol !== "cliente" && seccion === "balance" && !cargando && (
           <Balance
             repo={conexion?.repo}
             empresa={
@@ -810,7 +858,10 @@ export function Importador({
             <Mensajes
               repo={conexion.repo}
               empresaId={conexion.empresa.id}
-              soyEstudio={conexion.rol === "estudio"}
+              soyEstudio={
+                conexion.rol === "estudio" ||
+                Boolean(conexion.salirDeVistaCliente)
+              }
               visible={seccion === "mensajes"}
               onNoLeidos={setNoLeidos}
             />

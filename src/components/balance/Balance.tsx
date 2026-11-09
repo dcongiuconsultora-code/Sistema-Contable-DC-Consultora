@@ -22,6 +22,7 @@ import {
   ultimoMes,
 } from "@/lib/inflacion/indices";
 import { nombreCuenta } from "@/lib/plan/plan";
+import { AxiImpositivo } from "./AxiImpositivo";
 
 const BIENES_DE_CAMBIO = [
   "1.1.05.001",
@@ -314,6 +315,18 @@ export function Balance({
     await repo.guardarCierre(empresa.id, cierre, { ...datos, existenciaFinal });
   }
 
+  // Lo que cambia el estudio se guarda solo, un segundo después de dejar de escribir.
+  const [sucio, setSucio] = useState(false);
+  useEffect(() => {
+    if (!sucio || !repo) return;
+    const t = setTimeout(() => {
+      setSucio(false);
+      guardar().catch((e) => setError(e.message));
+    }, 1000);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sucio, datos, existenciaFinal]);
+
   async function descargar() {
     if (!estados) return;
     setDescargando(true);
@@ -454,9 +467,10 @@ export function Balance({
                   id={`inventario-${c}`}
                   inputMode="decimal"
                   value={inventario[c] ?? ""}
-                  onChange={(e) =>
-                    setInventario({ ...inventario, [c]: e.target.value })
-                  }
+                  onChange={(e) => {
+                    setInventario({ ...inventario, [c]: e.target.value });
+                    setSucio(true);
+                  }}
                   placeholder="0,00"
                   className="w-36 rounded-md border border-stone-300 px-2 py-1 text-right tabular-nums"
                 />
@@ -478,9 +492,10 @@ export function Balance({
                 <input
                   id={`caratula-${campo}`}
                   value={datos[campo] ?? ""}
-                  onChange={(e) =>
-                    setDatos({ ...datos, [campo]: e.target.value })
-                  }
+                  onChange={(e) => {
+                    setDatos({ ...datos, [campo]: e.target.value });
+                    setSucio(true);
+                  }}
                   className="mt-1 block w-full rounded-md border border-stone-300 px-3 py-1.5"
                 />
               </label>
@@ -510,6 +525,18 @@ export function Balance({
             )}
           </div>
           <Vista e={estados} />
+          <AxiImpositivo
+            asientos={asientos}
+            iniciales={iniciales}
+            cierre={cierre}
+            indices={indices}
+            correcciones={datos.axi ?? {}}
+            onCorrecciones={(axi) => {
+              setDatos({ ...datos, axi });
+              setSucio(true);
+            }}
+            empresa={empresa.razon_social}
+          />
         </>
       )}
 
