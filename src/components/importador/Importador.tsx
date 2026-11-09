@@ -10,6 +10,10 @@ import {
 } from "@/components/contabilidad/Contabilidad";
 import { Inventarios } from "@/components/inventarios/Inventarios";
 import { MenuPrincipal } from "@/components/importador/MenuPrincipal";
+import {
+  CobrarPagar,
+  type PedidoCobroPago,
+} from "@/components/movimientos/CobrarPagar";
 import type { Inventario } from "@/lib/inventarios/inventarios";
 import { Monotributo } from "@/components/monotributo/Monotributo";
 import { esMonotributo } from "@/lib/monotributo/monotributo";
@@ -24,7 +28,12 @@ import {
 import type { Empresa, Repositorio } from "@/lib/datos/repositorio";
 import { Bancos } from "@/components/bancos/Bancos";
 import { AsignacionUnidades } from "@/components/unidades/AsignacionUnidades";
-import { type ConfigUnidades, SIN_UNIDADES } from "@/lib/unidades/unidades";
+import {
+  type ConfigUnidades,
+  SIN_UNIDADES,
+  unidadDeCompra,
+  unidadDeVenta,
+} from "@/lib/unidades/unidades";
 import { type Alertas, Tablero } from "@/components/tablero/Tablero";
 import { conciliarResumen } from "@/lib/bancos/conciliacion";
 import type { ResumenBancario } from "@/lib/bancos/tipos";
@@ -252,6 +261,8 @@ export function Importador({
     return "inicio";
   });
   const [vistaContable, setVistaContable] = useState<VistaContable>("diario");
+  const [cobroPago, setCobroPago] = useState<PedidoCobroPago | null>(null);
+  const [avisoCobro, setAvisoCobro] = useState<string | null>(null);
   const [empresaMono, setEmpresaMono] = useState<Empresa>(
     conexion?.empresa ?? {
       id: "prototipo",
@@ -951,6 +962,37 @@ export function Importador({
           </div>
         </div>
       )}
+      {cobroPago && (
+        <CobrarPagar
+          pedido={cobroPago}
+          esEstudio={esEstudio}
+          unidades={unidades}
+          onRegistrar={(m) => {
+            actualizarMovimientos(
+              [...movimientos, m].sort((a, b) =>
+                b.fecha.localeCompare(a.fecha),
+              ),
+            );
+            setCobroPago(null);
+            setAvisoCobro(
+              `${m.tipo === "cobro" ? "Cobro" : "Pago"} registrado: ${m.nota}. Lo ves en Finanzas → Cobros y pagos y en la cuenta corriente.`,
+            );
+          }}
+          onCerrar={() => setCobroPago(null)}
+        />
+      )}
+      {avisoCobro && (
+        <div className="mx-auto mt-3 flex max-w-7xl items-start justify-between gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm text-emerald-900">
+          <span>✓ {avisoCobro}</span>
+          <button
+            type="button"
+            onClick={() => setAvisoCobro(null)}
+            className="font-medium"
+          >
+            Cerrar
+          </button>
+        </div>
+      )}
       <main className="mx-auto max-w-7xl space-y-6 px-4 py-6">
         {errorDatos && (
           <div
@@ -1028,6 +1070,15 @@ export function Importador({
             clientes={ctasClientes}
             proveedores={ctasProveedores}
             fechaCorte={fechaCorte}
+            onRegistrar={(cuenta, importe, referencia) =>
+              setCobroPago({
+                tipo: cuenta.lado === "cliente" ? "cobro" : "pago_proveedor",
+                contraparte: cuenta.nombre,
+                cuit: cuenta.cuit,
+                importe,
+                referencia,
+              })
+            }
           />
         </div>
         {conexion?.rol !== "cliente" &&
@@ -1232,6 +1283,18 @@ export function Importador({
                   titulo={`${esMono ? "Ventas" : "Libro IVA Ventas"} · ${nombrePeriodo(periodo)}`}
                   comprobantes={ventasPeriodo}
                   simple={esMono}
+                  accion={{
+                    texto: "Cobrar",
+                    onClick: (c) =>
+                      setCobroPago({
+                        tipo: "cobro",
+                        contraparte: c.contraparte,
+                        cuit: c.cuitContraparte,
+                        importe: c.total,
+                        referencia: `${c.tipoNombre} ${String(c.puntoVenta).padStart(5, "0")}-${String(c.numeroDesde).padStart(8, "0")}`,
+                        unidad: unidadDeVenta(c, unidades),
+                      }),
+                  }}
                 />
               )}
               {pestana === "compras" && (
@@ -1239,6 +1302,18 @@ export function Importador({
                   titulo={`${esMono ? "Compras y gastos" : "Libro IVA Compras"} · ${nombrePeriodo(periodo)}`}
                   comprobantes={comprasPeriodo}
                   simple={esMono}
+                  accion={{
+                    texto: "Pagar",
+                    onClick: (c) =>
+                      setCobroPago({
+                        tipo: "pago_proveedor",
+                        contraparte: c.contraparte,
+                        cuit: c.cuitContraparte,
+                        importe: c.total,
+                        referencia: `${c.tipoNombre} ${String(c.puntoVenta).padStart(5, "0")}-${String(c.numeroDesde).padStart(8, "0")}`,
+                        unidad: unidadDeCompra(c, unidades),
+                      }),
+                  }}
                 />
               )}
               {pestana === "deducciones" && !esMono && (

@@ -11,6 +11,30 @@ interface Props {
   comprobantes: Comprobante[];
   /** Sin columnas de IVA (monotributistas: solo facturas y totales). */
   simple?: boolean;
+  /** Botón por comprobante: registrar su cobro o su pago. */
+  accion?: { texto: string; onClick: (c: Comprobante) => void };
+}
+
+function BotonAccion({
+  c,
+  accion,
+}: {
+  c: Comprobante;
+  accion: Props["accion"];
+}) {
+  if (!accion || c.total <= 0) return null;
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        accion.onClick(c);
+      }}
+      className="whitespace-nowrap rounded-md border border-marca px-2 py-0.5 text-xs font-medium text-marca hover:bg-marca-claro"
+    >
+      {accion.texto}
+    </button>
+  );
 }
 
 function numeroComprobante(c: Comprobante) {
@@ -19,7 +43,7 @@ function numeroComprobante(c: Comprobante) {
   return `${pv}-${n}`;
 }
 
-function ListaSimple({ titulo, comprobantes }: Props) {
+function ListaSimple({ titulo, comprobantes, accion }: Props) {
   const total = comprobantes.reduce((s, c) => s + c.total, 0);
   return (
     <div className="overflow-hidden rounded-xl border border-stone-200 bg-white shadow-sm">
@@ -34,6 +58,7 @@ function ListaSimple({ titulo, comprobantes }: Props) {
               <th className="px-3 py-2">Comprobante</th>
               <th className="px-3 py-2">Cliente / proveedor</th>
               <th className="px-3 py-2 text-right">Importe</th>
+              {accion && <th />}
             </tr>
           </thead>
           <tbody className="divide-y divide-stone-100">
@@ -60,6 +85,11 @@ function ListaSimple({ titulo, comprobantes }: Props) {
                 <td className="cifra px-3 py-2 font-medium">
                   {pesos(c.total)}
                 </td>
+                {accion && (
+                  <td className="px-3 py-2 text-right">
+                    <BotonAccion c={c} accion={accion} />
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
@@ -69,6 +99,7 @@ function ListaSimple({ titulo, comprobantes }: Props) {
                 Total ({comprobantes.length} comprobantes)
               </td>
               <td className="cifra px-3 py-2">{pesos(total)}</td>
+              {accion && <td />}
             </tr>
           </tfoot>
         </table>
@@ -93,7 +124,7 @@ function DetalleRevisar({ c, columnas }: { c: Comprobante; columnas: number }) {
   );
 }
 
-export function LibroIva({ titulo, comprobantes, simple }: Props) {
+export function LibroIva({ titulo, comprobantes, simple, accion }: Props) {
   const [abiertos, setAbiertos] = useState<Set<number>>(new Set());
   const [soloRevisar, setSoloRevisar] = useState(false);
   const paraRevisar = comprobantes.filter((c) => c.advertencias.length).length;
@@ -107,7 +138,13 @@ export function LibroIva({ titulo, comprobantes, simple }: Props) {
     ? comprobantes.filter((c) => c.advertencias.length)
     : comprobantes;
   if (simple && comprobantes.length)
-    return <ListaSimple titulo={titulo} comprobantes={comprobantes} />;
+    return (
+      <ListaSimple
+        titulo={titulo}
+        comprobantes={comprobantes}
+        accion={accion}
+      />
+    );
   const barraRevisar = paraRevisar > 0 && (
     <div className="flex flex-wrap items-center justify-between gap-2 border-b border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900">
       <span>
@@ -158,6 +195,7 @@ export function LibroIva({ titulo, comprobantes, simple }: Props) {
               <th className="px-3 py-2 text-right">No grav./Exento</th>
               <th className="px-3 py-2 text-right">Otros trib.</th>
               <th className="px-3 py-2 text-right">Total</th>
+              {accion && <th />}
             </tr>
             <tr className="text-[10px]">
               <th colSpan={3} />
@@ -169,7 +207,7 @@ export function LibroIva({ titulo, comprobantes, simple }: Props) {
                   IVA
                 </th>,
               ])}
-              <th colSpan={3} />
+              <th colSpan={accion ? 4 : 3} />
             </tr>
           </thead>
           <tbody className="divide-y divide-stone-100">
@@ -230,9 +268,17 @@ export function LibroIva({ titulo, comprobantes, simple }: Props) {
                     <td className="cifra px-3 py-2 font-medium">
                       {pesos(c.total)}
                     </td>
+                    {accion && (
+                      <td className="px-3 py-2 text-right">
+                        <BotonAccion c={c} accion={accion} />
+                      </td>
+                    )}
                   </tr>
                   {revisar && abiertos.has(c.fila) && (
-                    <DetalleRevisar c={c} columnas={6 + tasas.length * 2} />
+                    <DetalleRevisar
+                      c={c}
+                      columnas={6 + tasas.length * 2 + (accion ? 1 : 0)}
+                    />
                   )}
                 </Fragment>
               );
@@ -258,6 +304,7 @@ export function LibroIva({ titulo, comprobantes, simple }: Props) {
                 {pesos(totales.otrosTributos)}
               </td>
               <td className="cifra px-3 py-2">{pesos(totales.total)}</td>
+              {accion && <td />}
             </tr>
           </tfoot>
         </table>

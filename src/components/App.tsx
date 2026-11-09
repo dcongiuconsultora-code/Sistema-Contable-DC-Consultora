@@ -263,7 +263,7 @@ export function App() {
           }}
           onCreada={(e) =>
             setEmpresas(
-              [...empresas, e].sort((a, b) =>
+              [...empresas.filter((x) => x.id !== e.id), e].sort((a, b) =>
                 a.razon_social.localeCompare(b.razon_social),
               ),
             )

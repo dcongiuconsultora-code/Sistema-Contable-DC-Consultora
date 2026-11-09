@@ -353,13 +353,18 @@ export function AdminEmpresas({
   const [abierta, setAbierta] = useState<string | null>(null);
   const [conUnidades, setConUnidades] = useState<string | null>(null);
   const [conImpuestos, setConImpuestos] = useState<string | null>(null);
+  const [creando, setCreando] = useState(false);
   const [editando, setEditando] = useState<string | null>(null);
 
   async function crear(e: React.FormEvent) {
     e.preventDefault();
+    if (creando) return;
     if (!razonSocial.trim()) return setError("Falta la razón social.");
     if (!cuitValido(cuit)) return setError("El CUIT no es válido.");
+    if (empresas.some((x) => x.cuit === cuit))
+      return setError("Ya hay una empresa con ese CUIT en la lista.");
     setError(null);
+    setCreando(true);
     try {
       const nueva = await repo.crearEmpresa({
         razon_social: razonSocial.trim(),
@@ -377,6 +382,8 @@ export function AdminEmpresas({
           ? "Ya hay una empresa con ese CUIT."
           : mensaje,
       );
+    } finally {
+      setCreando(false);
     }
   }
 
@@ -434,9 +441,10 @@ export function AdminEmpresas({
         </label>
         <button
           type="submit"
-          className="rounded-md bg-marca px-4 py-2 font-medium text-white hover:opacity-90"
+          disabled={creando}
+          className="rounded-md bg-marca px-4 py-2 font-medium text-white hover:opacity-90 disabled:opacity-50"
         >
-          Agregar empresa
+          {creando ? "Agregando…" : "Agregar empresa"}
         </button>
         {error && <p className="text-sm text-red-700 sm:col-span-4">{error}</p>}
       </form>

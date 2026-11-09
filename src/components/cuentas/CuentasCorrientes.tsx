@@ -8,6 +8,12 @@ interface Props {
   clientes: CuentaCorriente[];
   proveedores: CuentaCorriente[];
   fechaCorte: string;
+  /** Registrar el cobro (clientes) o el pago (proveedores) de lo pendiente. */
+  onRegistrar?: (
+    cuenta: CuentaCorriente,
+    importe: number,
+    referencia: string,
+  ) => void;
 }
 
 const TEXTOS: Record<
@@ -43,10 +49,17 @@ function sumar(cuentas: CuentaCorriente[], f: (c: CuentaCorriente) => number) {
 function Detalle({
   cuenta,
   onCerrar,
+  onRegistrar,
 }: {
   cuenta: CuentaCorriente;
   onCerrar: () => void;
+  onRegistrar?: (
+    cuenta: CuentaCorriente,
+    importe: number,
+    referencia: string,
+  ) => void;
 }) {
+  const verbo = cuenta.lado === "cliente" ? "Cobrar" : "Pagar";
   const t = TEXTOS[cuenta.lado];
   return (
     <section className="overflow-hidden rounded-xl border-2 border-marca bg-white shadow-sm">
@@ -76,9 +89,26 @@ function Detalle({
 
       {cuenta.pendientes.length > 0 && (
         <div className="border-b border-stone-200 px-4 py-3">
-          <h4 className="mb-2 text-sm font-semibold">
-            Comprobantes pendientes
-          </h4>
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+            <h4 className="text-sm font-semibold">Comprobantes pendientes</h4>
+            {onRegistrar && cuenta.saldo > 0 && (
+              <button
+                type="button"
+                onClick={() =>
+                  onRegistrar(
+                    cuenta,
+                    cuenta.saldo,
+                    cuenta.pendientes.length === 1
+                      ? cuenta.pendientes[0].descripcion
+                      : `saldo (${cuenta.pendientes.length} comprobantes)`,
+                  )
+                }
+                className="rounded-md bg-marca px-3 py-1 text-xs font-medium text-white hover:opacity-90"
+              >
+                {verbo} todo el saldo ({pesos(cuenta.saldo)})
+              </button>
+            )}
+          </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="text-left text-xs uppercase tracking-wide text-stone-500">
@@ -88,6 +118,7 @@ function Detalle({
                   <th className="py-1 pr-3 text-right">Total</th>
                   <th className="py-1 pr-3 text-right">Pendiente</th>
                   <th className="py-1 text-right">Días</th>
+                  {onRegistrar && <th />}
                 </tr>
               </thead>
               <tbody>
@@ -104,6 +135,19 @@ function Detalle({
                     >
                       {p.dias}
                     </td>
+                    {onRegistrar && (
+                      <td className="py-1 pl-3 text-right">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            onRegistrar(cuenta, p.pendiente, p.descripcion)
+                          }
+                          className="whitespace-nowrap rounded-md border border-marca px-2 py-0.5 text-xs font-medium text-marca hover:bg-marca-claro"
+                        >
+                          {verbo}
+                        </button>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -177,6 +221,7 @@ export function CuentasCorrientes({
   clientes,
   proveedores,
   fechaCorte,
+  onRegistrar,
 }: Props) {
   const [lado, setLado] = useState<Lado>("cliente");
   const [abierta, setAbierta] = useState<string | null>(null);
@@ -248,7 +293,11 @@ export function CuentasCorrientes({
       </section>
 
       {detalle && (
-        <Detalle cuenta={detalle} onCerrar={() => setAbierta(null)} />
+        <Detalle
+          cuenta={detalle}
+          onCerrar={() => setAbierta(null)}
+          onRegistrar={onRegistrar}
+        />
       )}
 
       <section className="overflow-hidden rounded-xl border border-stone-200 bg-white shadow-sm">
