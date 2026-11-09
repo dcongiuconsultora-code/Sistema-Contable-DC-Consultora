@@ -90,7 +90,11 @@ export async function POST(request: Request) {
     );
   const existente = (existentes as { id: string }[] | null)?.[0];
   const { error } = existente
-    ? await admin.auth.admin.updateUserById(existente.id, { password: clave })
+    ? // Si había pedido un link y no lo abrió, el mail quedó sin confirmar y no podría entrar.
+      await admin.auth.admin.updateUserById(existente.id, {
+        password: clave,
+        email_confirm: true,
+      })
     : await admin.auth.admin.createUser({
         email: mail,
         password: clave,

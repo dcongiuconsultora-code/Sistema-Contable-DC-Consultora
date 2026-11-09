@@ -40,17 +40,35 @@ export function Ingreso({ db }: { db: SupabaseClient }) {
     e.preventDefault();
     setError(null);
     setEsperando(true);
-    const { error } = await db.auth.signInWithPassword({
-      email: email.trim().toLowerCase(),
-      password: clave,
-    });
+    const mail = email.trim().toLowerCase();
+    // Al pegar desde WhatsApp suelen colarse espacios, y el celular pone la primera letra en
+    // mayúscula: las contraseñas que arma el estudio son siempre en minúscula.
+    const intentos = [
+      ...new Set([clave, clave.trim(), clave.trim().toLowerCase()]),
+    ].filter(Boolean);
+    let ultimo: { message: string; status?: number; code?: string } | null =
+      null;
+    for (const password of intentos) {
+      const { error } = await db.auth.signInWithPassword({
+        email: mail,
+        password,
+      });
+      if (!error) {
+        setEsperando(false);
+        return;
+      }
+      ultimo = error;
+      if (!/invalid/i.test(error.message)) break;
+    }
     setEsperando(false);
-    if (error)
-      setError(
-        error.status === 400
-          ? "El mail o la contraseña no son correctos. Si no tenés contraseña, pedísela al estudio."
-          : `No se pudo entrar: ${error.message}`,
-      );
+    if (!ultimo) return;
+    setError(
+      /not confirmed/i.test(ultimo.message)
+        ? "Tu mail todavía no está confirmado. Pedile al estudio que te genere la contraseña de nuevo."
+        : /invalid/i.test(ultimo.message) || ultimo.status === 400
+          ? "El mail o la contraseña no son correctos. Revisá que el mail sea el mismo con el que te dio acceso el estudio y copiá la contraseña sin espacios. Si sigue sin andar, pedile al estudio una nueva."
+          : `No se pudo entrar: ${ultimo.message}`,
+    );
   }
 
   async function verificarCodigo(e: React.FormEvent) {
@@ -87,6 +105,9 @@ export function Ingreso({ db }: { db: SupabaseClient }) {
               <input
                 id="email-clave"
                 type="email"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
                 required
                 autoComplete="username"
                 value={email}
@@ -100,6 +121,9 @@ export function Ingreso({ db }: { db: SupabaseClient }) {
               <input
                 id="clave-ingreso"
                 type="password"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
                 required
                 autoComplete="current-password"
                 value={clave}
