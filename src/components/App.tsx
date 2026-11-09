@@ -257,6 +257,10 @@ export function App() {
           onActualizada={(e) =>
             setEmpresas(empresas.map((x) => (x.id === e.id ? e : x)))
           }
+          onBorrada={(id) => {
+            setEmpresas(empresas.filter((x) => x.id !== id));
+            if (empresaId === id) setEmpresaId(null);
+          }}
           onCreada={(e) =>
             setEmpresas(
               [...empresas, e].sort((a, b) =>

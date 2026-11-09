@@ -184,12 +184,155 @@ function Invitaciones({
   );
 }
 
+/** Corregir los datos de una empresa o eliminarla con todo lo cargado. */
+function EditarEmpresa({
+  repo,
+  empresa,
+  onActualizada,
+  onBorrada,
+  onCerrar,
+}: {
+  repo: Repositorio;
+  empresa: Empresa;
+  onActualizada: (e: Empresa) => void;
+  onBorrada: (id: string) => void;
+  onCerrar: () => void;
+}) {
+  const [razonSocial, setRazonSocial] = useState(empresa.razon_social);
+  const [cuit, setCuit] = useState(empresa.cuit);
+  const [condicion, setCondicion] = useState(empresa.condicion_iva);
+  const [confirmacion, setConfirmacion] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [trabajando, setTrabajando] = useState(false);
+
+  async function guardar(ev: React.FormEvent) {
+    ev.preventDefault();
+    if (!razonSocial.trim()) return setError("Falta la razón social.");
+    if (!cuitValido(cuit)) return setError("El CUIT no es válido.");
+    setError(null);
+    setTrabajando(true);
+    try {
+      const cambios = {
+        razon_social: razonSocial.trim(),
+        cuit,
+        condicion_iva: condicion,
+      };
+      await repo.editarEmpresa(empresa.id, cambios);
+      onActualizada({ ...empresa, ...cambios });
+      onCerrar();
+    } catch (err) {
+      const m = err instanceof Error ? err.message : String(err);
+      setError(
+        /duplicate|unique/i.test(m) ? "Ya hay otra empresa con ese CUIT." : m,
+      );
+    } finally {
+      setTrabajando(false);
+    }
+  }
+
+  async function eliminar() {
+    setError(null);
+    setTrabajando(true);
+    try {
+      await repo.borrarEmpresa(empresa.id);
+      onBorrada(empresa.id);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+      setTrabajando(false);
+    }
+  }
+
+  const coincide =
+    confirmacion.trim().toLowerCase() ===
+    empresa.razon_social.trim().toLowerCase();
+
+  return (
+    <div className="mt-3 space-y-4 text-sm">
+      <form
+        onSubmit={guardar}
+        className="grid gap-3 sm:grid-cols-[2fr_1fr_1fr_auto] sm:items-end"
+      >
+        <label className="block">
+          <span className="text-stone-600">Razón social</span>
+          <input
+            id={`editar-razon-${empresa.id}`}
+            value={razonSocial}
+            onChange={(ev) => setRazonSocial(ev.target.value)}
+            className="mt-1 block w-full rounded-md border border-stone-300 px-3 py-1.5"
+          />
+        </label>
+        <label className="block">
+          <span className="text-stone-600">CUIT</span>
+          <input
+            id={`editar-cuit-${empresa.id}`}
+            inputMode="numeric"
+            value={cuit}
+            onChange={(ev) =>
+              setCuit(ev.target.value.replace(/\D/g, "").slice(0, 11))
+            }
+            className="mt-1 block w-full rounded-md border border-stone-300 px-3 py-1.5 tabular-nums"
+          />
+        </label>
+        <label className="block">
+          <span className="text-stone-600">Condición IVA</span>
+          <select
+            id={`editar-condicion-${empresa.id}`}
+            value={condicion}
+            onChange={(ev) => setCondicion(ev.target.value)}
+            className="mt-1 block w-full rounded-md border border-stone-300 bg-white px-2 py-1.5"
+          >
+            {CONDICIONES.map((c) => (
+              <option key={c}>{c}</option>
+            ))}
+          </select>
+        </label>
+        <button
+          type="submit"
+          disabled={trabajando}
+          className="rounded-md border border-marca px-3 py-1.5 font-medium text-marca hover:bg-marca-claro disabled:opacity-50"
+        >
+          Guardar cambios
+        </button>
+      </form>
+
+      <div className="rounded-lg border border-red-200 bg-red-50 p-3">
+        <p className="font-medium text-red-800">Eliminar esta empresa</p>
+        <p className="mt-1 text-red-800">
+          Se borra la empresa con todo lo cargado: comprobantes, cobros y pagos,
+          tickets, bancos, asientos, inventarios, mensajes y accesos de sus
+          usuarios. No se puede deshacer. Para confirmar, escribí{" "}
+          <strong>{empresa.razon_social}</strong>:
+        </p>
+        <div className="mt-2 flex flex-wrap gap-2">
+          <input
+            id={`confirmar-borrar-${empresa.id}`}
+            value={confirmacion}
+            onChange={(ev) => setConfirmacion(ev.target.value)}
+            placeholder={empresa.razon_social}
+            className="min-w-0 flex-1 rounded-md border border-red-300 bg-white px-3 py-1.5"
+          />
+          <button
+            type="button"
+            disabled={!coincide || trabajando}
+            onClick={eliminar}
+            className="rounded-md bg-red-700 px-3 py-1.5 font-medium text-white hover:opacity-90 disabled:opacity-40"
+          >
+            Eliminar definitivamente
+          </button>
+        </div>
+      </div>
+      {error && <p className="text-red-700">{error}</p>}
+    </div>
+  );
+}
+
 export function AdminEmpresas({
   repo,
   empresas,
   sinLeer = {},
   onCreada,
   onActualizada,
+  onBorrada,
   onAbrir,
   onMensajes,
 }: {
@@ -199,6 +342,7 @@ export function AdminEmpresas({
   sinLeer?: Record<string, number>;
   onCreada: (e: Empresa) => void;
   onActualizada?: (e: Empresa) => void;
+  onBorrada?: (id: string) => void;
   onAbrir: (e: Empresa) => void;
   onMensajes?: (e: Empresa) => void;
 }) {
@@ -209,6 +353,7 @@ export function AdminEmpresas({
   const [abierta, setAbierta] = useState<string | null>(null);
   const [conUnidades, setConUnidades] = useState<string | null>(null);
   const [conImpuestos, setConImpuestos] = useState<string | null>(null);
+  const [editando, setEditando] = useState<string | null>(null);
 
   async function crear(e: React.FormEvent) {
     e.preventDefault();
@@ -329,6 +474,13 @@ export function AdminEmpresas({
                   ) : null}
                   <button
                     type="button"
+                    onClick={() => setEditando(editando === e.id ? null : e.id)}
+                    className="rounded-md px-3 py-1.5 text-sm text-stone-600 hover:bg-stone-100"
+                  >
+                    {editando === e.id ? "Cerrar" : "Editar"}
+                  </button>
+                  <button
+                    type="button"
                     onClick={() =>
                       setConImpuestos(conImpuestos === e.id ? null : e.id)
                     }
@@ -363,6 +515,18 @@ export function AdminEmpresas({
                   </button>
                 </div>
               </div>
+              {editando === e.id && (
+                <EditarEmpresa
+                  repo={repo}
+                  empresa={e}
+                  onActualizada={(nueva) => onActualizada?.(nueva)}
+                  onBorrada={(id) => {
+                    setEditando(null);
+                    onBorrada?.(id);
+                  }}
+                  onCerrar={() => setEditando(null)}
+                />
+              )}
               {conImpuestos === e.id && (
                 <ImpuestosEmpresa
                   repo={repo}

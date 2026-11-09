@@ -160,6 +160,37 @@ export class Repositorio {
     return data!;
   }
 
+  async editarEmpresa(
+    id: string,
+    cambios: Pick<Empresa, "razon_social" | "cuit" | "condicion_iva">,
+  ) {
+    const { error } = await this.db
+      .from("empresas")
+      .update(cambios)
+      .eq("id", id);
+    fallar(error, "guardar los datos de la empresa");
+  }
+
+  /** Borra la empresa y, en cascada, todo lo cargado en ella. */
+  async borrarEmpresa(id: string) {
+    // Las fotos de los tickets están guardadas aparte: se borran primero (si falla, sigue igual).
+    const fotos = await this.db.storage
+      .from("tickets")
+      .list(id, { limit: 1000 });
+    if (fotos.data?.length)
+      await this.db.storage
+        .from("tickets")
+        .remove(fotos.data.map((f) => `${id}/${f.name}`));
+    const { data, error } = await this.db
+      .from("empresas")
+      .delete()
+      .eq("id", id)
+      .select("id");
+    fallar(error, "eliminar la empresa");
+    if (!data?.length)
+      throw new Error("No se pudo eliminar la empresa (¿tenés permiso?).");
+  }
+
   async actualizarEmpresa(
     id: string,
     cambios: Partial<
