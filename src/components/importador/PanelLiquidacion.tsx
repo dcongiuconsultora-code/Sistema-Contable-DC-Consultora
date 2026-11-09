@@ -1,17 +1,43 @@
 "use client";
 
 import type { Comprobante } from "@/lib/arca/tipos";
-import { type DatosManualesIva, liquidarIva } from "@/lib/iva/liquidacion";
+import type {
+  DatosManualesIva,
+  LiquidacionGuardada,
+  PeriodoIva,
+} from "@/lib/iva/liquidacion";
 import { pesos, tasaTexto } from "@/lib/formato";
 
 interface Props {
   ventas: Comprobante[];
   compras: Comprobante[];
-  manual: DatosManualesIva;
-  onManual: (m: DatosManualesIva) => void;
-  /** Percepciones y retenciones de IVA tomadas de Mis Retenciones; reemplazan a las cargadas a mano. */
+  /** El período ya encadenado: datos usados (arrastrados o corregidos) y su liquidación. */
+  periodoIva: PeriodoIva;
+  guardada?: LiquidacionGuardada;
+  /** Corregir un dato a mano (undefined = volver a lo automático). */
+  onCambiar: (campo: keyof DatosManualesIva, valor: number | undefined) => void;
+  onPresentada: (presentada: boolean) => void;
+  /** Percepciones y retenciones de IVA tomadas de Mis Retenciones. */
   desdeArchivos?: { percepciones: number; retenciones: number } | null;
+  puedeEditar: boolean;
 }
+
+const MESES = [
+  "enero",
+  "febrero",
+  "marzo",
+  "abril",
+  "mayo",
+  "junio",
+  "julio",
+  "agosto",
+  "septiembre",
+  "octubre",
+  "noviembre",
+  "diciembre",
+];
+const nombreMes = (p: string) =>
+  `${MESES[Number(p.slice(5)) - 1]} ${p.slice(0, 4)}`;
 
 const CAMPOS_MANUALES: [keyof DatosManualesIva, string][] = [
   ["saldoTecnicoAnterior", "Saldo técnico a favor del período anterior"],
@@ -47,57 +73,97 @@ function Fila({
 export function PanelLiquidacion({
   ventas,
   compras,
-  manual,
-  onManual,
+  periodoIva,
+  guardada,
+  onCambiar,
+  onPresentada,
   desdeArchivos,
+  puedeEditar,
 }: Props) {
-  const datos = desdeArchivos ? { ...manual, ...desdeArchivos } : manual;
-  const liq = liquidarIva(ventas, compras, datos);
+  const liq = periodoIva.liquidacion;
+  const manual = periodoIva.manual;
+  const corregido = guardada?.manual ?? {};
   const percepcionesEnArchivo = compras.reduce(
     (s, c) => s + c.otrosTributos,
     0,
   );
+  void ventas;
+  const bloqueado = !puedeEditar || periodoIva.presentada;
 
   return (
     <div className="grid gap-4 lg:grid-cols-[1fr_1.2fr]">
       <div className="rounded-xl border border-stone-200 bg-white p-5 shadow-sm">
-        <h3 className="mb-1 font-semibold">Datos a completar</h3>
+        <h3 className="mb-1 font-semibold">Datos del período</h3>
         <p className="mb-4 text-sm text-stone-500">
-          Los saldos del mes anterior se van a arrastrar solos cuando el sistema
-          guarde las liquidaciones.
+          {periodoIva.arrastradoDe
+            ? `Los saldos anteriores vienen solos de la liquidación de ${nombreMes(periodoIva.arrastradoDe)}. Si en ARCA te dio otro número, corregilo y queda guardado.`
+            : "Es el primer mes con datos en el sistema: cargá los saldos a favor que traías de antes. Desde acá se arrastran solos."}
         </p>
         <div className="space-y-3">
-          {CAMPOS_MANUALES.map(([campo, etiqueta]) =>
-            desdeArchivos &&
-            (campo === "percepciones" || campo === "retenciones") ? (
-              <div key={campo} className="text-sm">
-                <span className="text-stone-700">{etiqueta}</span>
-                <div className="mt-1 flex items-center justify-between rounded-md bg-stone-100 px-3 py-2">
-                  <span className="text-xs text-stone-500">
-                    De Mis Retenciones
-                  </span>
-                  <span className="cifra font-medium">
-                    {pesos(desdeArchivos[campo])}
-                  </span>
+          {CAMPOS_MANUALES.map(([campo, etiqueta]) => {
+            const deArchivo =
+              desdeArchivos &&
+              (campo === "percepciones" || campo === "retenciones");
+            if (deArchivo)
+              return (
+                <div key={campo} className="text-sm">
+                  <span className="text-stone-700">{etiqueta}</span>
+                  <div className="mt-1 flex items-center justify-between rounded-md bg-stone-100 px-3 py-2">
+                    <span className="text-xs text-stone-500">
+                      De Mis Retenciones
+                    </span>
+                    <span className="cifra font-medium">
+                      {pesos(desdeArchivos[campo])}
+                    </span>
+                  </div>
                 </div>
-              </div>
-            ) : (
+              );
+            const esSaldo =
+              campo === "saldoTecnicoAnterior" ||
+              campo === "saldoLibreDisponibilidadAnterior";
+            const automatico = esSaldo
+              ? campo === "saldoTecnicoAnterior"
+                ? periodoIva.arrastrado.saldoTecnico
+                : periodoIva.arrastrado.libreDisponibilidad
+              : 0;
+            const fueCorregido =
+              corregido[campo] !== undefined && corregido[campo] !== automatico;
+            return (
               <label key={campo} className="block text-sm">
                 <span className="text-stone-700">{etiqueta}</span>
                 <input
+                  id={`iva-${campo}`}
                   type="number"
                   min={0}
                   step="0.01"
+                  disabled={bloqueado}
                   value={manual[campo] || ""}
                   placeholder="0,00"
                   onChange={(e) =>
-                    onManual({
-                      ...manual,
-                      [campo]: Number(e.target.value) || 0,
-                    })
+                    onCambiar(campo, Number(e.target.value) || 0)
                   }
-                  className="mt-1 w-full rounded-md border border-stone-300 px-3 py-2 text-right tabular-nums focus:border-marca focus:outline-none"
+                  className={`mt-1 w-full rounded-md border px-3 py-2 text-right tabular-nums focus:border-marca focus:outline-none disabled:bg-stone-50 ${fueCorregido ? "border-amber-400 bg-amber-50" : "border-stone-300"}`}
                 />
+                {esSaldo && periodoIva.arrastradoDe && (
+                  <span className="mt-1 block text-xs text-stone-500">
+                    {fueCorregido ? (
+                      <>
+                        Corregido a mano (el arrastre daba {pesos(automatico)}).{" "}
+                        {!bloqueado && (
+                          <button
+                            type="button"
+                            onClick={() => onCambiar(campo, undefined)}
+                            className="font-medium text-marca underline"
+                          >
+                            Volver al arrastrado
+                          </button>
+                        )}
+                      </>
+                    ) : (
+                      `Arrastrado de ${nombreMes(periodoIva.arrastradoDe)}.`
+                    )}
+                  </span>
+                )}
                 {campo === "percepciones" && percepcionesEnArchivo !== 0 && (
                   <span className="mt-1 block text-xs text-stone-500">
                     Los recibidos traen {pesos(percepcionesEnArchivo)} en
@@ -106,9 +172,35 @@ export function PanelLiquidacion({
                   </span>
                 )}
               </label>
-            ),
-          )}
+            );
+          })}
         </div>
+        {puedeEditar && (
+          <div className="mt-5 border-t border-stone-200 pt-4">
+            {periodoIva.presentada ? (
+              <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+                <span className="font-medium text-emerald-700">
+                  ✓ Presentada: lo que se arrastra al mes siguiente queda fijo.
+                </span>
+                <button
+                  type="button"
+                  onClick={() => onPresentada(false)}
+                  className="rounded-md px-2 py-1 text-stone-600 hover:bg-stone-100"
+                >
+                  Desmarcar
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => onPresentada(true)}
+                className="w-full rounded-md border border-marca px-3 py-2 text-sm font-medium text-marca hover:bg-marca-claro"
+              >
+                Marcar como presentada en ARCA
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="rounded-xl border border-stone-200 bg-white p-5 text-sm shadow-sm">

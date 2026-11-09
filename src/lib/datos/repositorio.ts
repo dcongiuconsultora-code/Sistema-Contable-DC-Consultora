@@ -12,6 +12,7 @@ import type { Asiento } from "@/lib/contabilidad/diario";
 import { nombreCuenta } from "@/lib/plan/plan";
 import type { Inventario } from "@/lib/inventarios/inventarios";
 import type { Plantilla } from "@/lib/avisos/avisos";
+import type { LiquidacionGuardada } from "@/lib/iva/liquidacion";
 import {
   comprobanteAFila,
   type DatosResumen,
@@ -454,6 +455,44 @@ export class Repositorio {
     for (const f of filas)
       r[f.empresa_id] = (r[f.empresa_id] ?? 0) + Number(f.total);
     return r;
+  }
+
+  // Liquidaciones de IVA -----------------------------------------------------------------------
+
+  async liquidacionesIva(
+    empresaId: string,
+  ): Promise<Record<string, LiquidacionGuardada>> {
+    const { data, error } = await this.db
+      .from("liquidaciones_iva")
+      .select("periodo, manual, presentada, resultado")
+      .eq("empresa_id", empresaId);
+    fallar(error, "leer las liquidaciones de IVA");
+    return Object.fromEntries(
+      (data ?? []).map((f) => [
+        f.periodo,
+        {
+          manual: f.manual ?? {},
+          presentada: f.presentada,
+          resultado: f.resultado ?? undefined,
+        },
+      ]),
+    );
+  }
+
+  async guardarLiquidacionIva(
+    empresaId: string,
+    periodo: string,
+    g: LiquidacionGuardada,
+  ) {
+    const { error } = await this.db.from("liquidaciones_iva").upsert({
+      empresa_id: empresaId,
+      periodo,
+      manual: g.manual,
+      presentada: Boolean(g.presentada),
+      resultado: g.resultado ?? null,
+      actualizado_en: new Date().toISOString(),
+    });
+    fallar(error, "guardar la liquidación de IVA");
   }
 
   // Parámetros del estudio ---------------------------------------------------------------------

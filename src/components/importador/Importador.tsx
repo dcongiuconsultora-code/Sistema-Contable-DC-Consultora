@@ -57,7 +57,8 @@ import { deduccionesIva } from "@/lib/arca/retenciones";
 import type { ResultadoImportacion } from "@/lib/arca/tipos";
 import {
   comprobantesDelPeriodo,
-  type DatosManualesIva,
+  encadenarIva,
+  type LiquidacionGuardada,
 } from "@/lib/iva/liquidacion";
 import { nombrePeriodo } from "@/lib/formato";
 import { type LectorTicket, leerConServidor } from "@/lib/tickets/lector";
@@ -184,13 +185,6 @@ type Pestana =
   | "liquidacion"
   | "unidades";
 
-const MANUAL_INICIAL: DatosManualesIva = {
-  saldoTecnicoAnterior: 0,
-  saldoLibreDisponibilidadAnterior: 0,
-  percepciones: 0,
-  retenciones: 0,
-};
-
 async function descargarEjemplo(nombre: string, tipo: string) {
   // El prototipo de un solo archivo trae los ejemplos embebidos en base64.
   const embebido = (globalThis as { __EJEMPLOS__?: Record<string, string> })
@@ -291,7 +285,10 @@ export function Importador({
   });
   const [periodoElegido, setPeriodoElegido] = useState<string | null>(null);
   const [pestana, setPestana] = useState<Pestana>("ventas");
-  const [manual, setManual] = useState(MANUAL_INICIAL);
+  const [ivaGuardadas, setIvaGuardadas] = useState<
+    Record<string, LiquidacionGuardada>
+  >({});
+  const temporizadorIva = useRef<ReturnType<typeof setTimeout>>(undefined);
   const [tickets, setTickets] = useState<TicketCargado[]>([]);
   const [movimientos, setMovimientos] = useState<Movimiento[]>([]);
   const [manuales, setManuales] = useState<Asiento[]>([]);
@@ -363,6 +360,7 @@ export function Importador({
         setMovimientos(d.movimientos);
         setManuales(await repo.asientosManuales(empresaId));
         setInventarios(await repo.inventarios(empresaId));
+        setIvaGuardadas(await repo.liquidacionesIva(empresaId));
         if (esMonotributo(condicionIva)) {
           const d = new Date();
           d.setMonth(d.getMonth() - 24);
@@ -686,6 +684,48 @@ export function Importador({
     periodo && archivosDeducciones.length > 0
       ? deduccionesIva(deducciones, periodo)
       : null;
+
+  // Liquidación de IVA encadenada: cada mes arrastra los saldos a favor del anterior.
+  const cadenaIva = useMemo(
+    () =>
+      encadenarIva(
+        periodos,
+        (p) => ({
+          ventas: comprobantesDelPeriodo(ventas?.comprobantes ?? [], p),
+          compras: comprobantesDelPeriodo(
+            [...(compras?.comprobantes ?? []), ...ticketsPendientes],
+            p,
+          ),
+          desdeArchivos:
+            archivosDeducciones.length > 0
+              ? deduccionesIva(deducciones, p)
+              : null,
+        }),
+        ivaGuardadas,
+      ),
+    [
+      periodos,
+      ventas,
+      compras,
+      ticketsPendientes,
+      archivosDeducciones,
+      deducciones,
+      ivaGuardadas,
+    ],
+  );
+  const ivaPeriodo = periodo ? cadenaIva.get(periodo) : undefined;
+  const guardarIva = (p: string, g: LiquidacionGuardada) => {
+    setIvaGuardadas((actual) => ({ ...actual, [p]: g }));
+    if (!repo || !empresaId) return;
+    clearTimeout(temporizadorIva.current);
+    temporizadorIva.current = setTimeout(() => {
+      repo
+        .guardarLiquidacionIva(empresaId, p, g)
+        .catch((e) =>
+          setErrorDatos(e instanceof Error ? e.message : String(e)),
+        );
+    }, 700);
+  };
   const deduccionesPeriodo = periodo
     ? deducciones.filter((d) => d.periodo === periodo).length
     : 0;
@@ -1330,13 +1370,42 @@ export function Importador({
                   onAsignarProveedor={asignarProveedor}
                 />
               )}
-              {pestana === "liquidacion" && !esMono && (
+              {pestana === "liquidacion" && !esMono && ivaPeriodo && (
                 <PanelLiquidacion
                   ventas={ventasPeriodo}
                   compras={comprasPeriodo}
-                  manual={manual}
-                  onManual={setManual}
+                  periodoIva={ivaPeriodo}
+                  guardada={ivaGuardadas[ivaPeriodo.periodo]}
                   desdeArchivos={ivaDesdeArchivos}
+                  puedeEditar={conexion?.rol !== "cliente"}
+                  onCambiar={(campo, valor) => {
+                    const g = ivaGuardadas[ivaPeriodo.periodo] ?? {
+                      manual: {},
+                    };
+                    const manual = { ...g.manual };
+                    if (valor === undefined) delete manual[campo];
+                    else manual[campo] = valor;
+                    guardarIva(ivaPeriodo.periodo, { ...g, manual });
+                  }}
+                  onPresentada={(presentada) => {
+                    const g = ivaGuardadas[ivaPeriodo.periodo] ?? {
+                      manual: {},
+                    };
+                    const l = ivaPeriodo.liquidacion;
+                    guardarIva(ivaPeriodo.periodo, {
+                      // Al presentarla se fijan los datos usados y el resultado que se arrastra.
+                      manual: presentada ? { ...ivaPeriodo.manual } : g.manual,
+                      presentada,
+                      resultado: presentada
+                        ? {
+                            saldoTecnicoAFavor: l.saldoTecnicoAFavor,
+                            saldoLibreDisponibilidad:
+                              l.saldoLibreDisponibilidad,
+                            saldoAPagar: l.saldoAPagar,
+                          }
+                        : undefined,
+                    });
+                  }}
                 />
               )}
             </section>

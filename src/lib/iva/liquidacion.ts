@@ -125,3 +125,77 @@ export function liquidarIva(
     ),
   };
 }
+
+/** Lo guardado de una liquidación: lo que se corrigió a mano y, si se presentó, su resultado. */
+export interface LiquidacionGuardada {
+  manual: Partial<DatosManualesIva>;
+  presentada?: boolean;
+  resultado?: {
+    saldoTecnicoAFavor: number;
+    saldoLibreDisponibilidad: number;
+    saldoAPagar: number;
+  };
+}
+
+export interface PeriodoIva {
+  periodo: string;
+  manual: DatosManualesIva;
+  /** Período del que vienen los saldos anteriores (null en el primero). */
+  arrastradoDe: string | null;
+  arrastrado: { saldoTecnico: number; libreDisponibilidad: number };
+  liquidacion: LiquidacionIva;
+  presentada: boolean;
+}
+
+function mesSiguiente(p: string) {
+  const [a, m] = p.split("-").map(Number);
+  return m === 12 ? `${a + 1}-01` : `${a}-${String(m + 1).padStart(2, "0")}`;
+}
+
+/**
+ * Liquida todos los meses en orden, llevando el saldo técnico a favor y el de libre
+ * disponibilidad de cada mes al siguiente. Lo corregido a mano en un mes manda; un mes presentado
+ * arrastra el resultado que se guardó al presentarlo.
+ */
+export function encadenarIva(
+  periodos: string[],
+  datosDe: (periodo: string) => {
+    ventas: Comprobante[];
+    compras: Comprobante[];
+    desdeArchivos: { percepciones: number; retenciones: number } | null;
+  },
+  guardadas: Record<string, LiquidacionGuardada>,
+): Map<string, PeriodoIva> {
+  const todos = [...new Set([...periodos, ...Object.keys(guardadas)])].sort();
+  const r = new Map<string, PeriodoIva>();
+  if (!todos.length) return r;
+  let saldoTecnico = 0;
+  let libreDisponibilidad = 0;
+  let anterior: string | null = null;
+  for (let p = todos[0]; p <= todos[todos.length - 1]; p = mesSiguiente(p)) {
+    const g = guardadas[p];
+    const d = datosDe(p);
+    const manual: DatosManualesIva = {
+      saldoTecnicoAnterior: saldoTecnico,
+      saldoLibreDisponibilidadAnterior: libreDisponibilidad,
+      percepciones: 0,
+      retenciones: 0,
+      ...g?.manual,
+      ...(d.desdeArchivos ?? {}),
+    };
+    const liquidacion = liquidarIva(d.ventas, d.compras, manual);
+    r.set(p, {
+      periodo: p,
+      manual,
+      arrastradoDe: anterior,
+      arrastrado: { saldoTecnico, libreDisponibilidad },
+      liquidacion,
+      presentada: Boolean(g?.presentada),
+    });
+    const base = g?.presentada && g.resultado ? g.resultado : liquidacion;
+    saldoTecnico = base.saldoTecnicoAFavor;
+    libreDisponibilidad = base.saldoLibreDisponibilidad;
+    anterior = p;
+  }
+  return r;
+}
