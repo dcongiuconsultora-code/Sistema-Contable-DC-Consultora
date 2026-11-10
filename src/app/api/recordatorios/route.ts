@@ -104,6 +104,7 @@ export async function GET(request: Request) {
       diaVencimiento: f.dia_vencimiento,
       cuotasPagadas: f.cuotas_pagadas ?? [],
       estado: f.estado,
+      detalleCuotas: f.detalle_cuotas ?? null,
     });
 
   const hoy = hoyArgentina();

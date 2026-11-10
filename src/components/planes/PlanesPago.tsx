@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { fechaCorta, pesos } from "@/lib/formato";
+import { leerPlanDePago } from "@/lib/planes/leer-plan";
 import { cuotasDelPlan, type PlanPago } from "@/lib/vencimientos/vencimientos";
 
 function mesActual() {
@@ -70,6 +71,14 @@ function Formulario({
       <h3 className="font-semibold">
         {inicial.id ? "Editar plan" : "Nuevo plan de pago"}
       </h3>
+      {p.detalleCuotas?.length ? (
+        <p className="rounded-md bg-emerald-50 p-2 text-sm text-emerald-900">
+          ✓ Leído del PDF: {p.detalleCuotas.length} cuotas, del{" "}
+          {fechaCorta(p.detalleCuotas[0].fecha)} al{" "}
+          {fechaCorta(p.detalleCuotas[p.detalleCuotas.length - 1].fecha)}, con
+          el importe exacto de cada una. Revisá los datos y guardá.
+        </p>
+      ) : null}
       <div className="grid gap-3 sm:grid-cols-3">
         <label className="block text-sm">
           <span className="text-stone-600">Organismo</span>
@@ -210,17 +219,60 @@ function Formulario({
 export function PlanesPago({
   planes,
   puedeEditar,
+  cuitEmpresa,
   onGuardar,
   onBorrar,
 }: {
   planes: PlanPago[];
   puedeEditar: boolean;
+  /** Para avisar si el PDF es de otro contribuyente. */
+  cuitEmpresa?: string;
   onGuardar: (p: PlanPago) => Promise<void>;
   onBorrar: (id: string) => Promise<void>;
 }) {
   const [editando, setEditando] = useState<PlanPago | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [aviso, setAviso] = useState<string | null>(null);
+  const [leyendo, setLeyendo] = useState(false);
   const hoyIso = hoy();
+
+  async function subirPdf(archivo: File) {
+    setError(null);
+    setAviso(null);
+    setLeyendo(true);
+    try {
+      const { leerPdf } = await import("@/lib/pdf/abrir");
+      const lineas = (await leerPdf(archivo)).map((l) => l.texto);
+      const leido = leerPlanDePago(lineas);
+      if (!leido)
+        throw new Error(
+          "No reconocí el PDF: por ahora se leen los planes de Mis Facilidades (ARCA) y de Rentas Jujuy.",
+        );
+      if (cuitEmpresa && leido.cuit && leido.cuit !== cuitEmpresa)
+        setAviso(
+          `Ojo: el plan es del CUIT ${leido.cuit} y esta empresa es ${cuitEmpresa}. Revisá que estés en la empresa correcta antes de guardar.`,
+        );
+      const primera = leido.cuotas[0];
+      const existente = planes.find(
+        (p) => p.numero === leido.numero && p.organismo === leido.organismo,
+      );
+      setEditando({
+        ...(existente ?? NUEVO),
+        organismo: leido.organismo,
+        numero: leido.numero,
+        descripcion: leido.descripcion || existente?.descripcion || "",
+        cuotas: leido.cuotas.length,
+        primeraCuota: primera.fecha.slice(0, 7),
+        importeCuota: primera.importe,
+        diaVencimiento: Number(primera.fecha.slice(8, 10)),
+        detalleCuotas: leido.cuotas,
+      });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setLeyendo(false);
+    }
+  }
 
   async function marcar(p: PlanPago, cuota: number, pagada: boolean) {
     setError(null);
@@ -248,16 +300,37 @@ export function PlanesPago({
           </p>
         </section>
         {puedeEditar && !editando && (
-          <button
-            type="button"
-            onClick={() => setEditando(NUEVO)}
-            className="rounded-md bg-marca px-4 py-2 text-sm font-medium text-white hover:opacity-90"
-          >
-            + Nuevo plan
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <label className="cursor-pointer rounded-md bg-marca px-4 py-2 text-sm font-medium text-white hover:opacity-90">
+              {leyendo ? "Leyendo el PDF…" : "Subir PDF del plan"}
+              <input
+                id="plan-pdf"
+                type="file"
+                accept=".pdf,application/pdf"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) subirPdf(f);
+                  e.target.value = "";
+                }}
+              />
+            </label>
+            <button
+              type="button"
+              onClick={() => setEditando(NUEVO)}
+              className="rounded-md border border-marca px-4 py-2 text-sm font-medium text-marca hover:bg-marca-claro"
+            >
+              + Cargar a mano
+            </button>
+          </div>
         )}
       </div>
 
+      {aviso && (
+        <p className="rounded-md bg-amber-50 p-3 text-sm text-amber-900">
+          {aviso}
+        </p>
+      )}
       {editando && (
         <Formulario
           key={editando.id ?? "nuevo"}
@@ -265,6 +338,7 @@ export function PlanesPago({
           onGuardar={async (p) => {
             await onGuardar(p);
             setEditando(null);
+            setAviso(null);
           }}
           onCancelar={() => setEditando(null)}
         />
@@ -335,6 +409,9 @@ export function PlanesPago({
                       <th className="px-4 py-2">Cuota</th>
                       <th className="px-4 py-2">Vence</th>
                       <th className="px-4 py-2 text-right">Importe</th>
+                      {cuotas.some((c) => c.fecha2) && (
+                        <th className="px-4 py-2 text-right">2° vencimiento</th>
+                      )}
                       <th className="px-4 py-2 text-right">Estado</th>
                     </tr>
                   </thead>
@@ -356,6 +433,13 @@ export function PlanesPago({
                           <td className="cifra px-4 py-1.5">
                             {c.importe ? pesos(c.importe) : "—"}
                           </td>
+                          {cuotas.some((x) => x.fecha2) && (
+                            <td className="px-4 py-1.5 text-right text-xs tabular-nums text-stone-500">
+                              {c.fecha2
+                                ? `${fechaCorta(c.fecha2)} · ${pesos(c.importe2 ?? 0)}`
+                                : ""}
+                            </td>
+                          )}
                           <td className="px-4 py-1.5 text-right">
                             {puedeEditar ? (
                               <label className="inline-flex items-center gap-1.5">

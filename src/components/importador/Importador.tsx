@@ -1225,6 +1225,7 @@ export function Importador({
           <PlanesPago
             planes={planes}
             puedeEditar={esEstudio}
+            cuitEmpresa={conexion?.empresa.cuit}
             onGuardar={async (p) => {
               const id = conexion
                 ? await conexion.repo.guardarPlan(conexion.empresa.id, p)

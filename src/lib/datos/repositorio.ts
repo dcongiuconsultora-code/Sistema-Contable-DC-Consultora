@@ -515,7 +515,7 @@ export class Repositorio {
     let consulta = this.db
       .from("planes_pago")
       .select(
-        "id, empresa_id, organismo, numero, descripcion, cuotas, primera_cuota, importe_cuota, dia_vencimiento, cuotas_pagadas, estado",
+        "id, empresa_id, organismo, numero, descripcion, cuotas, primera_cuota, importe_cuota, dia_vencimiento, cuotas_pagadas, estado, detalle_cuotas",
       )
       .order("creado_en");
     if (empresaId) consulta = consulta.eq("empresa_id", empresaId);
@@ -534,6 +534,7 @@ export class Repositorio {
         diaVencimiento: f.dia_vencimiento,
         cuotasPagadas: f.cuotas_pagadas ?? [],
         estado: f.estado,
+        detalleCuotas: f.detalle_cuotas ?? null,
       });
     return r;
   }
@@ -553,6 +554,7 @@ export class Repositorio {
         dia_vencimiento: p.diaVencimiento,
         cuotas_pagadas: p.cuotasPagadas,
         estado: p.estado,
+        detalle_cuotas: p.detalleCuotas ?? null,
       })
       .select("id")
       .single();

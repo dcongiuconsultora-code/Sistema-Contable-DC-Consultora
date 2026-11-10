@@ -1,3 +1,4 @@
+import type { CuotaDetalle } from "@/lib/planes/leer-plan";
 import calendario2026 from "./calendario-2026.json";
 
 /**
@@ -211,6 +212,8 @@ export interface PlanPago {
   diaVencimiento: number | null;
   cuotasPagadas: number[];
   estado: "vigente" | "cancelado" | "caducado";
+  /** Cuotas exactas leídas del PDF del plan (fecha e importe de cada una). */
+  detalleCuotas?: CuotaDetalle[] | null;
 }
 
 export interface CuotaPlan {
@@ -219,6 +222,9 @@ export interface CuotaPlan {
   fecha: string;
   importe: number;
   pagada: boolean;
+  /** Segundo vencimiento, si el plan lo tiene. */
+  fecha2?: string;
+  importe2?: number;
 }
 
 function sumarMesesPlan(mes: string, n: number) {
@@ -229,6 +235,16 @@ function sumarMesesPlan(mes: string, n: number) {
 
 /** Cuotas del plan con su fecha de vencimiento. */
 export function cuotasDelPlan(plan: PlanPago): CuotaPlan[] {
+  if (plan.detalleCuotas?.length)
+    return plan.detalleCuotas.map((c) => ({
+      numero: c.numero,
+      mes: c.fecha.slice(0, 7),
+      fecha: c.fecha,
+      importe: c.importe,
+      fecha2: c.fecha2,
+      importe2: c.importe2,
+      pagada: plan.cuotasPagadas.includes(c.numero),
+    }));
   return Array.from({ length: plan.cuotas }, (_, i) => {
     const mes = sumarMesesPlan(plan.primeraCuota, i);
     const [anio, m] = mes.split("-").map(Number);
@@ -250,7 +266,8 @@ export function detallePlan(plan: PlanPago, c: CuotaPlan) {
   const nombre = [plan.organismo, plan.numero && `plan ${plan.numero}`]
     .filter(Boolean)
     .join(" ");
-  return `${nombre}: cuota ${c.numero} de ${plan.cuotas}${plan.importeCuota ? ` ($ ${plan.importeCuota.toLocaleString("es-AR", { minimumFractionDigits: 2 })})` : ""}`;
+  const importe = c.importe || plan.importeCuota;
+  return `${nombre}: cuota ${c.numero} de ${plan.cuotas}${importe ? ` ($ ${importe.toLocaleString("es-AR", { minimumFractionDigits: 2 })})` : ""}`;
 }
 
 /** Cuotas vencidas sin pagar (para la alerta en rojo). */
