@@ -52,6 +52,27 @@ export function Avisos({
   const [aviso, setAviso] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
+  const [recordando, setRecordando] = useState(false);
+
+  async function recordarAhora() {
+    setError(null);
+    setAviso(null);
+    setRecordando(true);
+    try {
+      const r = await repo.mandarRecordatorios();
+      setAviso(
+        r.avisos
+          ? `Listo: ${r.avisos} ${r.avisos === 1 ? "recordatorio" : "recordatorios"} a ${r.empresas} ${r.empresas === 1 ? "empresa" : "empresas"}${r.mails ? `, ${r.mails} por mail` : ""}.`
+          : "No había vencimientos nuevos para recordar en los próximos 3 días.",
+      );
+      if (r.errores?.length) setError(r.errores.join(" · "));
+      setEnviados(await repo.avisosEnviados());
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setRecordando(false);
+    }
+  }
 
   const todas = [...PLANTILLAS_BASE, ...propias];
   const recargar = () =>
@@ -149,6 +170,23 @@ export function Avisos({
 
   return (
     <section className="space-y-4 rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
+      <div className="flex flex-wrap items-start justify-between gap-3 rounded-lg bg-stone-50 p-3 text-sm">
+        <p className="max-w-xl text-stone-600">
+          <strong className="text-stone-800">Recordatorios automáticos:</strong>{" "}
+          todos los días a las 8 el sistema le deja a cada cliente un aviso con
+          lo que le vence en los próximos 3 días (monotributo, impuestos y
+          cuotas de planes) y con las cuotas de planes que quedaron sin pagar.
+          Cada vencimiento se avisa una sola vez.
+        </p>
+        <button
+          type="button"
+          onClick={recordarAhora}
+          disabled={recordando}
+          className="rounded-md border border-marca px-3 py-1.5 font-medium text-marca hover:bg-marca-claro disabled:opacity-50"
+        >
+          {recordando ? "Mandando…" : "Mandar los de hoy ahora"}
+        </button>
+      </div>
       <div>
         <h2 className="text-lg font-semibold">Avisos a clientes</h2>
         <p className="mt-1 text-sm text-stone-600">

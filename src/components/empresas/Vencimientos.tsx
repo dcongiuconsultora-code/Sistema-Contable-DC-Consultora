@@ -5,6 +5,7 @@ import type { Empresa, Repositorio } from "@/lib/datos/repositorio";
 import {
   IMPUESTOS,
   type Impuesto,
+  type PlanPago,
   impuestosDe,
   vencimientos,
 } from "@/lib/vencimientos/vencimientos";
@@ -36,12 +37,18 @@ const PLAZOS = [
 ] as const;
 
 /** Próximos vencimientos de todas las empresas, para el estudio. */
-export function ProximosVencimientos({ empresas }: { empresas: Empresa[] }) {
+export function ProximosVencimientos({
+  empresas,
+  planes = {},
+}: {
+  empresas: Empresa[];
+  planes?: Record<string, PlanPago[]>;
+}) {
   const [dias, setDias] = useState<number>(30);
   const hoy = hoyIso();
   const { lista, faltanAnios } = useMemo(
-    () => vencimientos(empresas, hoy, sumarDias(hoy, dias)),
-    [empresas, hoy, dias],
+    () => vencimientos(empresas, hoy, sumarDias(hoy, dias), planes),
+    [empresas, hoy, dias, planes],
   );
   const porFecha = new Map<string, typeof lista>();
   for (const v of lista)

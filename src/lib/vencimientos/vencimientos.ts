@@ -150,6 +150,8 @@ export function vencimientos(
   empresas: EmpresaVencimientos[],
   desde: string,
   hasta: string,
+  /** Planes de pago por empresa: sus cuotas reemplazan al aviso genérico de Mis Facilidades. */
+  planes: Record<string, PlanPago[]> = {},
 ): { lista: Vencimiento[]; faltanAnios: number[] } {
   const lista: Vencimiento[] = [];
   const faltan = new Set<number>();
@@ -159,13 +161,30 @@ export function vencimientos(
   while (anio * 12 + mes <= anioFin * 12 + mesFin - 1) {
     const cal = CALENDARIOS[anio];
     if (!cal) faltan.add(anio);
-    else for (const e of empresas) lista.push(...delMes(e, anio, mes, cal));
+    else
+      for (const e of empresas)
+        lista.push(
+          ...delMes(e, anio, mes, cal).filter(
+            (v) => !(v.impuesto === "misFacilidades" && planes[e.id]?.length),
+          ),
+        );
     mes++;
     if (mes === 12) {
       mes = 0;
       anio++;
     }
   }
+  for (const e of empresas)
+    for (const plan of planes[e.id] ?? [])
+      for (const c of cuotasDelPlan(plan))
+        if (!c.pagada && plan.estado === "vigente")
+          lista.push({
+            fecha: c.fecha,
+            empresaId: e.id,
+            empresa: e.razon_social,
+            impuesto: "misFacilidades",
+            detalle: detallePlan(plan, c),
+          });
   return {
     lista: lista
       .filter((v) => v.fecha >= desde && v.fecha <= hasta)
@@ -175,4 +194,72 @@ export function vencimientos(
       ),
     faltanAnios: [...faltan],
   };
+}
+
+// Planes de pago ------------------------------------------------------------------------------
+
+export interface PlanPago {
+  id?: string;
+  organismo: string;
+  numero: string;
+  descripcion: string;
+  cuotas: number;
+  /** Mes de la primera cuota (AAAA-MM). */
+  primeraCuota: string;
+  importeCuota: number;
+  /** null = el día de Mis Facilidades del calendario de ARCA (o el 16 si no hay calendario). */
+  diaVencimiento: number | null;
+  cuotasPagadas: number[];
+  estado: "vigente" | "cancelado" | "caducado";
+}
+
+export interface CuotaPlan {
+  numero: number;
+  mes: string;
+  fecha: string;
+  importe: number;
+  pagada: boolean;
+}
+
+function sumarMesesPlan(mes: string, n: number) {
+  const [a, m] = mes.split("-").map(Number);
+  const t = a * 12 + (m - 1) + n;
+  return `${Math.floor(t / 12)}-${String((t % 12) + 1).padStart(2, "0")}`;
+}
+
+/** Cuotas del plan con su fecha de vencimiento. */
+export function cuotasDelPlan(plan: PlanPago): CuotaPlan[] {
+  return Array.from({ length: plan.cuotas }, (_, i) => {
+    const mes = sumarMesesPlan(plan.primeraCuota, i);
+    const [anio, m] = mes.split("-").map(Number);
+    const delCalendario =
+      CALENDARIOS[anio]?.misFacilidades?.[m - 1]?.[0] ?? null;
+    const ultimoDia = new Date(Date.UTC(anio, m, 0)).getUTCDate();
+    const d = Math.min(plan.diaVencimiento ?? delCalendario ?? 16, ultimoDia);
+    return {
+      numero: i + 1,
+      mes,
+      fecha: fecha(anio, m - 1, d),
+      importe: plan.importeCuota,
+      pagada: plan.cuotasPagadas.includes(i + 1),
+    };
+  });
+}
+
+export function detallePlan(plan: PlanPago, c: CuotaPlan) {
+  const nombre = [plan.organismo, plan.numero && `plan ${plan.numero}`]
+    .filter(Boolean)
+    .join(" ");
+  return `${nombre}: cuota ${c.numero} de ${plan.cuotas}${plan.importeCuota ? ` ($ ${plan.importeCuota.toLocaleString("es-AR", { minimumFractionDigits: 2 })})` : ""}`;
+}
+
+/** Cuotas vencidas sin pagar (para la alerta en rojo). */
+export function cuotasVencidas(planes: PlanPago[], hoy: string) {
+  return planes
+    .filter((p) => p.estado === "vigente")
+    .flatMap((p) =>
+      cuotasDelPlan(p)
+        .filter((c) => !c.pagada && c.fecha < hoy)
+        .map((c) => ({ plan: p, cuota: c })),
+    );
 }

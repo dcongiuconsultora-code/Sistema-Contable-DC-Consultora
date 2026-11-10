@@ -463,8 +463,12 @@ export function Balance({
         {
           razonSocial: empresa.razon_social,
           cuit: empresa.cuit,
-          actividad: datos.actividad,
-          domicilio: datos.domicilio,
+          actividad: datos.actividad || empresa.actividad,
+          domicilio:
+            datos.domicilio ||
+            [empresa.domicilio, empresa.localidad, empresa.provincia]
+              .filter(Boolean)
+              .join(", "),
           ejercicioNumero: datos.ejercicioNumero,
         },
         asientos,

@@ -1,7 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { Empresa, Repositorio } from "@/lib/datos/repositorio";
+import type {
+  Empresa,
+  FichaEmpresa,
+  Repositorio,
+} from "@/lib/datos/repositorio";
+import { JURISDICCIONES } from "@/lib/arca/retenciones";
+import type { PlanPago } from "@/lib/vencimientos/vencimientos";
 import { linkGmail } from "@/lib/avisos/avisos";
 import { cuitConGuiones } from "@/lib/formato";
 import { cuitValido } from "@/lib/tickets/validar";
@@ -184,7 +190,28 @@ function Invitaciones({
   );
 }
 
-/** Corregir los datos de una empresa o eliminarla con todo lo cargado. */
+const CAMPO =
+  "mt-1 block w-full rounded-md border border-stone-300 px-3 py-1.5";
+
+function Campo({
+  etiqueta,
+  ancho,
+  children,
+}: {
+  etiqueta: string;
+  ancho?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <label className={`block ${ancho ? "sm:col-span-2" : ""}`}>
+      <span className="text-stone-600">{etiqueta}</span>
+      {children}
+    </label>
+  );
+}
+
+/** Ficha completa del cliente (datos fiscales y de contacto) o eliminarlo con todo lo cargado. */
+
 function EditarEmpresa({
   repo,
   empresa,
@@ -198,24 +225,43 @@ function EditarEmpresa({
   onBorrada: (id: string) => void;
   onCerrar: () => void;
 }) {
-  const [razonSocial, setRazonSocial] = useState(empresa.razon_social);
-  const [cuit, setCuit] = useState(empresa.cuit);
-  const [condicion, setCondicion] = useState(empresa.condicion_iva);
+  const [ficha, setFicha] = useState<FichaEmpresa>(() => ({
+    razon_social: empresa.razon_social,
+    cuit: empresa.cuit,
+    condicion_iva: empresa.condicion_iva,
+    actividad: empresa.actividad ?? "",
+    domicilio: empresa.domicilio ?? "",
+    localidad: empresa.localidad ?? "",
+    provincia: empresa.provincia ?? "",
+    codigo_postal: empresa.codigo_postal ?? "",
+    telefono: empresa.telefono ?? "",
+    email_contacto: empresa.email_contacto ?? "",
+    contacto: empresa.contacto ?? "",
+    inicio_actividades: empresa.inicio_actividades ?? null,
+    iibb_numero: empresa.iibb_numero ?? "",
+    iibb_regimen: empresa.iibb_regimen ?? "",
+    notas: empresa.notas ?? "",
+  }));
+  const cambiar = (c: Partial<FichaEmpresa>) => setFicha({ ...ficha, ...c });
   const [confirmacion, setConfirmacion] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [trabajando, setTrabajando] = useState(false);
 
   async function guardar(ev: React.FormEvent) {
     ev.preventDefault();
-    if (!razonSocial.trim()) return setError("Falta la razón social.");
-    if (!cuitValido(cuit)) return setError("El CUIT no es válido.");
+    if (!ficha.razon_social.trim()) return setError("Falta la razón social.");
+    if (!cuitValido(ficha.cuit)) return setError("El CUIT no es válido.");
+    const mail = (ficha.email_contacto ?? "").trim().toLowerCase();
+    if (mail && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail))
+      return setError("El mail de contacto no parece válido.");
     setError(null);
     setTrabajando(true);
     try {
-      const cambios = {
-        razon_social: razonSocial.trim(),
-        cuit,
-        condicion_iva: condicion,
+      const cambios: FichaEmpresa = {
+        ...ficha,
+        razon_social: ficha.razon_social.trim(),
+        email_contacto: mail,
+        inicio_actividades: ficha.inicio_actividades || null,
       };
       await repo.editarEmpresa(empresa.id, cambios);
       onActualizada({ ...empresa, ...cambios });
@@ -248,50 +294,174 @@ function EditarEmpresa({
 
   return (
     <div className="mt-3 space-y-4 text-sm">
-      <form
-        onSubmit={guardar}
-        className="grid gap-3 sm:grid-cols-[2fr_1fr_1fr_auto] sm:items-end"
-      >
-        <label className="block">
-          <span className="text-stone-600">Razón social</span>
-          <input
-            id={`editar-razon-${empresa.id}`}
-            value={razonSocial}
-            onChange={(ev) => setRazonSocial(ev.target.value)}
-            className="mt-1 block w-full rounded-md border border-stone-300 px-3 py-1.5"
-          />
-        </label>
-        <label className="block">
-          <span className="text-stone-600">CUIT</span>
-          <input
-            id={`editar-cuit-${empresa.id}`}
-            inputMode="numeric"
-            value={cuit}
-            onChange={(ev) =>
-              setCuit(ev.target.value.replace(/\D/g, "").slice(0, 11))
-            }
-            className="mt-1 block w-full rounded-md border border-stone-300 px-3 py-1.5 tabular-nums"
-          />
-        </label>
-        <label className="block">
-          <span className="text-stone-600">Condición IVA</span>
-          <select
-            id={`editar-condicion-${empresa.id}`}
-            value={condicion}
-            onChange={(ev) => setCondicion(ev.target.value)}
-            className="mt-1 block w-full rounded-md border border-stone-300 bg-white px-2 py-1.5"
-          >
-            {CONDICIONES.map((c) => (
-              <option key={c}>{c}</option>
-            ))}
-          </select>
-        </label>
+      <form onSubmit={guardar} className="space-y-4">
+        <fieldset className="grid gap-3 sm:grid-cols-[2fr_1fr_1fr]">
+          <legend className="mb-1 text-xs font-semibold uppercase tracking-wide text-stone-500">
+            Datos fiscales
+          </legend>
+          <Campo etiqueta="Razón social">
+            <input
+              id={`editar-razon-${empresa.id}`}
+              value={ficha.razon_social}
+              onChange={(ev) => cambiar({ razon_social: ev.target.value })}
+              className={CAMPO}
+            />
+          </Campo>
+          <Campo etiqueta="CUIT">
+            <input
+              id={`editar-cuit-${empresa.id}`}
+              inputMode="numeric"
+              value={ficha.cuit}
+              onChange={(ev) =>
+                cambiar({
+                  cuit: ev.target.value.replace(/\D/g, "").slice(0, 11),
+                })
+              }
+              className={`${CAMPO} tabular-nums`}
+            />
+          </Campo>
+          <Campo etiqueta="Condición IVA">
+            <select
+              id={`editar-condicion-${empresa.id}`}
+              value={ficha.condicion_iva}
+              onChange={(ev) => cambiar({ condicion_iva: ev.target.value })}
+              className={`${CAMPO} bg-white`}
+            >
+              {CONDICIONES.map((c) => (
+                <option key={c}>{c}</option>
+              ))}
+            </select>
+          </Campo>
+          <Campo etiqueta="Actividad principal" ancho>
+            <input
+              id={`editar-actividad-${empresa.id}`}
+              value={ficha.actividad}
+              onChange={(ev) => cambiar({ actividad: ev.target.value })}
+              placeholder="Venta al por menor en kioscos y minimercados"
+              className={CAMPO}
+            />
+          </Campo>
+          <Campo etiqueta="Inicio de actividades">
+            <input
+              id={`editar-inicio-${empresa.id}`}
+              type="date"
+              value={ficha.inicio_actividades ?? ""}
+              onChange={(ev) =>
+                cambiar({ inicio_actividades: ev.target.value || null })
+              }
+              className={CAMPO}
+            />
+          </Campo>
+          <Campo etiqueta="Ingresos Brutos: régimen">
+            <select
+              id={`editar-iibb-regimen-${empresa.id}`}
+              value={ficha.iibb_regimen}
+              onChange={(ev) => cambiar({ iibb_regimen: ev.target.value })}
+              className={`${CAMPO} bg-white`}
+            >
+              <option value="">—</option>
+              <option>Convenio Multilateral</option>
+              <option>Contribuyente local</option>
+              <option>Régimen simplificado</option>
+              <option>Exento</option>
+              <option>No inscripto</option>
+            </select>
+          </Campo>
+          <Campo etiqueta="Ingresos Brutos: número">
+            <input
+              id={`editar-iibb-${empresa.id}`}
+              value={ficha.iibb_numero}
+              onChange={(ev) => cambiar({ iibb_numero: ev.target.value })}
+              className={CAMPO}
+            />
+          </Campo>
+        </fieldset>
+        <fieldset className="grid gap-3 sm:grid-cols-[2fr_1fr_1fr]">
+          <legend className="mb-1 text-xs font-semibold uppercase tracking-wide text-stone-500">
+            Domicilio y contacto
+          </legend>
+          <Campo etiqueta="Domicilio">
+            <input
+              id={`editar-domicilio-${empresa.id}`}
+              value={ficha.domicilio}
+              onChange={(ev) => cambiar({ domicilio: ev.target.value })}
+              placeholder="Calle y número"
+              className={CAMPO}
+            />
+          </Campo>
+          <Campo etiqueta="Localidad">
+            <input
+              id={`editar-localidad-${empresa.id}`}
+              value={ficha.localidad}
+              onChange={(ev) => cambiar({ localidad: ev.target.value })}
+              className={CAMPO}
+            />
+          </Campo>
+          <Campo etiqueta="Provincia">
+            <input
+              id={`editar-provincia-${empresa.id}`}
+              list="provincias-ficha"
+              value={ficha.provincia}
+              onChange={(ev) => cambiar({ provincia: ev.target.value })}
+              className={CAMPO}
+            />
+          </Campo>
+          <Campo etiqueta="Persona de contacto">
+            <input
+              id={`editar-contacto-${empresa.id}`}
+              value={ficha.contacto}
+              onChange={(ev) => cambiar({ contacto: ev.target.value })}
+              className={CAMPO}
+            />
+          </Campo>
+          <Campo etiqueta="Teléfono / WhatsApp">
+            <input
+              id={`editar-telefono-${empresa.id}`}
+              type="tel"
+              value={ficha.telefono}
+              onChange={(ev) => cambiar({ telefono: ev.target.value })}
+              placeholder="+54 9 388 …"
+              className={CAMPO}
+            />
+          </Campo>
+          <Campo etiqueta="Código postal">
+            <input
+              id={`editar-cp-${empresa.id}`}
+              value={ficha.codigo_postal}
+              onChange={(ev) => cambiar({ codigo_postal: ev.target.value })}
+              className={CAMPO}
+            />
+          </Campo>
+          <Campo etiqueta="Mail de contacto" ancho>
+            <input
+              id={`editar-mail-${empresa.id}`}
+              type="email"
+              value={ficha.email_contacto}
+              onChange={(ev) => cambiar({ email_contacto: ev.target.value })}
+              className={CAMPO}
+            />
+          </Campo>
+          <Campo etiqueta="Notas" ancho>
+            <textarea
+              id={`editar-notas-${empresa.id}`}
+              value={ficha.notas}
+              onChange={(ev) => cambiar({ notas: ev.target.value })}
+              rows={2}
+              className={CAMPO}
+            />
+          </Campo>
+        </fieldset>
+        <datalist id="provincias-ficha">
+          {Object.values(JURISDICCIONES).map((p) => (
+            <option key={p} value={p} />
+          ))}
+        </datalist>
         <button
           type="submit"
           disabled={trabajando}
-          className="rounded-md border border-marca px-3 py-1.5 font-medium text-marca hover:bg-marca-claro disabled:opacity-50"
+          className="rounded-md bg-marca px-4 py-2 font-medium text-white hover:opacity-90 disabled:opacity-50"
         >
-          Guardar cambios
+          Guardar ficha
         </button>
       </form>
 
@@ -354,6 +524,10 @@ export function AdminEmpresas({
   const [conUnidades, setConUnidades] = useState<string | null>(null);
   const [conImpuestos, setConImpuestos] = useState<string | null>(null);
   const [creando, setCreando] = useState(false);
+  const [planes, setPlanes] = useState<Record<string, PlanPago[]>>({});
+  useEffect(() => {
+    repo.planesPago().then(setPlanes, () => {});
+  }, [repo]);
   const [editando, setEditando] = useState<string | null>(null);
 
   async function crear(e: React.FormEvent) {
@@ -389,7 +563,7 @@ export function AdminEmpresas({
 
   return (
     <div className="mx-auto max-w-4xl space-y-6 px-4 py-8">
-      <ProximosVencimientos empresas={empresas} />
+      <ProximosVencimientos empresas={empresas} planes={planes} />
       <AlertasMonotributo repo={repo} empresas={empresas} onAbrir={onAbrir} />
       <Avisos repo={repo} empresas={empresas} />
       <section>
@@ -466,6 +640,17 @@ export function AdminEmpresas({
                   <div className="text-sm text-stone-500">
                     CUIT {cuitConGuiones(e.cuit)} · {e.condicion_iva}
                   </div>
+                  {(e.actividad || e.telefono || e.email_contacto) && (
+                    <div className="mt-0.5 truncate text-xs text-stone-500">
+                      {[
+                        e.actividad,
+                        e.telefono && `☎ ${e.telefono}`,
+                        e.email_contacto,
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </div>
+                  )}
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {sinLeer[e.id] ? (
@@ -485,7 +670,7 @@ export function AdminEmpresas({
                     onClick={() => setEditando(editando === e.id ? null : e.id)}
                     className="rounded-md px-3 py-1.5 text-sm text-stone-600 hover:bg-stone-100"
                   >
-                    {editando === e.id ? "Cerrar" : "Editar"}
+                    {editando === e.id ? "Cerrar ficha" : "Ficha"}
                   </button>
                   <button
                     type="button"

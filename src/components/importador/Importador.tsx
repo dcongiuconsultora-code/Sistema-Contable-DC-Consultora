@@ -12,6 +12,9 @@ import {
 } from "@/components/contabilidad/Contabilidad";
 import { Inventarios } from "@/components/inventarios/Inventarios";
 import { MenuPrincipal } from "@/components/importador/MenuPrincipal";
+import { AlertasCliente } from "@/components/planes/AlertasCliente";
+import { PlanesPago } from "@/components/planes/PlanesPago";
+import type { PlanPago } from "@/lib/vencimientos/vencimientos";
 import {
   CobrarPagar,
   type PedidoCobroPago,
@@ -81,7 +84,8 @@ type Seccion =
   | "contabilidad"
   | "caja"
   | "inventarios"
-  | "cuentasBancarias";
+  | "cuentasBancarias"
+  | "planes";
 
 // Saldos del último balance de la empresa de ejemplo (al 31/08/2026). El banco coincide con el
 // saldo inicial del resumen bancario de ejemplo; los sueldos a pagar son los de agosto.
@@ -299,6 +303,7 @@ export function Importador({
   const [cuentasBancarias, setCuentasBancarias] = useState<CuentaBancaria[]>(
     [],
   );
+  const [planes, setPlanes] = useState<PlanPago[]>([]);
   const [unidades, setUnidades] = useState<ConfigUnidades>(SIN_UNIDADES);
   const [cuitElegido, setCuitElegido] = useState<string | null>(null);
   const cuitCliente =
@@ -368,6 +373,7 @@ export function Importador({
         setInventarios(await repo.inventarios(empresaId));
         setIvaGuardadas(await repo.liquidacionesIva(empresaId));
         setCuentasBancarias(await repo.cuentasBancarias(empresaId));
+        setPlanes((await repo.planesPago(empresaId))[empresaId] ?? []);
         if (esMonotributo(condicionIva)) {
           const d = new Date();
           d.setMonth(d.getMonth() - 24);
@@ -807,7 +813,9 @@ export function Importador({
               },
               {
                 texto: "Impuestos",
-                activo: seccion === "arca" && pestana !== "unidades",
+                activo:
+                  (seccion === "arca" && pestana !== "unidades") ||
+                  seccion === "planes",
                 grupos: esMono
                   ? [
                       [
@@ -829,6 +837,15 @@ export function Importador({
                           {
                             texto: "Compras y gastos",
                             destino: { seccion: "arca", pestana: "compras" },
+                          },
+                        ],
+                      ],
+                      [
+                        "Planes de pago",
+                        [
+                          {
+                            texto: "Planes de pago (Mis Facilidades)",
+                            destino: { seccion: "planes" },
                           },
                         ],
                       ],
@@ -863,6 +880,15 @@ export function Importador({
                               seccion: "arca",
                               pestana: "deducciones",
                             },
+                          },
+                        ],
+                      ],
+                      [
+                        "Planes de pago",
+                        [
+                          {
+                            texto: "Planes de pago (Mis Facilidades)",
+                            destino: { seccion: "planes" },
                           },
                         ],
                       ],
@@ -1067,6 +1093,9 @@ export function Importador({
             Cargando los datos de {empresa}…
           </p>
         )}
+        {conexion && seccion === "inicio" && !cargando && (
+          <AlertasCliente empresa={empresaMono} planes={planes} />
+        )}
         {esMono && seccion === "inicio" && !cargando && (
           <Monotributo
             repo={conexion?.repo}
@@ -1189,6 +1218,28 @@ export function Importador({
             onBorrar={async (id) => {
               if (conexion) await conexion.repo.borrarCuentaBancaria(id);
               setCuentasBancarias((lista) => lista.filter((x) => x.id !== id));
+            }}
+          />
+        )}
+        {seccion === "planes" && !cargando && (
+          <PlanesPago
+            planes={planes}
+            puedeEditar={esEstudio}
+            onGuardar={async (p) => {
+              const id = conexion
+                ? await conexion.repo.guardarPlan(conexion.empresa.id, p)
+                : (p.id ?? crypto.randomUUID());
+              setPlanes((lista) => {
+                const i = lista.findIndex((x) => x.id === p.id);
+                const nuevo = { ...p, id };
+                return i >= 0
+                  ? lista.map((x, j) => (j === i ? nuevo : x))
+                  : [...lista, nuevo];
+              });
+            }}
+            onBorrar={async (id) => {
+              if (conexion) await conexion.repo.borrarPlan(id);
+              setPlanes((lista) => lista.filter((x) => x.id !== id));
             }}
           />
         )}

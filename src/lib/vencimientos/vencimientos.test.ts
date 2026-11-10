@@ -64,3 +64,49 @@ describe("vencimientos", () => {
     expect(r.lista.every((v) => v.fecha.startsWith("2026-12"))).toBe(true);
   });
 });
+
+describe("planes de pago", () => {
+  const plan = {
+    organismo: "ARCA",
+    numero: "K123",
+    descripcion: "IVA 2025",
+    cuotas: 6,
+    primeraCuota: "2026-10",
+    importeCuota: 50_000,
+    diaVencimiento: null,
+    cuotasPagadas: [1],
+    estado: "vigente" as const,
+  };
+
+  it("arma las cuotas con el día de Mis Facilidades del calendario", async () => {
+    const { cuotasDelPlan } = await import("./vencimientos");
+    const c = cuotasDelPlan(plan);
+    expect(c).toHaveLength(6);
+    expect(c[0]).toMatchObject({
+      numero: 1,
+      fecha: "2026-10-16",
+      pagada: true,
+    });
+    expect(c[1].fecha).toBe("2026-11-16");
+    expect(c[5].mes).toBe("2027-03");
+  });
+
+  it("las cuotas impagas entran en los vencimientos y reemplazan al aviso genérico", () => {
+    const empresa = { ...mono, impuestos: ["monotributo", "misFacilidades"] };
+    const { lista } = vencimientos([empresa], "2026-10-01", "2026-11-30", {
+      [empresa.id]: [plan],
+    });
+    const planes = lista.filter((v) => v.impuesto === "misFacilidades");
+    expect(planes.map((v) => [v.fecha, v.detalle])).toEqual([
+      ["2026-11-16", "ARCA plan K123: cuota 2 de 6 ($ 50.000,00)"],
+    ]);
+    expect(lista.some((v) => v.impuesto === "monotributo")).toBe(true);
+  });
+
+  it("detecta cuotas vencidas sin pagar", async () => {
+    const { cuotasVencidas } = await import("./vencimientos");
+    expect(
+      cuotasVencidas([plan], "2026-12-01").map((v) => v.cuota.numero),
+    ).toEqual([2]);
+  });
+});

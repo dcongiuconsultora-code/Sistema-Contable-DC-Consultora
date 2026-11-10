@@ -14,6 +14,7 @@ import type { Inventario } from "@/lib/inventarios/inventarios";
 import type { Plantilla } from "@/lib/avisos/avisos";
 import type { LiquidacionGuardada } from "@/lib/iva/liquidacion";
 import type { CuentaBancaria } from "@/lib/cuentas-bancarias/cuentas";
+import type { PlanPago } from "@/lib/vencimientos/vencimientos";
 import {
   comprobanteAFila,
   type DatosResumen,
@@ -41,7 +42,40 @@ export interface Empresa {
   impuestos?: string[] | null;
   categoria_monotributo?: string | null;
   actividad_monotributo?: "servicios" | "bienes" | null;
+  // Ficha del cliente
+  actividad?: string;
+  domicilio?: string;
+  localidad?: string;
+  provincia?: string;
+  codigo_postal?: string;
+  telefono?: string;
+  email_contacto?: string;
+  contacto?: string;
+  inicio_actividades?: string | null;
+  iibb_numero?: string;
+  iibb_regimen?: string;
+  notas?: string;
 }
+
+/** Campos de la ficha del cliente que se editan juntos. */
+export const CAMPOS_FICHA = [
+  "razon_social",
+  "cuit",
+  "condicion_iva",
+  "actividad",
+  "domicilio",
+  "localidad",
+  "provincia",
+  "codigo_postal",
+  "telefono",
+  "email_contacto",
+  "contacto",
+  "inicio_actividades",
+  "iibb_numero",
+  "iibb_regimen",
+  "notas",
+] as const;
+export type FichaEmpresa = Pick<Empresa, (typeof CAMPOS_FICHA)[number]>;
 
 /** Lo que el estudio completa al cerrar un ejercicio. */
 export interface DatosCierre {
@@ -143,7 +177,7 @@ export class Repositorio {
     const { data, error } = await this.db
       .from("empresas")
       .select(
-        "id, razon_social, cuit, condicion_iva, mes_cierre, impuestos, categoria_monotributo, actividad_monotributo",
+        "id, razon_social, cuit, condicion_iva, mes_cierre, impuestos, categoria_monotributo, actividad_monotributo, actividad, domicilio, localidad, provincia, codigo_postal, telefono, email_contacto, contacto, inicio_actividades, iibb_numero, iibb_regimen, notas",
       )
       .order("razon_social");
     fallar(error, "leer las empresas");
@@ -155,17 +189,14 @@ export class Repositorio {
       .from("empresas")
       .insert(e)
       .select(
-        "id, razon_social, cuit, condicion_iva, mes_cierre, impuestos, categoria_monotributo, actividad_monotributo",
+        "id, razon_social, cuit, condicion_iva, mes_cierre, impuestos, categoria_monotributo, actividad_monotributo, actividad, domicilio, localidad, provincia, codigo_postal, telefono, email_contacto, contacto, inicio_actividades, iibb_numero, iibb_regimen, notas",
       )
       .single();
     fallar(error, "crear la empresa");
     return data!;
   }
 
-  async editarEmpresa(
-    id: string,
-    cambios: Pick<Empresa, "razon_social" | "cuit" | "condicion_iva">,
-  ) {
+  async editarEmpresa(id: string, cambios: Partial<FichaEmpresa>) {
     const { error } = await this.db
       .from("empresas")
       .update(cambios)
@@ -269,6 +300,25 @@ export class Repositorio {
     const { error } = await this.db.from("indices_inflacion").upsert(filas);
     fallar(error, "guardar los índices");
     return filas.length;
+  }
+
+  /** Manda ahora los recordatorios de vencimientos (lo mismo que hace la tarea diaria). */
+  async mandarRecordatorios(): Promise<{
+    empresas: number;
+    avisos: number;
+    mails: number;
+    errores: string[];
+  }> {
+    const { data } = await this.db.auth.getSession();
+    const r = await fetch("/api/recordatorios", {
+      headers: { authorization: `Bearer ${data.session?.access_token ?? ""}` },
+    });
+    const cuerpo = await r.json().catch(() => ({}));
+    if (!r.ok)
+      throw new Error(
+        cuerpo.error ?? "No se pudieron mandar los recordatorios.",
+      );
+    return cuerpo;
   }
 
   /** El estudio crea (o renueva) la contraseña de un usuario invitado; devuelve la contraseña. */
@@ -456,6 +506,63 @@ export class Repositorio {
     for (const f of filas)
       r[f.empresa_id] = (r[f.empresa_id] ?? 0) + Number(f.total);
     return r;
+  }
+
+  // Planes de pago ------------------------------------------------------------------------------
+
+  /** Planes de pago de una empresa, o de todas (para el estudio) si no se indica. */
+  async planesPago(empresaId?: string): Promise<Record<string, PlanPago[]>> {
+    let consulta = this.db
+      .from("planes_pago")
+      .select(
+        "id, empresa_id, organismo, numero, descripcion, cuotas, primera_cuota, importe_cuota, dia_vencimiento, cuotas_pagadas, estado",
+      )
+      .order("creado_en");
+    if (empresaId) consulta = consulta.eq("empresa_id", empresaId);
+    const { data, error } = await consulta;
+    fallar(error, "leer los planes de pago");
+    const r: Record<string, PlanPago[]> = {};
+    for (const f of data ?? [])
+      (r[f.empresa_id] ??= []).push({
+        id: f.id,
+        organismo: f.organismo,
+        numero: f.numero,
+        descripcion: f.descripcion,
+        cuotas: f.cuotas,
+        primeraCuota: f.primera_cuota,
+        importeCuota: Number(f.importe_cuota),
+        diaVencimiento: f.dia_vencimiento,
+        cuotasPagadas: f.cuotas_pagadas ?? [],
+        estado: f.estado,
+      });
+    return r;
+  }
+
+  async guardarPlan(empresaId: string, p: PlanPago): Promise<string> {
+    const { data, error } = await this.db
+      .from("planes_pago")
+      .upsert({
+        ...(p.id ? { id: p.id } : {}),
+        empresa_id: empresaId,
+        organismo: p.organismo.trim() || "ARCA",
+        numero: p.numero.trim(),
+        descripcion: p.descripcion.trim(),
+        cuotas: p.cuotas,
+        primera_cuota: p.primeraCuota,
+        importe_cuota: p.importeCuota,
+        dia_vencimiento: p.diaVencimiento,
+        cuotas_pagadas: p.cuotasPagadas,
+        estado: p.estado,
+      })
+      .select("id")
+      .single();
+    fallar(error, "guardar el plan de pago");
+    return data!.id;
+  }
+
+  async borrarPlan(id: string) {
+    const { error } = await this.db.from("planes_pago").delete().eq("id", id);
+    fallar(error, "borrar el plan de pago");
   }
 
   // Cuentas bancarias y billeteras ---------------------------------------------------------------
