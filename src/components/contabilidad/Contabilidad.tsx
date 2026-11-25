@@ -8,7 +8,10 @@ import { EditorSaldos } from "@/components/tablero/Tablero";
 import { ImportarBalance } from "./ImportarBalance";
 import type { Asiento } from "@/lib/contabilidad/diario";
 import type { SaldosIniciales } from "@/lib/contabilidad/indicadores";
-import { resultadosMensuales } from "@/lib/contabilidad/sumas-saldos";
+import {
+  indicadoresMensuales,
+  resultadosMensuales,
+} from "@/lib/contabilidad/sumas-saldos";
 import type { Empresa, Repositorio } from "@/lib/datos/repositorio";
 import { fechaCorta, pesos } from "@/lib/formato";
 import type { ConfigUnidades } from "@/lib/unidades/unidades";
@@ -23,6 +26,7 @@ export type VistaContable =
   | "estados"
   | "axi"
   | "rt6"
+  | "cierre"
   | "saldos";
 
 /** Menú de Contabilidad: grupos y vistas (como en el encabezado). */
@@ -47,6 +51,7 @@ export const MENU_CONTABLE: [string, [VistaContable, string][]][] = [
     [
       ["estados", "Balance y estados (anual o intermedio)"],
       ["rt6", "Ajuste por inflación contable (RT 6)"],
+      ["cierre", "Cierre del ejercicio"],
     ],
   ],
   ["Configuración", [["saldos", "Ejercicio y saldos de inicio"]]],
@@ -87,12 +92,39 @@ const NOMBRES_MES = [
   "Dic",
 ];
 
+const porcentaje = (v: number | null) =>
+  v === null
+    ? "—"
+    : `${(v * 100).toLocaleString("es-AR", { maximumFractionDigits: 1 })} %`;
+const veces = (v: number | null) =>
+  v === null ? "—" : v.toLocaleString("es-AR", { maximumFractionDigits: 2 });
+
+/** Semáforo simple: verde si está bien, ámbar si conviene mirarlo, rojo si preocupa. */
+function color(clave: string, v: number | null) {
+  if (v === null) return "";
+  const bien =
+    clave === "margen"
+      ? v > 0.05
+      : clave === "endeudamiento"
+        ? v < 1
+        : v >= (clave === "liquidez" ? 1.5 : 1);
+  const mal =
+    clave === "margen"
+      ? v < 0
+      : clave === "endeudamiento"
+        ? v > 2
+        : v < (clave === "liquidez" ? 1 : 0.7);
+  return bien ? "text-emerald-700" : mal ? "text-red-700" : "text-amber-700";
+}
+
 function ResultadosMensuales({
   asientos,
+  iniciales,
   desde,
   hasta,
 }: {
   asientos: Asiento[];
+  iniciales: SaldosIniciales;
   desde: string;
   hasta: string;
 }) {
@@ -100,13 +132,71 @@ function ResultadosMensuales({
     () => resultadosMensuales(asientos, desde || "1900-01-01", hasta),
     [asientos, desde, hasta],
   );
+  const ind = useMemo(
+    () =>
+      iniciales.fecha
+        ? indicadoresMensuales(
+            asientos,
+            iniciales,
+            r.meses,
+            r.filas.find((f) => f.clave === "resultado")!.valores,
+            r.filas.find((f) => f.clave === "ventas")!.valores,
+            hasta,
+          )
+        : [],
+    [asientos, iniciales, r, hasta],
+  );
+  const filasInd: [
+    string,
+    string,
+    (i: (typeof ind)[number]) => string,
+    keyof (typeof ind)[number] | null,
+  ][] = [
+    [
+      "margen",
+      "Rentabilidad del mes (resultado / ventas)",
+      (i) => porcentaje(i.margen),
+      "margen",
+    ],
+    [
+      "liquidez",
+      "Liquidez corriente (AC / PC)",
+      (i) => veces(i.liquidez),
+      "liquidez",
+    ],
+    [
+      "acida",
+      "Prueba ácida (AC sin stock / PC)",
+      (i) => veces(i.pruebaAcida),
+      "pruebaAcida",
+    ],
+    [
+      "endeudamiento",
+      "Endeudamiento (pasivo / PN)",
+      (i) => veces(i.endeudamiento),
+      "endeudamiento",
+    ],
+    [
+      "capital",
+      "Capital de trabajo (AC − PC)",
+      (i) => pesos(i.capitalDeTrabajo),
+      null,
+    ],
+    [
+      "caja",
+      "Caja y bancos al fin del mes",
+      (i) => pesos(i.disponibilidades),
+      null,
+    ],
+  ];
   return (
     <div className="space-y-5">
       <section>
         <h1 className="text-2xl font-semibold">Resultados mensuales</h1>
         <p className="mt-1 max-w-3xl text-stone-600">
           El estado de resultados mes por mes, en cifras históricas, para ver
-          cómo viene el año y armar intermedios.
+          cómo viene el año y armar intermedios, con los indicadores de
+          rentabilidad y liquidez de cada mes.
         </p>
       </section>
       <section className="overflow-x-auto rounded-xl border border-stone-200 bg-white shadow-sm">
@@ -151,6 +241,47 @@ function ResultadosMensuales({
           </tbody>
         </table>
       </section>
+      {ind.length > 0 && (
+        <section className="overflow-x-auto rounded-xl border border-stone-200 bg-white shadow-sm">
+          <h3 className="px-3 pt-3 font-semibold">Rentabilidad y liquidez</h3>
+          <p className="px-3 text-xs text-stone-500">
+            Con los saldos acumulados al último día de cada mes. Verde: bien ·
+            ámbar: para mirar · rojo: preocupa.
+          </p>
+          <table className="mt-2 w-full text-sm">
+            <thead className="bg-stone-50 text-xs uppercase tracking-wide text-stone-500">
+              <tr>
+                <th className="sticky left-0 bg-stone-50 px-3 py-2 text-left">
+                  Indicador
+                </th>
+                {ind.map((i) => (
+                  <th key={i.mes} className="px-3 py-2 text-right">
+                    {NOMBRES_MES[Number(i.mes.slice(5)) - 1]}{" "}
+                    {i.mes.slice(2, 4)}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-stone-100">
+              {filasInd.map(([clave, nombre, texto, campo]) => (
+                <tr key={clave}>
+                  <td className="sticky left-0 whitespace-nowrap bg-white px-3 py-1.5">
+                    {nombre}
+                  </td>
+                  {ind.map((i) => (
+                    <td
+                      key={i.mes}
+                      className={`cifra whitespace-nowrap px-3 py-1.5 ${campo ? color(campo, i[campo] as number | null) : ""}`}
+                    >
+                      {texto(i)}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+      )}
     </div>
   );
 }
@@ -218,7 +349,10 @@ export function Contabilidad({
         </label>
         <label className="block text-sm">
           <span className="text-stone-600">
-            {vista === "estados" || vista === "axi" || vista === "rt6"
+            {vista === "estados" ||
+            vista === "axi" ||
+            vista === "rt6" ||
+            vista === "cierre"
               ? "Cierre (anual o intermedio)"
               : "Hasta"}
           </span>
@@ -281,10 +415,14 @@ export function Contabilidad({
       ) : vista === "mensuales" ? (
         <ResultadosMensuales
           asientos={asientos}
+          iniciales={iniciales}
           desde={desdeEfectivo}
           hasta={hasta}
         />
-      ) : vista === "estados" || vista === "axi" || vista === "rt6" ? (
+      ) : vista === "estados" ||
+        vista === "axi" ||
+        vista === "rt6" ||
+        vista === "cierre" ? (
         <Balance
           key={vista}
           modo={vista}
@@ -295,6 +433,28 @@ export function Contabilidad({
           iniciales={iniciales}
           cierre={hasta}
           onCierre={setHasta}
+          onIniciales={
+            vista === "cierre"
+              ? async (s) => {
+                  // Se guardan los saldos de inicio del ejercicio que se cierra, por las dudas.
+                  if (repo) {
+                    const previo =
+                      (await repo
+                        .cierre(empresa.id, s.fecha)
+                        .catch(() => null)) ?? {};
+                    await repo
+                      .guardarCierre(empresa.id, s.fecha, {
+                        ...previo,
+                        saldosInicioEjercicio: iniciales,
+                      })
+                      .catch(() => {});
+                  }
+                  onIniciales(s);
+                  setDesde(sumarDias(s.fecha, 1));
+                  setHasta(finDeEjercicio(s.fecha));
+                }
+              : undefined
+          }
         />
       ) : (
         <LibroDiario

@@ -16,7 +16,14 @@ export interface Asiento {
   /** Solo los asientos manuales, para poder borrarlos. */
   id?: string;
   fecha: string;
-  origen: "ARCA" | "Cliente" | "Banco" | "Manual" | "Cierre" | "Apertura";
+  origen:
+    | "ARCA"
+    | "Cliente"
+    | "Banco"
+    | "Manual"
+    | "Cierre"
+    | "Apertura"
+    | "Impuestos";
   descripcion: string;
   lineas: LineaAsiento[];
   /** Unidad de negocio; null = de toda la empresa (o compartido entre unidades). */
@@ -134,6 +141,8 @@ export interface FuentesDiario {
   unidades?: ConfigUnidades;
   /** Asientos que cargó el estudio a mano. */
   manuales?: Asiento[];
+  /** Asientos automáticos de las liquidaciones de impuestos (IVA, IIBB). */
+  impuestos?: Asiento[];
 }
 
 /** Libro diario con todo lo que entró al sistema, ordenado por fecha. */
@@ -165,6 +174,7 @@ export function generarDiario(f: FuentesDiario): Asiento[] {
       })
       .filter((a): a is Asiento => a !== null),
     ...(f.manuales ?? []),
+    ...(f.impuestos ?? []),
   ];
   return asientos.sort((a, b) => a.fecha.localeCompare(b.fecha));
 }

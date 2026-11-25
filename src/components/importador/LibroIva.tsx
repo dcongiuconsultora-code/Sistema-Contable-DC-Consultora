@@ -1,6 +1,7 @@
 "use client";
 
-import { Fragment, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
+import { claveArca, posiblesDuplicados } from "@/lib/arca/duplicados";
 import { queHacer } from "@/lib/arca/advertencias";
 import type { Comprobante } from "@/lib/arca/tipos";
 import { claveTasa, totalesLibro } from "@/lib/iva/liquidacion";
@@ -13,6 +14,8 @@ interface Props {
   simple?: boolean;
   /** Botón por comprobante: registrar su cobro o su pago. */
   accion?: { texto: string; onClick: (c: Comprobante) => void };
+  /** Quitar un comprobante (solo el estudio, para los duplicados). */
+  onQuitar?: (c: Comprobante) => void;
 }
 
 function BotonAccion({
@@ -124,7 +127,90 @@ function DetalleRevisar({ c, columnas }: { c: Comprobante; columnas: number }) {
   );
 }
 
-export function LibroIva({ titulo, comprobantes, simple, accion }: Props) {
+function AvisoDuplicados({
+  comprobantes,
+  onQuitar,
+}: {
+  comprobantes: Comprobante[];
+  onQuitar?: (c: Comprobante) => void;
+}) {
+  const grupos = useMemo(
+    () => posiblesDuplicados(comprobantes),
+    [comprobantes],
+  );
+  if (!grupos.length) return null;
+  return (
+    <section className="mb-4 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950">
+      <h3 className="font-semibold">
+        ⚠{" "}
+        {grupos.length === 1
+          ? "Un posible duplicado"
+          : `${grupos.length} posibles duplicados`}
+      </h3>
+      <p className="mt-1">
+        Mismo CUIT, misma fecha y mismo total con distinto número o tipo. Puede
+        ser la misma factura cargada dos veces (por ejemplo, un ticket y después
+        desde ARCA). Si es así, quitá la que sobra.
+      </p>
+      <ul className="mt-3 space-y-3">
+        {grupos.map((g) => (
+          <li
+            key={claveArca(g[0])}
+            className="rounded-lg border border-amber-200 bg-white p-3"
+          >
+            <div className="font-medium">
+              {g[0].contraparte || cuitConGuiones(g[0].cuitContraparte)} ·{" "}
+              {fechaCorta(g[0].fecha)} · {pesos(g[0].total)}
+            </div>
+            <ul className="mt-1 divide-y divide-stone-100">
+              {g.map((c) => (
+                <li
+                  key={claveArca(c)}
+                  className="flex flex-wrap items-center justify-between gap-2 py-1"
+                >
+                  <span>
+                    {c.tipoNombre} {String(c.puntoVenta).padStart(5, "0")}-
+                    {String(c.numeroDesde).padStart(8, "0")}
+                  </span>
+                  {onQuitar && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (
+                          confirm(
+                            `¿Quitar ${c.tipoNombre} ${String(c.puntoVenta).padStart(5, "0")}-${String(c.numeroDesde).padStart(8, "0")}? Deja de estar en el libro IVA y en la contabilidad.`,
+                          )
+                        )
+                          onQuitar(c);
+                      }}
+                      className="rounded-md border border-red-200 px-2 py-0.5 text-xs text-red-700 hover:bg-red-50"
+                    >
+                      Quitar este
+                    </button>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+export function LibroIva(props: Props) {
+  return (
+    <>
+      <AvisoDuplicados
+        comprobantes={props.comprobantes}
+        onQuitar={props.onQuitar}
+      />
+      <TablaLibroIva {...props} />
+    </>
+  );
+}
+
+function TablaLibroIva({ titulo, comprobantes, simple, accion }: Props) {
   const [abiertos, setAbiertos] = useState<Set<number>>(new Set());
   const [soloRevisar, setSoloRevisar] = useState(false);
   const paraRevisar = comprobantes.filter((c) => c.advertencias.length).length;

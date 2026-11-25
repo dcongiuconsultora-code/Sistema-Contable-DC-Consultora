@@ -4,7 +4,7 @@ import {
   PLAN_MODELO,
 } from "@/lib/plan/plan";
 import type { Asiento } from "./diario";
-import type { SaldosIniciales } from "./indicadores";
+import { balance, mayor, type SaldosIniciales } from "./indicadores";
 
 export interface FilaSumasSaldos {
   codigo: string;
@@ -405,4 +405,47 @@ export function cajaDiaria(
     salidas: redondear(lista.reduce((s, d) => s + d.salidas, 0)),
     final: saldo,
   };
+}
+
+export interface IndicadoresMes {
+  mes: string;
+  /** Resultado del mes sobre ventas netas del mes (null sin ventas). */
+  margen: number | null;
+  /** Activo corriente / pasivo corriente al fin del mes. */
+  liquidez: number | null;
+  /** (Activo corriente − bienes de cambio) / pasivo corriente. */
+  pruebaAcida: number | null;
+  /** Pasivo total / patrimonio neto. */
+  endeudamiento: number | null;
+  disponibilidades: number;
+  capitalDeTrabajo: number;
+}
+
+/** Rentabilidad y liquidez mes a mes, con los saldos acumulados al último día de cada mes. */
+export function indicadoresMensuales(
+  asientos: Asiento[],
+  iniciales: SaldosIniciales,
+  meses: string[],
+  resultado: number[],
+  ventas: number[],
+  hasta: string,
+): IndicadoresMes[] {
+  const div = (a: number, b: number) =>
+    Math.abs(b) < 0.005 ? null : Math.round((a / b) * 1000) / 1000;
+  return meses.map((mes, i) => {
+    const [a, m] = mes.split("-").map(Number);
+    let fin = `${mes}-${String(new Date(Date.UTC(a, m, 0)).getUTCDate()).padStart(2, "0")}`;
+    if (fin > hasta) fin = hasta;
+    const b = balance(mayor(asientos, iniciales, fin));
+    const pasivo = b.pasivoCorriente + b.pasivoNoCorriente;
+    return {
+      mes,
+      margen: div(resultado[i], ventas[i]),
+      liquidez: div(b.activoCorriente, b.pasivoCorriente),
+      pruebaAcida: div(b.activoCorriente - b.bienesDeCambio, b.pasivoCorriente),
+      endeudamiento: div(pasivo, b.patrimonioNeto),
+      disponibilidades: b.disponibilidades,
+      capitalDeTrabajo: redondear(b.activoCorriente - b.pasivoCorriente),
+    };
+  });
 }

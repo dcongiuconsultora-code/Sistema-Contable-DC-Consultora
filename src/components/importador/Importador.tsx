@@ -55,10 +55,18 @@ import type { Comprobante } from "@/lib/arca/tipos";
 import type { Movimiento } from "@/lib/movimientos/tipos";
 import { LibroIva } from "./LibroIva";
 import { PanelLiquidacion } from "./PanelLiquidacion";
+import { PanelIibb } from "./PanelIibb";
+import {
+  asientoIibb,
+  asientoLiquidacionIva,
+  type DatosIibb,
+  encadenarIibb,
+} from "@/lib/impuestos/asientos";
 import { TablaDeducciones } from "./TablaDeducciones";
 import { ZonaArchivo } from "./ZonaArchivo";
 import { type ArchivoDeducciones, ZonaDeducciones } from "./ZonaDeducciones";
-import { deduccionesIva } from "@/lib/arca/retenciones";
+import { deduccionesIibb, deduccionesIva } from "@/lib/arca/retenciones";
+import { compararImportacion } from "@/lib/arca/duplicados";
 import type { ResultadoImportacion } from "@/lib/arca/tipos";
 import {
   comprobantesDelPeriodo,
@@ -296,9 +304,14 @@ export function Importador({
     Record<string, LiquidacionGuardada>
   >({});
   const temporizadorIva = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const temporizadorIibb = useRef<ReturnType<typeof setTimeout>>(undefined);
   const [tickets, setTickets] = useState<TicketCargado[]>([]);
   const [movimientos, setMovimientos] = useState<Movimiento[]>([]);
   const [manuales, setManuales] = useState<Asiento[]>([]);
+  const [avisoImportacion, setAvisoImportacion] = useState<string | null>(null);
+  const [iibbGuardadas, setIibbGuardadas] = useState<Record<string, DatosIibb>>(
+    {},
+  );
   const [inventarios, setInventarios] = useState<Inventario[]>([]);
   const [cuentasBancarias, setCuentasBancarias] = useState<CuentaBancaria[]>(
     [],
@@ -372,6 +385,9 @@ export function Importador({
         setManuales(await repo.asientosManuales(empresaId));
         setInventarios(await repo.inventarios(empresaId));
         setIvaGuardadas(await repo.liquidacionesIva(empresaId));
+        setIibbGuardadas(
+          await repo.liquidacionesIibb(empresaId).catch(() => ({})),
+        );
         setCuentasBancarias(await repo.cuentasBancarias(empresaId));
         setPlanes((await repo.planesPago(empresaId))[empresaId] ?? []);
         if (esMonotributo(condicionIva)) {
@@ -425,16 +441,38 @@ export function Importador({
   const importarComprobantes =
     (operacion: "ventas" | "compras") =>
     (r: ResultadoImportacion | null, nombre?: string) => {
+      if (!r) setAvisoImportacion(null);
+      else {
+        const actuales =
+          (operacion === "ventas" ? ventas : compras)?.comprobantes ?? [];
+        const cmp = compararImportacion(actuales, r.comprobantes);
+        r = { ...r, comprobantes: cmp.unicos };
+        const partes = [
+          `${cmp.nuevos} ${cmp.nuevos === 1 ? "comprobante nuevo" : "comprobantes nuevos"}`,
+        ];
+        if (cmp.yaEstaban)
+          partes.push(
+            `${cmp.yaEstaban} ya ${cmp.yaEstaban === 1 ? "estaba cargado" : "estaban cargados"} (no se duplicaron)`,
+          );
+        if (cmp.repetidosEnArchivo)
+          partes.push(
+            `${cmp.repetidosEnArchivo} ${cmp.repetidosEnArchivo === 1 ? "venía repetido" : "venían repetidos"} en el mismo archivo (se tomó una sola vez)`,
+          );
+        setAvisoImportacion(
+          `${operacion === "ventas" ? "Ventas" : "Compras"}: ${partes.join(", ")}.`,
+        );
+      }
       if (!repo || !empresaId || !r)
         return operacion === "ventas" ? setVentas(r) : setCompras(r);
+      const resultado = r;
       guardar(async () => {
         await repo.guardarComprobantes(
           empresaId,
           operacion,
-          r.comprobantes,
+          resultado.comprobantes,
           nombre ?? "archivo",
         );
-        await recargar({ operacion, resultado: r });
+        await recargar({ operacion, resultado });
       });
     };
 
@@ -577,81 +615,6 @@ export function Importador({
         : null,
     [resumenBanco, movimientos, conocidos],
   );
-  const asientos = useMemo(() => {
-    const cuentaBanco = new Map(
-      resumenBanco?.cuentas.map((c) => [
-        c.numero,
-        /AHORRO/i.test(c.tipo) ? "1.1.01.007" : "1.1.01.006",
-      ]),
-    );
-    return generarDiario({
-      ventas: ventas?.comprobantes ?? [],
-      compras: [...(compras?.comprobantes ?? []), ...ticketsPendientes],
-      movimientos,
-      banco: (conciliacion?.filas ?? []).map((fila) => ({
-        fila,
-        cuentaBanco: cuentaBanco.get(fila.cuenta) ?? "1.1.01.006",
-      })),
-      unidades,
-      manuales,
-    });
-  }, [
-    manuales,
-    unidades,
-    ventas,
-    compras,
-    ticketsPendientes,
-    movimientos,
-    conciliacion,
-    resumenBanco,
-  ]);
-  const alertas: Alertas = {
-    observados: movimientos.filter((m) => m.estado === "observado").length,
-    sinAprobar: movimientos.filter((m) => m.estado === "enviado").length,
-    cobrosVencidos: ctasClientes
-      .flatMap((c) => c.pendientes)
-      .filter((p) => p.dias > 60)
-      .reduce(
-        (t, p) => ({
-          cantidad: t.cantidad + 1,
-          importe: t.importe + p.pendiente,
-        }),
-        { cantidad: 0, importe: 0 },
-      ),
-    bancoSinRegistrar: conciliacion?.totales.sin_registrar.cantidad ?? 0,
-    bancoSugeridos: conciliacion?.totales.sugerido.cantidad ?? 0,
-    ticketsPendientes: ticketsPendientes.length,
-  };
-  const empresa = conexion
-    ? conexion.empresa.razon_social
-    : resumenBanco?.titular
-      ? titulo(resumenBanco.titular)
-      : "tu empresa";
-  const empresaDatos: Empresa = conexion?.empresa ?? {
-    id: "prototipo",
-    razon_social: empresa,
-    cuit: cuitCliente,
-    condicion_iva: "Responsable inscripto",
-  };
-
-  const registrarDesdeBanco = (registrados: Movimiento[]) => {
-    // Lo que identifica el cliente desde el banco lo revisa el estudio, como cualquier otro movimiento.
-    const nuevos =
-      conexion?.rol === "cliente"
-        ? registrados.map((m) => ({
-            ...m,
-            estado: "enviado" as const,
-            origen: "cliente" as const,
-          }))
-        : registrados;
-    const ids = new Set(nuevos.map((m) => m.id));
-    actualizarMovimientos(
-      [...movimientos.filter((m) => !ids.has(m.id)), ...nuevos].sort((a, b) =>
-        b.fecha.localeCompare(a.fecha),
-      ),
-    );
-  };
-
   const deducciones = useMemo(
     () => archivosDeducciones.flatMap((a) => a.resultado.deducciones),
     [archivosDeducciones],
@@ -726,7 +689,113 @@ export function Importador({
       ivaGuardadas,
     ],
   );
+  const cadenaIibb = useMemo(
+    () => encadenarIibb(iibbGuardadas),
+    [iibbGuardadas],
+  );
+
+  const asientos = useMemo(() => {
+    const cuentaBanco = new Map(
+      resumenBanco?.cuentas.map((c) => [
+        c.numero,
+        /AHORRO/i.test(c.tipo) ? "1.1.01.007" : "1.1.01.006",
+      ]),
+    );
+    return generarDiario({
+      ventas: ventas?.comprobantes ?? [],
+      compras: [...(compras?.comprobantes ?? []), ...ticketsPendientes],
+      movimientos,
+      banco: (conciliacion?.filas ?? []).map((fila) => ({
+        fila,
+        cuentaBanco: cuentaBanco.get(fila.cuenta) ?? "1.1.01.006",
+      })),
+      unidades,
+      manuales,
+      impuestos: esMono
+        ? []
+        : [
+            ...[...cadenaIva.values()].map(asientoLiquidacionIva),
+            ...[...cadenaIibb.values()].map(asientoIibb),
+          ].filter((a): a is Asiento => a !== null),
+    });
+  }, [
+    esMono,
+    cadenaIva,
+    cadenaIibb,
+    manuales,
+    unidades,
+    ventas,
+    compras,
+    ticketsPendientes,
+    movimientos,
+    conciliacion,
+    resumenBanco,
+  ]);
+  const alertas: Alertas = {
+    observados: movimientos.filter((m) => m.estado === "observado").length,
+    sinAprobar: movimientos.filter((m) => m.estado === "enviado").length,
+    cobrosVencidos: ctasClientes
+      .flatMap((c) => c.pendientes)
+      .filter((p) => p.dias > 60)
+      .reduce(
+        (t, p) => ({
+          cantidad: t.cantidad + 1,
+          importe: t.importe + p.pendiente,
+        }),
+        { cantidad: 0, importe: 0 },
+      ),
+    bancoSinRegistrar: conciliacion?.totales.sin_registrar.cantidad ?? 0,
+    bancoSugeridos: conciliacion?.totales.sugerido.cantidad ?? 0,
+    ticketsPendientes: ticketsPendientes.length,
+  };
+  const empresa = conexion
+    ? conexion.empresa.razon_social
+    : resumenBanco?.titular
+      ? titulo(resumenBanco.titular)
+      : "tu empresa";
+  const empresaDatos: Empresa = conexion?.empresa ?? {
+    id: "prototipo",
+    razon_social: empresa,
+    cuit: cuitCliente,
+    condicion_iva: "Responsable inscripto",
+  };
+
+  const registrarDesdeBanco = (registrados: Movimiento[]) => {
+    // Lo que identifica el cliente desde el banco lo revisa el estudio, como cualquier otro movimiento.
+    const nuevos =
+      conexion?.rol === "cliente"
+        ? registrados.map((m) => ({
+            ...m,
+            estado: "enviado" as const,
+            origen: "cliente" as const,
+          }))
+        : registrados;
+    const ids = new Set(nuevos.map((m) => m.id));
+    actualizarMovimientos(
+      [...movimientos.filter((m) => !ids.has(m.id)), ...nuevos].sort((a, b) =>
+        b.fecha.localeCompare(a.fecha),
+      ),
+    );
+  };
+
   const ivaPeriodo = periodo ? cadenaIva.get(periodo) : undefined;
+  const guardarIibb = (p: string, d: DatosIibb | null) => {
+    setIibbGuardadas((actual) => {
+      const nuevo = { ...actual };
+      if (d) nuevo[p] = d;
+      else delete nuevo[p];
+      return nuevo;
+    });
+    if (!repo || !empresaId) return;
+    clearTimeout(temporizadorIibb.current);
+    temporizadorIibb.current = setTimeout(() => {
+      repo
+        .guardarLiquidacionIibb(empresaId, p, d)
+        .catch((e) =>
+          setErrorDatos(e instanceof Error ? e.message : String(e)),
+        );
+    }, 600);
+  };
   const guardarIva = (p: string, g: LiquidacionGuardada) => {
     setIvaGuardadas((actual) => ({ ...actual, [p]: g }));
     if (!repo || !empresaId) return;
@@ -1350,6 +1419,11 @@ export function Importador({
           <section
             className={`grid gap-4 ${esMono ? "lg:grid-cols-2" : "lg:grid-cols-3"}`}
           >
+            {avisoImportacion && (
+              <p className="rounded-md bg-emerald-50 p-3 text-sm text-emerald-900 lg:col-span-full">
+                ✓ {avisoImportacion}
+              </p>
+            )}
             <ZonaArchivo
               operacion="ventas"
               resultado={ventas}
@@ -1411,6 +1485,19 @@ export function Importador({
                   titulo={`${esMono ? "Ventas" : "Libro IVA Ventas"} · ${nombrePeriodo(periodo)}`}
                   comprobantes={ventasPeriodo}
                   simple={esMono}
+                  onQuitar={
+                    esEstudio && repo && empresaId
+                      ? (c) =>
+                          guardar(async () => {
+                            await repo.borrarComprobante(
+                              empresaId,
+                              "ventas",
+                              c,
+                            );
+                            await recargar();
+                          })
+                      : undefined
+                  }
                   accion={{
                     texto: "Cobrar",
                     onClick: (c) =>
@@ -1430,6 +1517,19 @@ export function Importador({
                   titulo={`${esMono ? "Compras y gastos" : "Libro IVA Compras"} · ${nombrePeriodo(periodo)}`}
                   comprobantes={comprasPeriodo}
                   simple={esMono}
+                  onQuitar={
+                    esEstudio && repo && empresaId
+                      ? (c) =>
+                          guardar(async () => {
+                            await repo.borrarComprobante(
+                              empresaId,
+                              "compras",
+                              c,
+                            );
+                            await recargar();
+                          })
+                      : undefined
+                  }
                   accion={{
                     texto: "Pagar",
                     onClick: (c) =>
@@ -1495,6 +1595,19 @@ export function Importador({
                     });
                   }}
                 />
+              )}
+              {pestana === "liquidacion" && !esMono && periodo && (
+                <div className="mt-4">
+                  <PanelIibb
+                    key={periodo}
+                    periodo={periodo}
+                    guardada={iibbGuardadas[periodo]}
+                    cadena={cadenaIibb.get(periodo)}
+                    desdeArchivos={deduccionesIibb(deducciones, periodo)}
+                    puedeEditar={conexion?.rol !== "cliente"}
+                    onGuardar={(d) => guardarIibb(periodo, d)}
+                  />
+                </div>
               )}
             </section>
           )}

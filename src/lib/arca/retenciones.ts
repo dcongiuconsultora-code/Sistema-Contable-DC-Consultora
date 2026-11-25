@@ -240,3 +240,22 @@ export function deduccionesIva(deducciones: Deduccion[], periodo: string) {
     retenciones: Math.round(retenciones * 100) / 100,
   };
 }
+
+/** Retenciones, percepciones y SIRCREB de Ingresos Brutos de un mes (todas las jurisdicciones). */
+export function deduccionesIibb(deducciones: Deduccion[], periodo: string) {
+  let retenciones = 0;
+  let percepciones = 0;
+  let sircreb = 0;
+  for (const d of deducciones) {
+    if (d.impuesto !== "IIBB" || d.periodo !== periodo) continue;
+    if (d.origen === "SIRCREB") sircreb += d.importe;
+    else if (d.tipo === "percepcion") percepciones += d.importe;
+    else retenciones += d.importe;
+  }
+  const r = (n: number) => Math.round(n * 100) / 100;
+  return {
+    retenciones: r(retenciones),
+    percepciones: r(percepciones),
+    sircreb: r(sircreb),
+  };
+}

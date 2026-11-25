@@ -23,6 +23,7 @@ import {
 } from "@/lib/inflacion/indices";
 import { nombreCuenta } from "@/lib/plan/plan";
 import { AxiImpositivo } from "./AxiImpositivo";
+import { CierreEjercicio } from "./CierreEjercicio";
 import {
   existenciaAFecha,
   type Inventario,
@@ -326,6 +327,7 @@ export function Balance({
   modo = "estados",
   cierre: cierreElegido,
   onCierre,
+  onIniciales,
 }: {
   repo?: Repositorio;
   empresa: Empresa;
@@ -334,7 +336,9 @@ export function Balance({
   inventarios?: Inventario[];
   iniciales: SaldosIniciales;
   /** Estados contables o papel de trabajo del ajuste por inflación impositivo. */
-  modo?: "estados" | "axi" | "rt6";
+  modo?: "estados" | "axi" | "rt6" | "cierre";
+  /** Para "cerrar el ejercicio y abrir el siguiente". */
+  onIniciales?: (s: SaldosIniciales) => void;
   /** Fecha de cierre elegida en la barra de Contabilidad (anual o intermedio). */
   cierre?: string;
   onCierre?: (fecha: string) => void;
@@ -519,14 +523,18 @@ export function Balance({
             ? "Ajuste por inflación impositivo"
             : modo === "rt6"
               ? "Ajuste por inflación contable (RT 6)"
-              : "Estados contables"}
+              : modo === "cierre"
+                ? "Cierre del ejercicio"
+                : "Estados contables"}
         </h1>
         <p className="mt-1 max-w-3xl text-stone-600">
           {modo === "axi"
             ? "Papel de trabajo para Ganancias, con el IPC, a la fecha de cierre elegida arriba."
-            : modo === "rt6"
-              ? "Reexpresión de los estados en moneda de cierre con los índices FACPCE: cuánto se ajusta cada cuenta no monetaria, el RECPAM y el asiento. Es el mismo ajuste que va en el balance."
-              : "Balance anual o intermedio (según la fecha de cierre de arriba) con el modelo de la RT 54: situación patrimonial, resultados, evolución del patrimonio neto, flujo de efectivo, anexos y notas, en moneda homogénea (RT 6) con los índices de la FACPCE."}
+            : modo === "cierre"
+              ? "Asientos de ajuste, refundición y cierre a la fecha de cierre, con los mismos saldos del balance. Al final, se cierra el ejercicio y se abre el siguiente."
+              : modo === "rt6"
+                ? "Reexpresión de los estados en moneda de cierre con los índices FACPCE: cuánto se ajusta cada cuenta no monetaria, el RECPAM y el asiento. Es el mismo ajuste que va en el balance."
+                : "Balance anual o intermedio (según la fecha de cierre de arriba) con el modelo de la RT 54: situación patrimonial, resultados, evolución del patrimonio neto, flujo de efectivo, anexos y notas, en moneda homogénea (RT 6) con los índices de la FACPCE."}
         </p>
       </section>
 
@@ -536,7 +544,10 @@ export function Balance({
           de inicio”. Son el punto de partida del ejercicio.
         </p>
       ) : (
-        <div className="grid gap-4 lg:grid-cols-3" hidden={modo !== "estados"}>
+        <div
+          className="grid gap-4 lg:grid-cols-3"
+          hidden={modo !== "estados" && modo !== "cierre"}
+        >
           <section className="space-y-3 rounded-xl border border-stone-200 bg-white p-5 shadow-sm">
             <h3 className="font-semibold">Ejercicio</h3>
             <p className="text-sm text-stone-600">
@@ -644,6 +655,13 @@ export function Balance({
         </div>
       )}
 
+      {estados && modo === "cierre" && (
+        <CierreEjercicio
+          e={estados}
+          onIniciales={onIniciales}
+          puedeCerrar={Boolean(onIniciales)}
+        />
+      )}
       {estados && modo === "rt6" && (
         <AjusteContable e={estados} homogenea={homogenea} />
       )}

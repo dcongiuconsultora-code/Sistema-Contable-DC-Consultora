@@ -12,6 +12,7 @@ import type { Asiento } from "@/lib/contabilidad/diario";
 import { nombreCuenta } from "@/lib/plan/plan";
 import type { Inventario } from "@/lib/inventarios/inventarios";
 import type { Plantilla } from "@/lib/avisos/avisos";
+import type { DatosIibb } from "@/lib/impuestos/asientos";
 import type { LiquidacionGuardada } from "@/lib/iva/liquidacion";
 import type { CuentaBancaria } from "@/lib/cuentas-bancarias/cuentas";
 import type { PlanPago } from "@/lib/vencimientos/vencimientos";
@@ -87,6 +88,8 @@ export interface DatosCierre {
   axi?: CorreccionesAxi;
   /** Cuenta del plan elegida para cada renglón del balance importado (para el año siguiente). */
   mapeoApertura?: Record<string, string>;
+  /** Saldos de inicio con que se armó este ejercicio (se guardan al cerrarlo, para poder volver). */
+  saldosInicioEjercicio?: { fecha: string; saldos: Record<string, number> };
 }
 
 export interface Mensaje {
@@ -667,6 +670,37 @@ export class Repositorio {
     fallar(error, "guardar la liquidación de IVA");
   }
 
+  async liquidacionesIibb(
+    empresaId: string,
+  ): Promise<Record<string, DatosIibb>> {
+    const { data, error } = await this.db
+      .from("liquidaciones_iibb")
+      .select("periodo, datos")
+      .eq("empresa_id", empresaId);
+    fallar(error, "leer las DDJJ de Ingresos Brutos");
+    return Object.fromEntries((data ?? []).map((f) => [f.periodo, f.datos]));
+  }
+
+  async guardarLiquidacionIibb(
+    empresaId: string,
+    periodo: string,
+    datos: DatosIibb | null,
+  ) {
+    const { error } = datos
+      ? await this.db.from("liquidaciones_iibb").upsert({
+          empresa_id: empresaId,
+          periodo,
+          datos,
+          actualizado_en: new Date().toISOString(),
+        })
+      : await this.db
+          .from("liquidaciones_iibb")
+          .delete()
+          .eq("empresa_id", empresaId)
+          .eq("periodo", periodo);
+    fallar(error, "guardar la DDJJ de Ingresos Brutos");
+  }
+
   // Parámetros del estudio ---------------------------------------------------------------------
 
   async parametro<T>(clave: string): Promise<T | null> {
@@ -1034,6 +1068,24 @@ export class Repositorio {
         });
       fallar(error, "guardar los comprobantes");
     }
+  }
+
+  /** Quita un comprobante cargado (por ejemplo, uno duplicado). Solo el estudio. */
+  async borrarComprobante(
+    empresaId: string,
+    operacion: Operacion,
+    c: Comprobante,
+  ) {
+    const { error } = await this.db
+      .from("comprobantes")
+      .delete()
+      .eq("empresa_id", empresaId)
+      .eq("operacion", operacion)
+      .eq("tipo_codigo", c.tipoCodigo)
+      .eq("punto_venta", c.puntoVenta)
+      .eq("numero_desde", c.numeroDesde)
+      .eq("cuit_contraparte", c.cuitContraparte);
+    fallar(error, "quitar el comprobante");
   }
 
   async guardarDeducciones(

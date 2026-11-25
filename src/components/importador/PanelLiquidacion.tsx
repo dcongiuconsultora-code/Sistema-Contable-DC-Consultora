@@ -7,6 +7,8 @@ import type {
   PeriodoIva,
 } from "@/lib/iva/liquidacion";
 import { pesos, tasaTexto } from "@/lib/formato";
+import { asientoLiquidacionIva } from "@/lib/impuestos/asientos";
+import { AsientoPrevio } from "./PanelIibb";
 
 interface Props {
   ventas: Comprobante[];
@@ -249,6 +251,7 @@ export function PanelLiquidacion({
           etiqueta="Saldo de libre disponibilidad"
           valor={liq.saldoLibreDisponibilidad}
         />
+        <AsientoPrevio asiento={asientoLiquidacionIva(periodoIva)} />
       </div>
     </div>
   );
