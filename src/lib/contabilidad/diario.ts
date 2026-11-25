@@ -16,7 +16,7 @@ export interface Asiento {
   /** Solo los asientos manuales, para poder borrarlos. */
   id?: string;
   fecha: string;
-  origen: "ARCA" | "Cliente" | "Banco" | "Manual" | "Cierre";
+  origen: "ARCA" | "Cliente" | "Banco" | "Manual" | "Cierre" | "Apertura";
   descripcion: string;
   lineas: LineaAsiento[];
   /** Unidad de negocio; null = de toda la empresa (o compartido entre unidades). */

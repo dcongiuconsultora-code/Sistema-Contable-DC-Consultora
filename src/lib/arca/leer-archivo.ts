@@ -93,3 +93,22 @@ export async function leerArchivo(archivo: File): Promise<Celda[][]> {
     "Formato no soportado. Subí el archivo .xlsx, .xls o .csv que descargás de ARCA.",
   );
 }
+
+/** Todas las hojas de un Excel, con los resultados de las fórmulas. */
+export async function leerHojasXlsx(
+  datos: ArrayBuffer,
+): Promise<Record<string, Celda[][]>> {
+  const libro = new ExcelJS.Workbook();
+  await libro.xlsx.load(datos);
+  const hojas: Record<string, Celda[][]> = {};
+  for (const hoja of libro.worksheets) {
+    const filas: Celda[][] = [];
+    hoja.eachRow({ includeEmpty: true }, (fila, numero) => {
+      filas[numero - 1] = (fila.values as ExcelJS.CellValue[])
+        .slice(1)
+        .map(valorCelda);
+    });
+    hojas[hoja.name] = Array.from(filas, (f) => f ?? []);
+  }
+  return hojas;
+}

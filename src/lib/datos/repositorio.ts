@@ -85,6 +85,8 @@ export interface DatosCierre {
   ejercicioNumero?: string;
   /** Correcciones del estudio al ajuste por inflación impositivo. */
   axi?: CorreccionesAxi;
+  /** Cuenta del plan elegida para cada renglón del balance importado (para el año siguiente). */
+  mapeoApertura?: Record<string, string>;
 }
 
 export interface Mensaje {

@@ -5,6 +5,7 @@ import { Balance } from "@/components/balance/Balance";
 import { LibroDiario } from "@/components/diario/LibroDiario";
 import { Mayor } from "@/components/diario/Mayor";
 import { EditorSaldos } from "@/components/tablero/Tablero";
+import { ImportarBalance } from "./ImportarBalance";
 import type { Asiento } from "@/lib/contabilidad/diario";
 import type { SaldosIniciales } from "@/lib/contabilidad/indicadores";
 import { resultadosMensuales } from "@/lib/contabilidad/sumas-saldos";
@@ -256,7 +257,14 @@ export function Contabilidad({
               punto de partida de la contabilidad.
             </p>
           </section>
+          <ImportarBalance
+            repo={repo}
+            empresaId={empresa.id}
+            iniciales={iniciales}
+            onIniciales={onIniciales}
+          />
           <div className="rounded-xl border border-stone-200 bg-white p-5 shadow-sm">
+            <h3 className="mb-2 font-semibold">Saldos de inicio cargados</h3>
             <EditorSaldos iniciales={iniciales} onIniciales={onIniciales} />
           </div>
         </div>

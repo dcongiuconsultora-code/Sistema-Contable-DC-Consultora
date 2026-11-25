@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { Asiento } from "@/lib/contabilidad/diario";
+import { asientoApertura } from "@/lib/contabilidad/apertura";
 import { mayor, type SaldosIniciales } from "@/lib/contabilidad/indicadores";
 import {
   asientoRefundicionIva,
@@ -401,18 +402,22 @@ export function LibroDiario({
   );
   const filtrados = useMemo(() => {
     const q = buscar.trim().toLowerCase();
-    return asientos.filter(
+    // El asiento de apertura sale de los saldos de inicio: se muestra, pero no se suma dos veces.
+    const apertura = asientoApertura(iniciales);
+    return [...(apertura ? [apertura] : []), ...asientos].filter(
       (a) =>
         a.fecha >= desdeEfectivo &&
         a.fecha <= hasta &&
-        (origen === "Todos" || a.origen === origen) &&
+        (origen === "Todos" ||
+          a.origen === origen ||
+          (origen === "Manual" && a.origen === "Apertura")) &&
         (!q ||
           a.descripcion.toLowerCase().includes(q) ||
           a.lineas.some(
             (l) => l.cuenta.startsWith(q) || l.nombre.toLowerCase().includes(q),
           )),
     );
-  }, [asientos, desdeEfectivo, hasta, origen, buscar]);
+  }, [asientos, iniciales, desdeEfectivo, hasta, origen, buscar]);
 
   return (
     <div className="space-y-5">
