@@ -1,6 +1,7 @@
 import type { Asiento } from "@/lib/contabilidad/diario";
 import type { PeriodoIva } from "@/lib/iva/liquidacion";
 import { nombreCuenta } from "@/lib/plan/plan";
+import type { DdjjGanancias } from "@/lib/ddjj/leer-ddjj";
 
 function redondear(n: number) {
   return Math.round(n * 100) / 100;
@@ -81,7 +82,11 @@ export interface DatosIibb {
   sircreb: number;
   /** Si se corrigió a mano el saldo a favor que viene del mes anterior. */
   saldoAFavorAnterior?: number;
+  /** Pagos a cuenta y créditos fiscales que trae la DDJJ (anticipos). */
+  otrosPagos?: number;
   presentada?: boolean;
+  /** De dónde salieron los datos (por ejemplo, la DDJJ importada). */
+  origen?: string;
 }
 
 export interface PeriodoIibb {
@@ -104,7 +109,11 @@ export function encadenarIibb(
     const d = guardadas[periodo];
     const saldoAFavorAnterior = d.saldoAFavorAnterior ?? saf;
     const deducciones =
-      d.retenciones + d.percepciones + d.sircreb + saldoAFavorAnterior;
+      d.retenciones +
+      d.percepciones +
+      d.sircreb +
+      (d.otrosPagos ?? 0) +
+      saldoAFavorAnterior;
     const aPagar = redondear(Math.max(0, d.determinado - deducciones));
     const saldoAFavor = redondear(Math.max(0, deducciones - d.determinado));
     r.set(periodo, {
@@ -131,9 +140,23 @@ export function asientoIibb(p: PeriodoIibb): Asiento | null {
       linea("5.2.01.006", d.determinado, 0),
       linea("1.1.04.014", 0, d.retenciones + d.sircreb),
       linea("1.1.04.015", 0, d.percepciones),
+      linea("1.1.04.013", 0, d.otrosPagos ?? 0),
       linea("1.1.04.016", 0, p.saldoAFavorAnterior),
       linea("1.1.04.016", p.saldoAFavor, 0),
       linea("2.1.04.007", 0, p.aPagar),
     ],
   );
+}
+
+/** Asiento del impuesto a las ganancias del ejercicio (DDJJ F.713), a la fecha de cierre. */
+export function asientoGanancias(d: DdjjGanancias): Asiento | null {
+  return asiento(d.cierre, `Impuesto a las ganancias del ejercicio (DDJJ)`, [
+    linea("5.6.01.001", d.impuestoDeterminado, 0),
+    linea("1.1.04.010", 0, d.retencionesYPercepciones),
+    linea("1.1.04.017", 0, d.credeb),
+    linea("1.1.04.012", 0, d.saldoAFavorAnterior),
+    linea("1.1.04.009", 0, d.anticipos),
+    linea("1.1.04.012", d.saldoAFavor, 0),
+    linea("2.1.04.005", 0, d.saldoAIngresar),
+  ]);
 }

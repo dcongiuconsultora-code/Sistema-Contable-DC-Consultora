@@ -639,7 +639,7 @@ export class Repositorio {
   ): Promise<Record<string, LiquidacionGuardada>> {
     const { data, error } = await this.db
       .from("liquidaciones_iva")
-      .select("periodo, manual, presentada, resultado")
+      .select("periodo, manual, presentada, resultado, ddjj, libro")
       .eq("empresa_id", empresaId);
     fallar(error, "leer las liquidaciones de IVA");
     return Object.fromEntries(
@@ -649,6 +649,8 @@ export class Repositorio {
           manual: f.manual ?? {},
           presentada: f.presentada,
           resultado: f.resultado ?? undefined,
+          ddjj: f.ddjj ?? undefined,
+          libro: f.libro ?? undefined,
         },
       ]),
     );
@@ -665,9 +667,57 @@ export class Repositorio {
       manual: g.manual,
       presentada: Boolean(g.presentada),
       resultado: g.resultado ?? null,
+      ddjj: g.ddjj ?? null,
+      libro: g.libro ?? null,
       actualizado_en: new Date().toISOString(),
     });
     fallar(error, "guardar la liquidación de IVA");
+  }
+
+  /** DDJJ anuales importadas (por ahora, Ganancias de sociedades), por período. */
+  async declaraciones<T>(
+    empresaId: string,
+    impuesto: string,
+  ): Promise<Record<string, T>> {
+    const { data, error } = await this.db
+      .from("declaraciones_juradas")
+      .select("periodo, datos")
+      .eq("empresa_id", empresaId)
+      .eq("impuesto", impuesto);
+    fallar(error, "leer las declaraciones juradas");
+    return Object.fromEntries((data ?? []).map((f) => [f.periodo, f.datos]));
+  }
+
+  async guardarDeclaracion(
+    empresaId: string,
+    impuesto: string,
+    periodo: string,
+    datos: unknown,
+    archivo: string,
+  ) {
+    const { error } = await this.db.from("declaraciones_juradas").upsert({
+      empresa_id: empresaId,
+      impuesto,
+      periodo,
+      datos,
+      archivo,
+      actualizado_en: new Date().toISOString(),
+    });
+    fallar(error, "guardar la declaración jurada");
+  }
+
+  async borrarDeclaracion(
+    empresaId: string,
+    impuesto: string,
+    periodo: string,
+  ) {
+    const { error } = await this.db
+      .from("declaraciones_juradas")
+      .delete()
+      .eq("empresa_id", empresaId)
+      .eq("impuesto", impuesto)
+      .eq("periodo", periodo);
+    fallar(error, "borrar la declaración jurada");
   }
 
   async liquidacionesIibb(

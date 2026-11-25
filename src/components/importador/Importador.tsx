@@ -56,7 +56,10 @@ import type { Movimiento } from "@/lib/movimientos/tipos";
 import { LibroIva } from "./LibroIva";
 import { PanelLiquidacion } from "./PanelLiquidacion";
 import { PanelIibb } from "./PanelIibb";
+import { resumenDdjj, SubirDdjj } from "./SubirDdjj";
+import type { DdjjGanancias, DdjjLeida } from "@/lib/ddjj/leer-ddjj";
 import {
+  asientoGanancias,
   asientoIibb,
   asientoLiquidacionIva,
   type DatosIibb,
@@ -303,11 +306,17 @@ export function Importador({
   const [ivaGuardadas, setIvaGuardadas] = useState<
     Record<string, LiquidacionGuardada>
   >({});
-  const temporizadorIva = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const temporizadorIibb = useRef<ReturnType<typeof setTimeout>>(undefined);
+  // Un temporizador por mes: guardar un mes no cancela lo pendiente de otro.
+  const temporizadorIva = useRef<Record<string, ReturnType<typeof setTimeout>>>(
+    {},
+  );
+  const temporizadorIibb = useRef<
+    Record<string, ReturnType<typeof setTimeout>>
+  >({});
   const [tickets, setTickets] = useState<TicketCargado[]>([]);
   const [movimientos, setMovimientos] = useState<Movimiento[]>([]);
   const [manuales, setManuales] = useState<Asiento[]>([]);
+  const [ganancias, setGanancias] = useState<Record<string, DdjjGanancias>>({});
   const [avisoImportacion, setAvisoImportacion] = useState<string | null>(null);
   const [iibbGuardadas, setIibbGuardadas] = useState<Record<string, DatosIibb>>(
     {},
@@ -387,6 +396,11 @@ export function Importador({
         setIvaGuardadas(await repo.liquidacionesIva(empresaId));
         setIibbGuardadas(
           await repo.liquidacionesIibb(empresaId).catch(() => ({})),
+        );
+        setGanancias(
+          await repo
+            .declaraciones<DdjjGanancias>(empresaId, "ganancias")
+            .catch(() => ({})),
         );
         setCuentasBancarias(await repo.cuentasBancarias(empresaId));
         setPlanes((await repo.planesPago(empresaId))[empresaId] ?? []);
@@ -636,12 +650,24 @@ export function Importador({
       undefined,
     );
     const lista = [
-      ...new Set([...cantidad.keys(), ...deducciones.map((d) => d.periodo)]),
+      ...new Set([
+        ...cantidad.keys(),
+        ...deducciones.map((d) => d.periodo),
+        ...Object.keys(ivaGuardadas),
+        ...Object.keys(iibbGuardadas),
+      ]),
     ]
       .sort()
       .reverse();
     return { periodos: lista, principal: masComprobantes ?? lista[0] };
-  }, [ventas, compras, deducciones, ticketsPendientes]);
+  }, [
+    ventas,
+    compras,
+    deducciones,
+    ticketsPendientes,
+    ivaGuardadas,
+    iibbGuardadas,
+  ]);
   const periodo =
     periodoElegido && periodos.includes(periodoElegido)
       ? periodoElegido
@@ -716,12 +742,14 @@ export function Importador({
         : [
             ...[...cadenaIva.values()].map(asientoLiquidacionIva),
             ...[...cadenaIibb.values()].map(asientoIibb),
+            ...Object.values(ganancias).map(asientoGanancias),
           ].filter((a): a is Asiento => a !== null),
     });
   }, [
     esMono,
     cadenaIva,
     cadenaIibb,
+    ganancias,
     manuales,
     unidades,
     ventas,
@@ -779,7 +807,16 @@ export function Importador({
   };
 
   const ivaPeriodo = periodo ? cadenaIva.get(periodo) : undefined;
+  // Lo último guardado, para que varias DDJJ subidas juntas no se pisen entre sí.
+  const ultimasIva = useRef(ivaGuardadas);
+  ultimasIva.current = ivaGuardadas;
+  const ultimasIibb = useRef(iibbGuardadas);
+  ultimasIibb.current = iibbGuardadas;
   const guardarIibb = (p: string, d: DatosIibb | null) => {
+    const n = { ...ultimasIibb.current };
+    if (d) n[p] = d;
+    else delete n[p];
+    ultimasIibb.current = n;
     setIibbGuardadas((actual) => {
       const nuevo = { ...actual };
       if (d) nuevo[p] = d;
@@ -787,8 +824,8 @@ export function Importador({
       return nuevo;
     });
     if (!repo || !empresaId) return;
-    clearTimeout(temporizadorIibb.current);
-    temporizadorIibb.current = setTimeout(() => {
+    clearTimeout(temporizadorIibb.current[p]);
+    temporizadorIibb.current[p] = setTimeout(() => {
       repo
         .guardarLiquidacionIibb(empresaId, p, d)
         .catch((e) =>
@@ -797,16 +834,54 @@ export function Importador({
     }, 600);
   };
   const guardarIva = (p: string, g: LiquidacionGuardada) => {
+    ultimasIva.current = { ...ultimasIva.current, [p]: g };
     setIvaGuardadas((actual) => ({ ...actual, [p]: g }));
     if (!repo || !empresaId) return;
-    clearTimeout(temporizadorIva.current);
-    temporizadorIva.current = setTimeout(() => {
+    clearTimeout(temporizadorIva.current[p]);
+    temporizadorIva.current[p] = setTimeout(() => {
       repo
         .guardarLiquidacionIva(empresaId, p, g)
         .catch((e) =>
           setErrorDatos(e instanceof Error ? e.message : String(e)),
         );
     }, 700);
+  };
+  const aplicarDdjj = async (d: DdjjLeida, archivo: string) => {
+    if (d.tipo === "ganancias-pj") {
+      setGanancias((g) => ({ ...g, [d.ddjj.cierre]: d.ddjj }));
+      if (repo && empresaId)
+        await repo.guardarDeclaracion(
+          empresaId,
+          "ganancias",
+          d.ddjj.cierre,
+          d.ddjj,
+          archivo,
+        );
+      return resumenDdjj(d);
+    }
+    if (d.tipo === "iibb") {
+      guardarIibb(d.periodo, {
+        ...ultimasIibb.current[d.periodo],
+        ...d.datos,
+      });
+    } else {
+      const g = ultimasIva.current[d.periodo] ?? { manual: {} };
+      if (d.tipo === "iva") {
+        guardarIva(d.periodo, {
+          ...g,
+          ddjj: d.ddjj,
+          presentada: true,
+          resultado: {
+            saldoTecnicoAFavor: d.ddjj.saldoTecnicoAFavor,
+            saldoLibreDisponibilidad: d.ddjj.saldoLibreDisponibilidad,
+            saldoAPagar: d.ddjj.saldoAPagar,
+          },
+        });
+      } else guardarIva(d.periodo, { ...g, libro: d.libro });
+    }
+    setPeriodoElegido(d.periodo);
+    setPestana("liquidacion");
+    return resumenDdjj(d);
   };
   const deduccionesPeriodo = periodo
     ? deducciones.filter((d) => d.periodo === periodo).length
@@ -1445,6 +1520,25 @@ export function Importador({
             )}
           </section>
 
+          {!esMono && esEstudio && (
+            <SubirDdjj
+              cuitEmpresa={empresaMono.cuit}
+              onLeida={aplicarDdjj}
+              ganancias={ganancias}
+              onBorrarGanancias={(cierre) => {
+                setGanancias((g) => {
+                  const n = { ...g };
+                  delete n[cierre];
+                  return n;
+                });
+                if (repo && empresaId)
+                  guardar(() =>
+                    repo.borrarDeclaracion(empresaId, "ganancias", cierre),
+                  );
+              }}
+            />
+          )}
+
           {periodo && (
             <section className="space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
@@ -1581,6 +1675,7 @@ export function Importador({
                     };
                     const l = ivaPeriodo.liquidacion;
                     guardarIva(ivaPeriodo.periodo, {
+                      libro: g.libro,
                       // Al presentarla se fijan los datos usados y el resultado que se arrastra.
                       manual: presentada ? { ...ivaPeriodo.manual } : g.manual,
                       presentada,

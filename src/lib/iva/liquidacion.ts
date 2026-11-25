@@ -126,8 +126,35 @@ export function liquidarIva(
   };
 }
 
+/** Lo que dice la DDJJ de IVA presentada (F.2051 / F.2002). */
+export interface DdjjIva {
+  debitoFiscal: number;
+  creditoFiscal: number;
+  saldoTecnicoAnterior: number;
+  saldoLibreDisponibilidadAnterior: number;
+  /** Retenciones, percepciones y pagos a cuenta (la DDJJ los trae juntos). */
+  retencionesYPercepciones: number;
+  saldoTecnicoAFavor: number;
+  saldoAPagar: number;
+  saldoLibreDisponibilidad: number;
+  fechaPresentacion?: string;
+  transaccion?: string;
+}
+
+/** Totales del Libro IVA Digital presentado (F.2083), para controlar contra lo cargado. */
+export interface LibroIvaDigital {
+  ventasNeto: number;
+  debitoFiscal: number;
+  comprasNeto: number;
+  creditoFiscal: number;
+  fechaPresentacion?: string;
+}
+
 /** Lo guardado de una liquidación: lo que se corrigió a mano y, si se presentó, su resultado. */
 export interface LiquidacionGuardada {
+  /** DDJJ importada: manda sobre lo calculado con los comprobantes. */
+  ddjj?: DdjjIva;
+  libro?: LibroIvaDigital;
   manual: Partial<DatosManualesIva>;
   presentada?: boolean;
   resultado?: {
@@ -145,6 +172,41 @@ export interface PeriodoIva {
   arrastrado: { saldoTecnico: number; libreDisponibilidad: number };
   liquidacion: LiquidacionIva;
   presentada: boolean;
+  /** Si hay DDJJ importada: lo que daba el sistema con los comprobantes, para comparar. */
+  calculada?: LiquidacionIva;
+}
+
+/** Arma la liquidación con los importes de la DDJJ (lo presentado manda). */
+function desdeDdjj(
+  calculada: LiquidacionIva,
+  d: DdjjIva,
+  manual: DatosManualesIva,
+): { liquidacion: LiquidacionIva; manual: DatosManualesIva } {
+  // La DDJJ trae retenciones y percepciones juntas: las percepciones conocidas van como
+  // percepciones y el resto como retenciones.
+  const percepciones = Math.min(
+    Math.max(0, manual.percepciones),
+    d.retencionesYPercepciones,
+  );
+  return {
+    manual: {
+      saldoTecnicoAnterior: d.saldoTecnicoAnterior,
+      saldoLibreDisponibilidadAnterior: d.saldoLibreDisponibilidadAnterior,
+      percepciones,
+      retenciones: redondear(d.retencionesYPercepciones - percepciones),
+    },
+    liquidacion: {
+      ...calculada,
+      debitoFiscal: d.debitoFiscal,
+      creditoFiscal: d.creditoFiscal,
+      saldoTecnico: redondear(
+        d.debitoFiscal - d.creditoFiscal - d.saldoTecnicoAnterior,
+      ),
+      saldoTecnicoAFavor: d.saldoTecnicoAFavor,
+      saldoAPagar: d.saldoAPagar,
+      saldoLibreDisponibilidad: d.saldoLibreDisponibilidad,
+    },
+  };
 }
 
 function mesSiguiente(p: string) {
@@ -183,16 +245,23 @@ export function encadenarIva(
       ...g?.manual,
       ...(d.desdeArchivos ?? {}),
     };
-    const liquidacion = liquidarIva(d.ventas, d.compras, manual);
+    const calculada = liquidarIva(d.ventas, d.compras, manual);
+    const conDdjj = g?.ddjj ? desdeDdjj(calculada, g.ddjj, manual) : null;
+    const liquidacion = conDdjj?.liquidacion ?? calculada;
     r.set(p, {
       periodo: p,
-      manual,
+      manual: conDdjj?.manual ?? manual,
       arrastradoDe: anterior,
       arrastrado: { saldoTecnico, libreDisponibilidad },
       liquidacion,
-      presentada: Boolean(g?.presentada),
+      presentada: Boolean(g?.presentada || g?.ddjj),
+      calculada: conDdjj ? calculada : undefined,
     });
-    const base = g?.presentada && g.resultado ? g.resultado : liquidacion;
+    const base = conDdjj
+      ? liquidacion
+      : g?.presentada && g.resultado
+        ? g.resultado
+        : liquidacion;
     saldoTecnico = base.saldoTecnicoAFavor;
     libreDisponibilidad = base.saldoLibreDisponibilidad;
     anterior = p;

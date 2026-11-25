@@ -1,12 +1,13 @@
 "use client";
 
 import type { Comprobante } from "@/lib/arca/tipos";
+import { totalesLibro } from "@/lib/iva/liquidacion";
 import type {
   DatosManualesIva,
   LiquidacionGuardada,
   PeriodoIva,
 } from "@/lib/iva/liquidacion";
-import { pesos, tasaTexto } from "@/lib/formato";
+import { fechaCorta, pesos, tasaTexto } from "@/lib/formato";
 import { asientoLiquidacionIva } from "@/lib/impuestos/asientos";
 import { AsientoPrevio } from "./PanelIibb";
 
@@ -69,6 +70,97 @@ function Fila({
       <span>{etiqueta}</span>
       <span className="cifra">{pesos(valor)}</span>
     </div>
+  );
+}
+
+function Diferencias({
+  titulo,
+  filas,
+}: {
+  titulo: string;
+  filas: [string, number, number][];
+}) {
+  const hay = filas.some(([, a, b]) => Math.abs(a - b) >= 1);
+  return (
+    <div
+      className={`mb-4 rounded-lg border p-3 ${hay ? "border-amber-300 bg-amber-50" : "border-emerald-200 bg-emerald-50"}`}
+    >
+      <div className="mb-1 font-medium">
+        {titulo}: {hay ? "⚠ hay diferencias" : "✓ coincide"}
+      </div>
+      <table className="w-full text-xs">
+        <thead className="text-stone-500">
+          <tr>
+            <th className="text-left font-normal" />
+            <th className="text-right font-normal">Sistema</th>
+            <th className="text-right font-normal">Presentado</th>
+            <th className="text-right font-normal">Diferencia</th>
+          </tr>
+        </thead>
+        <tbody>
+          {filas.map(([n, a, b]) => (
+            <tr key={n}>
+              <td className="py-0.5">{n}</td>
+              <td className="cifra">{pesos(a)}</td>
+              <td className="cifra">{pesos(b)}</td>
+              <td
+                className={`cifra ${Math.abs(a - b) >= 1 ? "font-semibold text-amber-800" : ""}`}
+              >
+                {pesos(Math.round((a - b) * 100) / 100)}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {hay && (
+        <p className="mt-1 text-xs text-amber-900">
+          Suele ser un comprobante que falta cargar o que se cargó de más en el
+          período.
+        </p>
+      )}
+    </div>
+  );
+}
+
+/** Compara lo que calcula el sistema con la DDJJ y el Libro IVA Digital presentados. */
+function ControlDdjj({
+  periodoIva,
+  guardada,
+  ventas,
+  compras,
+}: {
+  periodoIva: PeriodoIva;
+  guardada?: LiquidacionGuardada;
+  ventas: Comprobante[];
+  compras: Comprobante[];
+}) {
+  const c = periodoIva.calculada;
+  const libro = guardada?.libro;
+  const tv = totalesLibro(ventas);
+  const tc = totalesLibro(compras.filter((x) => x.computaIva));
+  return (
+    <>
+      {c && guardada?.ddjj && (
+        <Diferencias
+          titulo={`DDJJ de IVA presentada${guardada.ddjj.fechaPresentacion ? ` el ${fechaCorta(guardada.ddjj.fechaPresentacion)}` : ""}`}
+          filas={[
+            ["Débito fiscal", c.debitoFiscal, guardada.ddjj.debitoFiscal],
+            ["Crédito fiscal", c.creditoFiscal, guardada.ddjj.creditoFiscal],
+          ]}
+        />
+      )}
+      {libro && (
+        <Diferencias
+          titulo="Libro IVA Digital"
+          filas={[
+            ["Neto gravado ventas", tv.netoGravado, libro.ventasNeto],
+            ["Débito fiscal", tv.iva, libro.debitoFiscal],
+            ["Neto gravado compras", tc.netoGravado, libro.comprasNeto],
+            ["Crédito fiscal", tc.iva, libro.creditoFiscal],
+          ]}
+        />
+      )}
+    </>
   );
 }
 
@@ -186,10 +278,18 @@ export function PanelLiquidacion({
                 </span>
                 <button
                   type="button"
-                  onClick={() => onPresentada(false)}
+                  onClick={() => {
+                    if (
+                      !periodoIva.calculada ||
+                      confirm(
+                        "¿Quitar la DDJJ importada? Vuelve a calcularse con los comprobantes.",
+                      )
+                    )
+                      onPresentada(false);
+                  }}
                   className="rounded-md px-2 py-1 text-stone-600 hover:bg-stone-100"
                 >
-                  Desmarcar
+                  {periodoIva.calculada ? "Quitar la DDJJ" : "Desmarcar"}
                 </button>
               </div>
             ) : (
@@ -207,8 +307,16 @@ export function PanelLiquidacion({
 
       <div className="rounded-xl border border-stone-200 bg-white p-5 text-sm shadow-sm">
         <h3 className="mb-3 font-semibold">
-          Liquidación de IVA (borrador para el F.2002)
+          {periodoIva.calculada
+            ? "Liquidación de IVA (según la DDJJ presentada)"
+            : "Liquidación de IVA (borrador para el F.2002)"}
         </h3>
+        <ControlDdjj
+          periodoIva={periodoIva}
+          guardada={guardada}
+          ventas={ventas}
+          compras={compras}
+        />
         <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">
           Débito fiscal
         </p>
