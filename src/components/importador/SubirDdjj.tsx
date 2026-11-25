@@ -152,7 +152,7 @@ export function SubirDdjj({
                 <span>
                   {g.formulario === "F.2711"
                     ? `Personas humanas, período ${cierre.slice(0, 4)} · ${textoCategorias(g)} · impuesto`
-                    : `Ejercicio cerrado el ${fechaCorta(cierre)} · impuesto`}
+                    : `Ejercicio cerrado el ${fechaCorta(cierre)} · impuesto`}{" "}
                   determinado {pesos(g.impuestoDeterminado)} ·{" "}
                   {g.saldoAFavor > 0
                     ? `saldo a favor ${pesos(g.saldoAFavor)}`

@@ -57,6 +57,8 @@ import { LibroIva } from "./LibroIva";
 import { PanelLiquidacion } from "./PanelLiquidacion";
 import { PanelIibb } from "./PanelIibb";
 import { resumenDdjj, SubirDdjj } from "./SubirDdjj";
+import { PanelQuebrantos } from "./PanelQuebrantos";
+import { INDICES_FACPCE, type Indices } from "@/lib/inflacion/indices";
 import type { DdjjGanancias, DdjjLeida } from "@/lib/ddjj/leer-ddjj";
 import {
   asientoGanancias,
@@ -317,6 +319,10 @@ export function Importador({
   const [movimientos, setMovimientos] = useState<Movimiento[]>([]);
   const [manuales, setManuales] = useState<Asiento[]>([]);
   const [ganancias, setGanancias] = useState<Record<string, DdjjGanancias>>({});
+  const [quebrantosManuales, setQuebrantosManuales] = useState<
+    Record<string, number>
+  >({});
+  const [indicesIpc, setIndicesIpc] = useState<Indices>(INDICES_FACPCE);
   const [avisoImportacion, setAvisoImportacion] = useState<string | null>(null);
   const [iibbGuardadas, setIibbGuardadas] = useState<Record<string, DatosIibb>>(
     {},
@@ -402,6 +408,16 @@ export function Importador({
             .declaraciones<DdjjGanancias>(empresaId, "ganancias")
             .catch(() => ({})),
         );
+        setQuebrantosManuales(
+          Object.fromEntries(
+            Object.entries(
+              await repo
+                .declaraciones<{ importe: number }>(empresaId, "quebranto")
+                .catch(() => ({})),
+            ).map(([k, v]) => [k, v.importe]),
+          ),
+        );
+        repo.indices().then(setIndicesIpc, () => {});
         setCuentasBancarias(await repo.cuentasBancarias(empresaId));
         setPlanes((await repo.planesPago(empresaId))[empresaId] ?? []);
         if (esMonotributo(condicionIva)) {
@@ -1538,6 +1554,35 @@ export function Importador({
                 if (repo && empresaId)
                   guardar(() =>
                     repo.borrarDeclaracion(empresaId, "ganancias", cierre),
+                  );
+              }}
+            />
+          )}
+
+          {!esMono && esEstudio && (
+            <PanelQuebrantos
+              ganancias={ganancias}
+              manuales={quebrantosManuales}
+              indices={indicesIpc}
+              puedeEditar={esEstudio}
+              onManual={(cierre, importe) => {
+                setQuebrantosManuales((q) => {
+                  const n = { ...q };
+                  if (importe === null) delete n[cierre];
+                  else n[cierre] = importe;
+                  return n;
+                });
+                if (repo && empresaId)
+                  guardar(() =>
+                    importe === null
+                      ? repo.borrarDeclaracion(empresaId, "quebranto", cierre)
+                      : repo.guardarDeclaracion(
+                          empresaId,
+                          "quebranto",
+                          cierre,
+                          { importe },
+                          "carga manual",
+                        ),
                   );
               }}
             />
