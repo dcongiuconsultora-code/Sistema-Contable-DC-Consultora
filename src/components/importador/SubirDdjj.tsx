@@ -43,7 +43,7 @@ export function SubirDdjj({
             archivo: a.name,
             ok: false,
             texto:
-              "No la reconocí. Por ahora leo: IVA (F.2051/F.2002), Libro IVA Digital (F.2083), Ingresos Brutos Convenio Multilateral (CM03), Jujuy (F-232) y Salta (F903), y Ganancias sociedades (F.713).",
+              "No la reconocí. Por ahora leo: IVA (F.2051/F.2002), Libro IVA Digital (F.2083), Ingresos Brutos Convenio Multilateral (CM03), Jujuy (F-232) y Salta (F903), y Ganancias sociedades (F.713) y personas humanas (F.2711).",
           });
           continue;
         }
@@ -86,8 +86,9 @@ export function SubirDdjj({
             Subí el PDF de la DDJJ y se carga sola en el mes que corresponde,
             con su asiento: IVA (F.2051), Libro IVA Digital (F.2083, para
             controlar), Ingresos Brutos de Convenio Multilateral (CM03), Jujuy
-            (F-232) y Salta (F903), y Ganancias sociedades (F.713). Lo
-            presentado manda sobre lo que calcula el sistema.
+            (F-232) y Salta (F903), y Ganancias de sociedades (F.713) y de
+            personas humanas (F.2711). Lo presentado manda sobre lo que calcula
+            el sistema.
           </p>
         </div>
       </div>
@@ -149,7 +150,9 @@ export function SubirDdjj({
                 className="flex flex-wrap items-center justify-between gap-2 py-1.5"
               >
                 <span>
-                  Ejercicio cerrado el {fechaCorta(cierre)} · impuesto
+                  {g.formulario === "F.2711"
+                    ? `Personas humanas, período ${cierre.slice(0, 4)} · ${textoCategorias(g)} · impuesto`
+                    : `Ejercicio cerrado el ${fechaCorta(cierre)} · impuesto`}
                   determinado {pesos(g.impuestoDeterminado)} ·{" "}
                   {g.saldoAFavor > 0
                     ? `saldo a favor ${pesos(g.saldoAFavor)}`
@@ -178,6 +181,18 @@ export function SubirDdjj({
   );
 }
 
+/** Resultado por categoría de una DDJJ de personas humanas (solo las que tienen movimiento). */
+function textoCategorias(g: DdjjGanancias) {
+  const con = (g.categorias ?? []).filter((c) => c.resultado);
+  if (!con.length) return "sin resultados por categoría";
+  return con
+    .map(
+      (c) =>
+        `${c.categoria} categoría ${pesos(c.resultado)}${c.resultado < 0 ? " (quebranto)" : ""}`,
+    )
+    .join(", ");
+}
+
 /** Texto corto de lo que se cargó, para mostrar al subir. */
 export function resumenDdjj(d: DdjjLeida) {
   switch (d.tipo) {
@@ -188,6 +203,8 @@ export function resumenDdjj(d: DdjjLeida) {
     case "iibb":
       return `Ingresos Brutos ${d.jurisdiccion} de ${nombrePeriodo(d.periodo)} cargado como presentado: impuesto ${pesos(d.datos.determinado)}${d.datos.aPagarDdjj !== undefined ? `, a pagar ${pesos(d.datos.aPagarDdjj)}${d.datos.saldoAFavorDdjj ? `, saldo a favor ${pesos(d.datos.saldoAFavorDdjj)}` : ""}` : ""}.`;
     case "ganancias-pj":
+      if (d.ddjj.formulario === "F.2711")
+        return `Ganancias personas humanas ${d.ddjj.cierre.slice(0, 4)}: ${textoCategorias(d.ddjj)}, impuesto ${pesos(d.ddjj.impuestoDeterminado)}${d.ddjj.impuestoDeterminado ? " (va a la cuenta particular del titular)" : ""}.`;
       return `Ganancias del ejercicio cerrado el ${fechaCorta(d.ddjj.cierre)}: impuesto ${pesos(d.ddjj.impuestoDeterminado)}, se registró el asiento a esa fecha.`;
   }
 }

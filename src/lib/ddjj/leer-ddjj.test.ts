@@ -121,6 +121,23 @@ SALDO A FAVOR DGR 270000.00
 IMPORTE A DEPOSITAR 275000.00
 en www.dgrsalta.gov.ar`;
 
+const F2711 = `Período Nombre y apellido / Razón Fecha de Presentación
+2025 social 27/07/2026
+PRUEBA PERSONA
+HUMANA
+Código de identificación de
+Establecimiento CUIT
+DECLARACIÓN JURADA 0 27-12345678-9
+SIMPLIFICADA
+GANANCIAS PERSONAS HUMANAS
+F.2711 V. 100
+1era $ 0,00 $ 0,00 $ 0,00 $ 0,00 $ 0,00 $ 0,00
+2da acciones - $ 0,00 - $ 0,00 - $ 0,00
+3ra $ 5.000.000,00 $ 0,00 $ 1.000.000,00 $ 0,00 $ 4.000.000,00 $ 0,00
+4ta $ 0,00 $ 0,00 $ 0,00 $ 0,00 $ -100.000,00 $ 0,00
+Impuesto determinado total $ 800.000,00
+Pagos a cuenta computables en el impuesto a las ganancias $ 300.000,00`;
+
 const lineas = (t: string) => t.split("\n");
 const cuadra = (l: { debe: number; haber: number }[]) =>
   Math.round(l.reduce((s, x) => s + x.debe - x.haber, 0) * 100) / 100;
@@ -284,6 +301,31 @@ describe("lectura de DDJJ", () => {
     if (r?.tipo !== "iibb") throw new Error();
     const p = encadenarIibb({ "2026-07": r.datos }).get("2026-07")!;
     expect(cuadra(asientoIibb(p)!.lineas)).toBe(0);
+  });
+
+  it("Ganancias personas humanas F.2711", () => {
+    const r = leerDdjj(lineas(F2711));
+    expect(r).toMatchObject({
+      tipo: "ganancias-pj",
+      cuit: "27123456789",
+      nombre: "PRUEBA PERSONA HUMANA",
+      ddjj: {
+        cierre: "2025-12-31",
+        formulario: "F.2711",
+        resultadoImpositivo: 3900000,
+        impuestoDeterminado: 800000,
+        anticipos: 300000,
+        saldoAIngresar: 500000,
+        fechaPresentacion: "2026-07-27",
+      },
+    });
+    if (r?.tipo !== "ganancias-pj") throw new Error();
+    expect(
+      r.ddjj.categorias?.find((c) => c.categoria === "3ra")?.resultado,
+    ).toBe(4000000);
+    const a = asientoGanancias(r.ddjj)!;
+    expect(cuadra(a.lineas)).toBe(0);
+    expect(a.lineas[0].cuenta).toBe("1.1.04.024");
   });
 
   it("un PDF que no es DDJJ", () => {

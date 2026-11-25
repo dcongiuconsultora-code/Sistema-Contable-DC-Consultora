@@ -215,13 +215,22 @@ export function asientoIibb(p: PeriodoIibb): Asiento | null {
 
 /** Asiento del impuesto a las ganancias del ejercicio (DDJJ F.713), a la fecha de cierre. */
 export function asientoGanancias(d: DdjjGanancias): Asiento | null {
-  return asiento(d.cierre, `Impuesto a las ganancias del ejercicio (DDJJ)`, [
-    linea("5.6.01.001", d.impuestoDeterminado, 0),
-    linea("1.1.04.010", 0, d.retencionesYPercepciones),
-    linea("1.1.04.017", 0, d.credeb),
-    linea("1.1.04.012", 0, d.saldoAFavorAnterior),
-    linea("1.1.04.009", 0, d.anticipos),
-    linea("1.1.04.012", d.saldoAFavor, 0),
-    linea("2.1.04.005", 0, d.saldoAIngresar),
-  ]);
+  // Persona humana: el impuesto es del titular, no un gasto de la actividad; va a su cuenta
+  // particular (como un retiro).
+  const humana = d.formulario === "F.2711";
+  return asiento(
+    d.cierre,
+    humana
+      ? "Impuesto a las ganancias del titular (DDJJ F.2711)"
+      : "Impuesto a las ganancias del ejercicio (DDJJ)",
+    [
+      linea(humana ? "1.1.04.024" : "5.6.01.001", d.impuestoDeterminado, 0),
+      linea("1.1.04.010", 0, d.retencionesYPercepciones),
+      linea("1.1.04.017", 0, d.credeb),
+      linea("1.1.04.012", 0, d.saldoAFavorAnterior),
+      linea("1.1.04.009", 0, d.anticipos),
+      linea("1.1.04.012", d.saldoAFavor, 0),
+      linea("2.1.04.005", 0, d.saldoAIngresar),
+    ],
+  );
 }

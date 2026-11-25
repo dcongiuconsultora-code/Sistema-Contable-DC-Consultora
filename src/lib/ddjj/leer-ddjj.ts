@@ -18,6 +18,11 @@ export interface DdjjGanancias {
   anticipos: number;
   saldoAIngresar: number;
   saldoAFavor: number;
+  /** F.713 (sociedades) o F.2711 (personas humanas). */
+  formulario?: "F.713" | "F.2711";
+  /** Personas humanas: resultado neto de cada categoría (fuente argentina). */
+  categorias?: { categoria: string; resultado: number }[];
+  fechaPresentacion?: string;
 }
 
 export type DdjjLeida =
@@ -298,6 +303,81 @@ function iibbSalta(lineas: string[]): DdjjLeida | null {
   };
 }
 
+/** Ganancias personas humanas (F.2711, incluida la simplificada). */
+function gananciasPh(lineas: string[]): DdjjLeida | null {
+  const todo = lineas.join("\n");
+  if (!/F\.\s?2711/.test(todo) || !/GANANCIAS PERSONAS HUMANAS/.test(todo))
+    return null;
+  const per = todo.match(
+    /Período[^\n]*\n(\d{4})\b[^\n]*?(\d{2}\/\d{2}\/\d{4})?\s*$/m,
+  );
+  const cuit = todo.match(/\b(2\d|3\d)-\d{8}-\d\b/);
+  if (!per || !cuit) return null;
+  // El nombre viene partido en varias líneas, entre el período y el código de identificación.
+  const i = lineas.findIndex((l) => l.startsWith(per[1]));
+  const nombre = [
+    lineas[i]
+      .replace(/^\d{4}\s*/, "")
+      .replace(/social|\d{2}\/\d{2}\/\d{4}/g, ""),
+    ...lineas
+      .slice(i + 1, i + 4)
+      .filter((l) => !/Código|Establecimiento/.test(l))
+      .slice(0, 2),
+  ]
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
+  const categorias: { categoria: string; resultado: number }[] = [];
+  for (const l of lineas) {
+    const m = l.match(
+      /^(1era|2da [a-záéíóú ]+?|3ra|4ta) ((?:(?:-|\$ ?-?[\d.]+,\d{2})\s*){6})$/i,
+    );
+    if (!m) continue;
+    const v = m[2].match(/-(?!\d)|\$ ?-?[\d.]+,\d{2}/g) ?? [];
+    if (v.length !== 6) continue;
+    const resultado = v[4] === "-" ? 0 : importe(v[4]);
+    categorias.push({ categoria: m[1], resultado: redondear(resultado) });
+  }
+  const determinado = valor(lineas, /Impuesto determinado total/);
+  const pagos = valor(
+    lineas,
+    /Pagos a cuenta computables en el impuesto a las ganancias/,
+  );
+  const aFavorArca = valor(lineas, /Saldo (?:de impuesto )?a favor de ARCA/);
+  const aFavorContrib = valor(
+    lineas,
+    /Saldo (?:de impuesto )?a favor del contribuyente/,
+  );
+  const saldoAIngresar =
+    aFavorArca || redondear(Math.max(0, determinado - pagos));
+  const saldoAFavor =
+    aFavorContrib || redondear(Math.max(0, pagos - determinado));
+  const anio = Number(per[1]);
+  return {
+    tipo: "ganancias-pj",
+    cuit: soloDigitos(cuit[0]),
+    nombre,
+    ddjj: {
+      cierre: `${anio}-12-31`,
+      formulario: "F.2711",
+      categorias,
+      resultadoContable: 0,
+      resultadoImpositivo: redondear(
+        categorias.reduce((t, c) => t + c.resultado, 0),
+      ),
+      alicuota: 0,
+      impuestoDeterminado: determinado,
+      retencionesYPercepciones: 0,
+      saldoAFavorAnterior: 0,
+      credeb: 0,
+      anticipos: pagos,
+      saldoAIngresar,
+      saldoAFavor,
+      fechaPresentacion: per[2] ? fechaIso(per[2]) : undefined,
+    },
+  };
+}
+
 function gananciasPj(lineas: string[]): DdjjLeida | null {
   const todo = lineas.join("\n");
   if (!/GANANCIAS/.test(todo) || !/F\.\s?713/.test(todo)) return null;
@@ -353,6 +433,7 @@ export function leerDdjj(lineas: string[]): DdjjLeida | null {
     iibbJujuy(lineas) ??
     convenioMultilateral(lineas) ??
     iibbSalta(lineas) ??
-    gananciasPj(lineas)
+    gananciasPj(lineas) ??
+    gananciasPh(lineas)
   );
 }
