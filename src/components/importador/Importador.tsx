@@ -863,6 +863,10 @@ export function Importador({
       guardarIibb(d.periodo, {
         ...ultimasIibb.current[d.periodo],
         ...d.datos,
+        // Convenio Multilateral trae las deducciones juntas: se reparten con los archivos.
+        ...(d.datos.deduccionesDdjj !== undefined
+          ? deduccionesIibb(deducciones, d.periodo)
+          : {}),
       });
     } else {
       const g = ultimasIva.current[d.periodo] ?? { manual: {} };

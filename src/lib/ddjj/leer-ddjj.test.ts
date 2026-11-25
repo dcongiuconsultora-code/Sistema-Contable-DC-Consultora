@@ -89,6 +89,38 @@ Pagos a Cta.que no generan saldo a favor 0,00 ingresos extraordinarios 0,00
 Saldo previo al cómputo Credeb 300.000,00 Saldo a favor periodo anterior 10.000,00
 Saldo.x anticipos cancelados Credeb 0,00 Saldo a favor 0,00 200.000,00`;
 
+const CM03 = `Impuesto sobre los Ingresos Brutos
+Convenio Multilateral
+Presentación y Pago
+CM03 202390
+CUIT: 30-12345678-9 Contribuyente: EMPRESA DE PRUEBA S. A. S. Sede: 917
+Anticipo: 202512 Secuencia: Original Tipo: Resto
+Datos Presentación AFIP: DDJJ presentada el 13/01/2026 - 11:50:10 ante ARCA, Nº de Transacción 1
+Jurisdicción Valores Restan Valores Suman A favor Fisco A Pagar
+903 CATAMARCA $50.000,00 $0,00 $0,00 $0,00 $50.000,00 $50.000,00
+904 CORDOBA $0,00 $0,00 $0,00 $0,00 $0,00 $0,00
+917 SALTA $300.000,00 $100.000,00 $1.000,00 $0,00 $201.000,00 $201.000,00
+924 TUCUMAN $60.000,00 $400.000,00 $0,00 $340.000,00 $0,00 $0,00
+Totales $410.000,00 $500.000,00 $1.000,00 $340.000,00 $251.000,00 $251.000,00
+Determinación del anticipo - Tucumán
+903 CATAMARCA $50.000,00 $0,00 $0,00 $0,00 $50.000,00 $50.000,00`;
+
+const SALTA = `F903 - ONLINE
+ACTIVIDADES ECONÓMICAS
+APELLIDO Y NOMBRE O RAZÓN SOCIAL Original X Rectificativa
+PRUEBA PERSONA FISICA
+C.U.I.T. Nº CONV. MULTILATERAL PERIODO
+27-12345678-9 NO 7/2026
+TOTAL IMPUESTOS POR APLICACION ALICUOTA O MINIMO (EL MAYOR) 400000.00
+MENOS RETENCIONES SEGUN ANEXO 10000.00
+MENOS PERCEPCIONES SEGUN ANEXO
+20000.00
+MENOS SALDO SEGUN DD.JJ. MES 7 AÑO 2026 100000.00
+A FAVOR CONTRIBUYENTE 0.00 A FAVOR D.G.R. 270000.00
+SALDO A FAVOR DGR 270000.00
+IMPORTE A DEPOSITAR 275000.00
+en www.dgrsalta.gov.ar`;
+
 const lineas = (t: string) => t.split("\n");
 const cuadra = (l: { debe: number; haber: number }[]) =>
   Math.round(l.reduce((s, x) => s + x.debe - x.haber, 0) * 100) / 100;
@@ -186,6 +218,72 @@ describe("lectura de DDJJ", () => {
     });
     if (r?.tipo !== "ganancias-pj") throw new Error();
     expect(cuadra(asientoGanancias(r.ddjj)!.lineas)).toBe(0);
+  });
+
+  it("Convenio Multilateral CM03: por jurisdicción y asiento", () => {
+    const r = leerDdjj(lineas(CM03));
+    expect(r).toMatchObject({
+      tipo: "iibb",
+      periodo: "2025-12",
+      cuit: "30123456789",
+      jurisdiccion: "Convenio Multilateral",
+      datos: {
+        determinado: 411000,
+        deduccionesDdjj: 500000,
+        aPagarDdjj: 251000,
+        saldoAFavorDdjj: 340000,
+        fechaPresentacion: "2026-01-13",
+      },
+    });
+    if (r?.tipo !== "iibb") throw new Error();
+    expect(r.datos.jurisdicciones?.map((j) => j.nombre)).toEqual([
+      "CATAMARCA",
+      "SALTA",
+      "TUCUMAN",
+    ]);
+    // Con un saldo a favor anterior de 300.000 y 50.000 de percepciones en los archivos.
+    const c = encadenarIibb({
+      "2025-11": {
+        determinado: 0,
+        retenciones: 300000,
+        percepciones: 0,
+        sircreb: 0,
+        saldoAFavorAnterior: 0,
+      },
+      "2025-12": { ...r.datos, percepciones: 50000 },
+    });
+    const p = c.get("2025-12")!;
+    expect(p.saldoAFavorAnterior).toBe(300000);
+    expect(p.deducciones).toMatchObject({
+      percepciones: 50000,
+      retenciones: 150000,
+    });
+    expect(p).toMatchObject({ aPagar: 251000, saldoAFavor: 340000 });
+    const a = asientoIibb(p)!;
+    expect(cuadra(a.lineas)).toBe(0);
+    expect(a.lineas.find((l) => l.cuenta === "5.2.01.006")?.debe).toBe(411000);
+  });
+
+  it("Salta F903 con accesorios", () => {
+    const r = leerDdjj(lineas(SALTA));
+    expect(r).toMatchObject({
+      tipo: "iibb",
+      periodo: "2026-07",
+      cuit: "27123456789",
+      nombre: "PRUEBA PERSONA FISICA",
+      jurisdiccion: "Salta",
+      datos: {
+        determinado: 405000,
+        retenciones: 10000,
+        percepciones: 20000,
+        saldoAFavorAnterior: 100000,
+        aPagarDdjj: 275000,
+        saldoAFavorDdjj: 0,
+      },
+    });
+    if (r?.tipo !== "iibb") throw new Error();
+    const p = encadenarIibb({ "2026-07": r.datos }).get("2026-07")!;
+    expect(cuadra(asientoIibb(p)!.lineas)).toBe(0);
   });
 
   it("un PDF que no es DDJJ", () => {

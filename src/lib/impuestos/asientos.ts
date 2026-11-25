@@ -73,6 +73,17 @@ export function asientoLiquidacionIva(p: PeriodoIva): Asiento | null {
   );
 }
 
+/** Una jurisdicción de la DDJJ de Convenio Multilateral (CM03). */
+export interface JurisdiccionIibb {
+  codigo: string;
+  nombre: string;
+  determinado: number;
+  restan: number;
+  suman: number;
+  aFavorContribuyente: number;
+  aPagar: number;
+}
+
 /** Datos de la DDJJ de Ingresos Brutos de un mes. */
 export interface DatosIibb {
   /** Impuesto determinado (total de la DDJJ, todas las jurisdicciones). */
@@ -87,6 +98,16 @@ export interface DatosIibb {
   presentada?: boolean;
   /** De dónde salieron los datos (por ejemplo, la DDJJ importada). */
   origen?: string;
+  /**
+   * DDJJ que trae las deducciones juntas (Convenio Multilateral): el total, incluido el saldo a
+   * favor anterior. Las retenciones, percepciones y SIRCREB de los archivos sirven para repartirlo.
+   */
+  deduccionesDdjj?: number;
+  /** Lo que dio la DDJJ presentada (manda sobre lo calculado). */
+  aPagarDdjj?: number;
+  saldoAFavorDdjj?: number;
+  jurisdicciones?: JurisdiccionIibb[];
+  fechaPresentacion?: string;
 }
 
 export interface PeriodoIibb {
@@ -96,6 +117,13 @@ export interface PeriodoIibb {
   arrastradoDe: string | null;
   aPagar: number;
   saldoAFavor: number;
+  /** Deducciones con que se arma el asiento. */
+  deducciones: {
+    retenciones: number;
+    percepciones: number;
+    sircreb: number;
+    otrosPagos: number;
+  };
 }
 
 /** Encadena las DDJJ de IIBB mes a mes, llevando el saldo a favor al mes siguiente. */
@@ -107,15 +135,42 @@ export function encadenarIibb(
   let anterior: string | null = null;
   for (const periodo of Object.keys(guardadas).sort()) {
     const d = guardadas[periodo];
-    const saldoAFavorAnterior = d.saldoAFavorAnterior ?? saf;
-    const deducciones =
-      d.retenciones +
-      d.percepciones +
-      d.sircreb +
-      (d.otrosPagos ?? 0) +
+    let saldoAFavorAnterior = d.saldoAFavorAnterior ?? saf;
+    let deducciones: PeriodoIibb["deducciones"];
+    if (d.deduccionesDdjj !== undefined) {
+      // Total de la DDJJ: primero el saldo a favor anterior, después lo que se conoce por los
+      // archivos (percepciones y SIRCREB) y el resto como retenciones.
+      const total = d.deduccionesDdjj;
+      saldoAFavorAnterior = Math.min(saldoAFavorAnterior, total);
+      let resto = redondear(total - saldoAFavorAnterior);
+      const percepciones = Math.min(Math.max(0, d.percepciones), resto);
+      resto = redondear(resto - percepciones);
+      const sircreb = Math.min(Math.max(0, d.sircreb), resto);
+      deducciones = {
+        retenciones: redondear(resto - sircreb),
+        percepciones,
+        sircreb,
+        otrosPagos: 0,
+      };
+    } else
+      deducciones = {
+        retenciones: d.retenciones,
+        percepciones: d.percepciones,
+        sircreb: d.sircreb,
+        otrosPagos: d.otrosPagos ?? 0,
+      };
+    const total =
+      deducciones.retenciones +
+      deducciones.percepciones +
+      deducciones.sircreb +
+      deducciones.otrosPagos +
       saldoAFavorAnterior;
-    const aPagar = redondear(Math.max(0, d.determinado - deducciones));
-    const saldoAFavor = redondear(Math.max(0, deducciones - d.determinado));
+    const aPagar =
+      d.aPagarDdjj ?? redondear(Math.max(0, d.determinado - total));
+    const saldoAFavor =
+      d.aPagarDdjj !== undefined
+        ? (d.saldoAFavorDdjj ?? 0)
+        : redondear(Math.max(0, total - d.determinado));
     r.set(periodo, {
       periodo,
       datos: d,
@@ -123,6 +178,7 @@ export function encadenarIibb(
       arrastradoDe: anterior,
       aPagar,
       saldoAFavor,
+      deducciones,
     });
     saf = saldoAFavor;
     anterior = periodo;
@@ -132,15 +188,24 @@ export function encadenarIibb(
 
 /** Asiento de la DDJJ de IIBB: el impuesto al gasto, las deducciones y el saldo a pagar o a favor. */
 export function asientoIibb(p: PeriodoIibb): Asiento | null {
-  const d = p.datos;
+  const d = p.deducciones;
+  const haber =
+    d.retenciones +
+    d.sircreb +
+    d.percepciones +
+    d.otrosPagos +
+    p.saldoAFavorAnterior +
+    p.aPagar;
+  // El gasto es lo que cierra el asiento (si la DDJJ trae intereses o redondeos, quedan ahí).
+  const gasto = redondear(haber - p.saldoAFavor);
   return asiento(
     ultimoDia(p.periodo),
     `DDJJ de Ingresos Brutos de ${nombreMes(p.periodo)}`,
     [
-      linea("5.2.01.006", d.determinado, 0),
+      linea("5.2.01.006", Math.max(0, gasto), Math.max(0, -gasto)),
       linea("1.1.04.014", 0, d.retenciones + d.sircreb),
       linea("1.1.04.015", 0, d.percepciones),
-      linea("1.1.04.013", 0, d.otrosPagos ?? 0),
+      linea("1.1.04.013", 0, d.otrosPagos),
       linea("1.1.04.016", 0, p.saldoAFavorAnterior),
       linea("1.1.04.016", p.saldoAFavor, 0),
       linea("2.1.04.007", 0, p.aPagar),

@@ -1,6 +1,6 @@
 // Lee las DDJJ presentadas (PDF) para cargarlas solas: IVA (F.2051/F.2002), Libro IVA Digital
 // (F.2083), Ingresos Brutos Jujuy (F-232) y Ganancias sociedades (F.713).
-import type { DatosIibb } from "@/lib/impuestos/asientos";
+import type { DatosIibb, JurisdiccionIibb } from "@/lib/impuestos/asientos";
 import type { DdjjIva, LibroIvaDigital } from "@/lib/iva/liquidacion";
 
 /** DDJJ anual de Ganancias de sociedades (F.713). */
@@ -195,6 +195,109 @@ function iibbJujuy(lineas: string[]): DdjjLeida | null {
   };
 }
 
+function convenioMultilateral(lineas: string[]): DdjjLeida | null {
+  const todo = lineas.join("\n");
+  if (!/Convenio Multilateral/.test(todo) || !/CM0?3/.test(todo)) return null;
+  const cab = todo.match(/CUIT:\s*([\d-]+)\s+Contribuyente:\s*(.+?)\s+Sede:/);
+  const per = todo.match(/Anticipo:\s*(\d{4})(\d{2})/);
+  if (!cab || !per) return null;
+  const pres = todo.match(/presentada el (\d{2}\/\d{2}\/\d{4})/);
+  const M = String.raw`(-?\$\s?-?[\d.]+,\d{2})`;
+  const fila = new RegExp(`^(9\\d{2}) (.+?) ${M} ${M} ${M} ${M} ${M} ${M}$`);
+  const jurisdicciones: JurisdiccionIibb[] = [];
+  for (const l of lineas) {
+    const m = l.match(fila);
+    if (!m || jurisdicciones.some((j) => j.codigo === m[1])) continue;
+    const [det, restan, suman, aFavor, , aPagar] = m.slice(3).map(importe);
+    jurisdicciones.push({
+      codigo: m[1],
+      nombre: m[2].trim(),
+      determinado: det,
+      restan,
+      suman,
+      aFavorContribuyente: aFavor,
+      aPagar,
+    });
+  }
+  if (!jurisdicciones.length) return null;
+  const suma = (f: (j: JurisdiccionIibb) => number) =>
+    redondear(jurisdicciones.reduce((t, j) => t + f(j), 0));
+  return {
+    tipo: "iibb",
+    cuit: soloDigitos(cab[1]),
+    nombre: cab[2],
+    periodo: `${per[1]}-${per[2]}`,
+    jurisdiccion: "Convenio Multilateral",
+    datos: {
+      determinado: suma((j) => j.determinado + j.suman),
+      retenciones: 0,
+      percepciones: 0,
+      sircreb: 0,
+      deduccionesDdjj: suma((j) => j.restan),
+      aPagarDdjj: suma((j) => j.aPagar),
+      saldoAFavorDdjj: suma((j) => j.aFavorContribuyente),
+      jurisdicciones: jurisdicciones.filter(
+        (j) =>
+          j.determinado ||
+          j.restan ||
+          j.suman ||
+          j.aPagar ||
+          j.aFavorContribuyente,
+      ),
+      presentada: true,
+      origen: "DDJJ Convenio Multilateral (CM03)",
+      fechaPresentacion: pres ? fechaIso(pres[1]) : undefined,
+    },
+  };
+}
+
+function iibbSalta(lineas: string[]): DdjjLeida | null {
+  const todo = lineas.join("\n");
+  if (!/F903/.test(todo) || !/dgrsalta|D\.G\.R\./i.test(todo)) return null;
+  const cab = todo.match(
+    /C\.U\.I\.T\.[^\n]*\n([\d-]+)\s+(SI|NO)\s+(\d{1,2})\/(\d{4})/,
+  );
+  if (!cab) return null;
+  const i = lineas.findIndex((l) => /APELLIDO Y NOMBRE O RAZÓN SOCIAL/.test(l));
+  // El importe puede venir en la misma línea que la etiqueta o en la siguiente.
+  const de = (etiqueta: RegExp) => {
+    for (let j = 0; j < lineas.length; j++) {
+      const m = lineas[j].match(etiqueta);
+      if (!m) continue;
+      const resto = lineas[j].slice((m.index ?? 0) + m[0].length);
+      const aca = resto.match(/^\s*(-?[\d.,]+)/);
+      if (aca) return redondear(importe(aca[1]));
+      const sig = lineas[j + 1]?.match(/^\s*(-?[\d.,]+)\s*$/);
+      return sig ? redondear(importe(sig[1])) : 0;
+    }
+    return 0;
+  };
+  const determinado = de(
+    /TOTAL IMPUESTOS POR APLICACION ALICUOTA O MINIMO \(EL MAYOR\)/,
+  );
+  const depositar = de(/IMPORTE A DEPOSITAR/);
+  const aFavorDgr = de(/^SALDO A FAVOR DGR/);
+  return {
+    tipo: "iibb",
+    cuit: soloDigitos(cab[1]),
+    nombre: lineas[i + 1] ?? "",
+    periodo: `${cab[4]}-${cab[3].padStart(2, "0")}`,
+    jurisdiccion: "Salta",
+    datos: {
+      // Intereses y accesorios: lo que se deposita por encima del saldo a favor de la DGR.
+      determinado: redondear(determinado + Math.max(0, depositar - aFavorDgr)),
+      retenciones: de(/MENOS RETENCIONES SEGUN ANEXO/),
+      percepciones: de(/MENOS PERCEPCIONES SEGUN ANEXO/),
+      sircreb: 0,
+      saldoAFavorAnterior: de(/MENOS SALDO SEGUN DD\.JJ\. MES \d+ AÑO \d{4}/),
+      aPagarDdjj: depositar,
+      saldoAFavorDdjj: de(/A FAVOR CONTRIBUYENTE/),
+      presentada: true,
+      origen: "DDJJ DGR Salta (F903)",
+    },
+  };
+}
+
 function gananciasPj(lineas: string[]): DdjjLeida | null {
   const todo = lineas.join("\n");
   if (!/GANANCIAS/.test(todo) || !/F\.\s?713/.test(todo)) return null;
@@ -248,6 +351,8 @@ export function leerDdjj(lineas: string[]): DdjjLeida | null {
     ddjjIva(lineas) ??
     libroIva(lineas) ??
     iibbJujuy(lineas) ??
+    convenioMultilateral(lineas) ??
+    iibbSalta(lineas) ??
     gananciasPj(lineas)
   );
 }

@@ -279,7 +279,7 @@ export const ESTATICO: DefEstatico[] = [
   P(
     "Obligaciones financieras y comerciales",
     "titular",
-    "Saldo acreedor de los socios",
+    "Saldo acreedor del titular o de los socios",
     [
       "2.1.02.004",
       "2.1.07.001",
@@ -378,7 +378,7 @@ export interface DefDinamico {
 export const DINAMICO: DefDinamico[] = [
   {
     clave: "retiros",
-    nombre: "Retiros de los socios y dividendos pagados",
+    nombre: "Retiros del titular o de los socios y dividendos pagados",
     signo: 1,
     cuentas: ["1.1.04.023", "1.1.04.024", "2.1.06.001"],
     lado: "debe",
@@ -438,7 +438,7 @@ export const DINAMICO: DefDinamico[] = [
   },
   {
     clave: "aportes",
-    nombre: "Aportes y aumentos de capital",
+    nombre: "Aportes del titular o de los socios y aumentos de capital",
     signo: -1,
     cuentas: ["3.1.01.001", "3.1.01.003", "3.1.01.004"],
     lado: "haber",
