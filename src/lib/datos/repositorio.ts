@@ -13,6 +13,7 @@ import { nombreCuenta } from "@/lib/plan/plan";
 import type { Inventario } from "@/lib/inventarios/inventarios";
 import type { Plantilla } from "@/lib/avisos/avisos";
 import type { DatosIibb } from "@/lib/impuestos/asientos";
+import type { DatosArca } from "@/lib/arca/constancia";
 import type { LiquidacionGuardada } from "@/lib/iva/liquidacion";
 import type { CuentaBancaria } from "@/lib/cuentas-bancarias/cuentas";
 import type { PlanPago } from "@/lib/vencimientos/vencimientos";
@@ -56,6 +57,8 @@ export interface Empresa {
   iibb_numero?: string;
   iibb_regimen?: string;
   notas?: string;
+  /** Lo que informa la constancia de inscripción de ARCA. */
+  datos_arca?: DatosArca | null;
 }
 
 /** Campos de la ficha del cliente que se editan juntos. */
@@ -75,6 +78,7 @@ export const CAMPOS_FICHA = [
   "iibb_numero",
   "iibb_regimen",
   "notas",
+  "datos_arca",
 ] as const;
 export type FichaEmpresa = Pick<Empresa, (typeof CAMPOS_FICHA)[number]>;
 
@@ -182,7 +186,7 @@ export class Repositorio {
     const { data, error } = await this.db
       .from("empresas")
       .select(
-        "id, razon_social, cuit, condicion_iva, mes_cierre, impuestos, categoria_monotributo, actividad_monotributo, actividad, domicilio, localidad, provincia, codigo_postal, telefono, email_contacto, contacto, inicio_actividades, iibb_numero, iibb_regimen, notas",
+        "id, razon_social, cuit, condicion_iva, mes_cierre, impuestos, categoria_monotributo, actividad_monotributo, actividad, domicilio, localidad, provincia, codigo_postal, telefono, email_contacto, contacto, inicio_actividades, iibb_numero, iibb_regimen, notas, datos_arca",
       )
       .order("razon_social");
     fallar(error, "leer las empresas");
@@ -194,7 +198,7 @@ export class Repositorio {
       .from("empresas")
       .insert(e)
       .select(
-        "id, razon_social, cuit, condicion_iva, mes_cierre, impuestos, categoria_monotributo, actividad_monotributo, actividad, domicilio, localidad, provincia, codigo_postal, telefono, email_contacto, contacto, inicio_actividades, iibb_numero, iibb_regimen, notas",
+        "id, razon_social, cuit, condicion_iva, mes_cierre, impuestos, categoria_monotributo, actividad_monotributo, actividad, domicilio, localidad, provincia, codigo_postal, telefono, email_contacto, contacto, inicio_actividades, iibb_numero, iibb_regimen, notas, datos_arca",
       )
       .single();
     fallar(error, "crear la empresa");

@@ -4,7 +4,11 @@ import type { Session } from "@supabase/supabase-js";
 import { useEffect, useMemo, useState } from "react";
 import { CambiarClave } from "@/components/acceso/CambiarClave";
 import { Ingreso } from "@/components/acceso/Ingreso";
-import { AdminEmpresas } from "@/components/empresas/AdminEmpresas";
+import {
+  AdminEmpresas,
+  EditarEmpresa,
+} from "@/components/empresas/AdminEmpresas";
+import { Modal } from "@/components/Modal";
 import { Importador } from "@/components/importador/Importador";
 import { Marca } from "@/components/Marca";
 import { inicialesDe, MenuUsuario } from "@/components/MenuUsuario";
@@ -73,6 +77,7 @@ export function App() {
   const [verEmpresas, setVerEmpresas] = useState(false);
   const [comoCliente, setComoCliente] = useState(false);
   const [cambiandoClave, setCambiandoClave] = useState(false);
+  const [conFicha, setConFicha] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // Mensajes del cliente sin leer, por empresa (solo para el estudio).
   const [sinLeer, setSinLeer] = useState<Record<string, number>>({});
@@ -157,6 +162,15 @@ export function App() {
           },
         ]
       : []),
+    ...(esEstudio && enEmpresa && !comoCliente && empresa
+      ? [
+          {
+            texto: "Ficha del cliente (datos y constancia)",
+            icono: "📇",
+            onClick: () => setConFicha(true),
+          },
+        ]
+      : []),
     ...(esEstudio && enEmpresa && !comoCliente
       ? [
           {
@@ -187,6 +201,27 @@ export function App() {
       />
       {cambiandoClave && (
         <CambiarClave db={db} onCerrar={() => setCambiandoClave(false)} />
+      )}
+      {conFicha && empresa && (
+        <Modal
+          titulo="Ficha del cliente"
+          subtitulo={empresa.razon_social}
+          onCerrar={() => setConFicha(false)}
+        >
+          <EditarEmpresa
+            repo={repo}
+            empresa={empresa}
+            onActualizada={(e) =>
+              setEmpresas(empresas.map((x) => (x.id === e.id ? e : x)))
+            }
+            onBorrada={(id) => {
+              setConFicha(false);
+              setEmpresas(empresas.filter((x) => x.id !== id));
+              setEmpresaId(null);
+            }}
+            onCerrar={() => setConFicha(false)}
+          />
+        </Modal>
       )}
     </>
   );

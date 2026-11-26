@@ -21,6 +21,7 @@ import { cuitConGuiones } from "@/lib/formato";
 import { cuitValido } from "@/lib/tickets/validar";
 import { AlertasMonotributo, useMonotributistas } from "./AlertasMonotributo";
 import { Avisos } from "./Avisos";
+import { ConstanciaArca, DatosDeArca, type ExtrasArca } from "./ConstanciaArca";
 import { RecordatoriosClientes } from "./RecordatoriosClientes";
 import { UnidadesEmpresa } from "./UnidadesEmpresa";
 import {
@@ -225,7 +226,7 @@ function Campo({
 
 /** Ficha completa del cliente (datos fiscales y de contacto) o eliminarlo con todo lo cargado. */
 
-function EditarEmpresa({
+export function EditarEmpresa({
   repo,
   empresa,
   onActualizada,
@@ -254,7 +255,9 @@ function EditarEmpresa({
     iibb_numero: empresa.iibb_numero ?? "",
     iibb_regimen: empresa.iibb_regimen ?? "",
     notas: empresa.notas ?? "",
+    datos_arca: empresa.datos_arca ?? null,
   }));
+  const [extras, setExtras] = useState<ExtrasArca>({});
   const cambiar = (c: Partial<FichaEmpresa>) => setFicha({ ...ficha, ...c });
   const [confirmacion, setConfirmacion] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -277,7 +280,10 @@ function EditarEmpresa({
         inicio_actividades: ficha.inicio_actividades || null,
       };
       await repo.editarEmpresa(empresa.id, cambios);
-      onActualizada({ ...empresa, ...cambios });
+      // Lo que vino de la constancia de ARCA y no es de la ficha (cierre, impuestos, categoría).
+      if (Object.keys(extras).length)
+        await repo.actualizarEmpresa(empresa.id, extras);
+      onActualizada({ ...empresa, ...cambios, ...extras });
       onCerrar();
     } catch (err) {
       const m = err instanceof Error ? err.message : String(err);
@@ -307,6 +313,29 @@ function EditarEmpresa({
 
   return (
     <div className="mt-3 space-y-4 text-sm">
+      <ConstanciaArca
+        empresa={empresa}
+        ficha={ficha}
+        onAplicar={(c, x) => {
+          cambiar(c);
+          setExtras({ ...extras, ...x });
+        }}
+      />
+      {ficha.datos_arca && <DatosDeArca datos={ficha.datos_arca} />}
+      {Object.keys(extras).length > 0 && (
+        <p className="rounded-xl bg-amber-50 p-3 text-amber-900">
+          Al guardar también se actualiza:{" "}
+          {[
+            extras.mes_cierre && "el cierre del ejercicio",
+            extras.impuestos && "los impuestos (y sus vencimientos)",
+            extras.categoria_monotributo &&
+              `la categoría de monotributo (${extras.categoria_monotributo})`,
+          ]
+            .filter(Boolean)
+            .join(", ")}
+          .
+        </p>
+      )}
       <form onSubmit={guardar} className="space-y-4">
         <fieldset className="grid gap-3 sm:grid-cols-[2fr_1fr_1fr]">
           <legend className="mb-1 text-xs font-semibold uppercase tracking-wide text-stone-500">
@@ -1053,6 +1082,13 @@ export function AdminEmpresas({
                         💬 {sinLeer[e.id]}
                       </button>
                     ) : null}
+                    <button
+                      type="button"
+                      onClick={() => setPanel({ tipo: "ficha", id: e.id })}
+                      className="rounded-lg border border-stone-300 px-3 py-1.5 text-sm font-medium text-stone-700 hover:bg-stone-50"
+                    >
+                      📇 Datos
+                    </button>
                     <button
                       type="button"
                       onClick={() => onAbrir(e)}
