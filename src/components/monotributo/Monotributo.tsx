@@ -1,6 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { BotonesDescarga } from "@/components/BotonesDescarga";
+import { ETIQUETA_IMPUESTO } from "@/components/empresas/Vencimientos";
+import type { InformeMonotributo } from "@/lib/informes/monotributo";
+import type { Impuesto } from "@/lib/vencimientos/vencimientos";
 import type { Comprobante } from "@/lib/arca/tipos";
 import type { Empresa, Repositorio } from "@/lib/datos/repositorio";
 import { pesos } from "@/lib/formato";
@@ -48,6 +52,7 @@ export function Monotributo({
   acreditaciones = [],
   esEstudio,
   onEmpresa,
+  proximos = [],
 }: {
   repo?: Repositorio;
   empresa: Empresa;
@@ -57,6 +62,8 @@ export function Monotributo({
   acreditaciones?: { fecha: string; importe: number }[];
   esEstudio: boolean;
   onEmpresa?: (e: Empresa) => void;
+  /** Próximos vencimientos (para el informe). */
+  proximos?: { fecha: string; impuesto: Impuesto; detalle: string }[];
 }) {
   const [tabla, setTabla] = useState<Categoria[]>([]);
   const [pegado, setPegado] = useState("");
@@ -129,22 +136,73 @@ export function Monotributo({
 
   return (
     <div className="space-y-5">
-      <section className="rounded-2xl bg-gradient-to-br from-marca to-[#7a2412] p-6 text-white shadow-sm">
+      <section className="rounded-3xl bg-gradient-to-br from-marca to-[#8a2a12] p-6 text-white shadow-md sm:p-8">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <p className="text-sm opacity-80">Hola, {empresa.razon_social}</p>
             <h1 className="mt-1 text-2xl font-semibold">Tu monotributo</h1>
           </div>
-          <label className="text-sm">
-            <span className="opacity-80">Ver 12 meses hasta</span>
-            <input
-              id="mono-mes"
-              type="month"
-              value={mes}
-              onChange={(e) => e.target.value && setMes(e.target.value)}
-              className="mt-1 block rounded-md border border-white/30 bg-white/10 px-2 py-1 text-white"
+          <div className="flex flex-wrap items-end gap-3">
+            <BotonesDescarga
+              claro
+              onDescargar={async (formato) => {
+                const informe: InformeMonotributo = {
+                  empresa: empresa.razon_social,
+                  cuit: empresa.cuit,
+                  generado: hoy,
+                  actividad,
+                  categoria: empresa.categoria_monotributo || null,
+                  tope: actual?.tope ?? null,
+                  cuotaMensual: cuota(actual),
+                  corresponde: tabla.length
+                    ? (corresponde?.letra ?? null)
+                    : empresa.categoria_monotributo || null,
+                  cuotaCorresponde: cuota(corresponde),
+                  meses: r.meses.map((m, i) => ({
+                    mes: m,
+                    facturado: r.facturado[i],
+                    comprado: r.comprado[i],
+                  })),
+                  totalFacturado: r.totalFacturado,
+                  totalComprado: r.totalComprado,
+                  recategorizacion: recat,
+                  vencimientos: proximos.slice(0, 8).map((v) => ({
+                    fecha: v.fecha,
+                    impuesto: ETIQUETA_IMPUESTO[v.impuesto][0],
+                    detalle: v.detalle,
+                  })),
+                };
+                const m = await import("@/lib/informes/monotributo");
+                const { descargar } = await import("@/lib/informes/informe");
+                const { logosInforme } = await import("@/lib/informes/logos");
+                const logo = await logosInforme();
+                const nombre = `Monotributo_${empresa.razon_social
+                  .normalize("NFD")
+                  .replace(/[\u0300-\u036f]/g, "")
+                  .replace(/[^\w]+/g, "_")}_${mes}`;
+                if (formato === "pdf")
+                  descargar(
+                    await m.pdfMonotributo(informe, logo.pdf),
+                    `${nombre}.pdf`,
+                  );
+                else
+                  descargar(
+                    await m.excelMonotributo(informe, logo.excel),
+                    `${nombre}.xlsx`,
+                  );
+              }}
             />
-          </label>
+            <label className="text-sm">
+              <span className="opacity-80">Ver 12 meses hasta</span>
+              <input
+                id="mono-mes"
+                type="month"
+                value={mes}
+                onChange={(e) => e.target.value && setMes(e.target.value)}
+                className="mt-1 block rounded-md border border-white/30 bg-white/10 px-2 py-1 text-white"
+              />
+            </label>
+          </div>
         </div>
         <div className="mt-5 grid gap-5 sm:grid-cols-3">
           <div>
@@ -296,11 +354,11 @@ export function Monotributo({
           <div className="mt-5">
             <div className="mb-1 flex gap-4 text-xs text-stone-500">
               <span className="flex items-center gap-1">
-                <span className="inline-block h-2 w-3 rounded-sm bg-[#2a78d6]" />{" "}
+                <span className="inline-block h-2 w-3 rounded-sm bg-marca" />{" "}
                 Facturado
               </span>
               <span className="flex items-center gap-1">
-                <span className="inline-block h-2 w-3 rounded-sm bg-[#eb6834]" />{" "}
+                <span className="inline-block h-2 w-3 rounded-sm bg-[#d9a28f]" />{" "}
                 Compras y gastos
               </span>
               {r.mesesConBanco.length > 0 && (
@@ -319,14 +377,14 @@ export function Monotributo({
                   <div className="flex h-28 w-full items-end justify-center gap-0.5">
                     <div
                       title={`Facturado ${pesos(r.facturado[i])}`}
-                      className="w-1/2 rounded-t-sm bg-[#2a78d6]"
+                      className="w-1/2 rounded-t-sm bg-marca"
                       style={{
                         height: `${(Math.max(0, r.facturado[i]) / maximo) * 100}%`,
                       }}
                     />
                     <div
                       title={`Compras ${pesos(r.comprado[i])}`}
-                      className="w-1/2 rounded-t-sm bg-[#eb6834]"
+                      className="w-1/2 rounded-t-sm bg-[#d9a28f]"
                       style={{
                         height: `${(Math.max(0, r.comprado[i]) / maximo) * 100}%`,
                       }}

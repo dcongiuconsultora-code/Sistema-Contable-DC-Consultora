@@ -1335,6 +1335,7 @@ export function Importador({
             acreditaciones={acreditaciones}
             esEstudio={esEstudio}
             onEmpresa={setEmpresaMono}
+            proximos={proximosEmpresa}
           />
         )}
         <div hidden={seccion !== "inicio" || esMono}>
@@ -1362,30 +1363,18 @@ export function Importador({
                 ),
               };
               const informes = await import("@/lib/informes/informe");
-              const logo = await fetch("/logo-dc.png")
-                .then((r) => (r.ok ? r.arrayBuffer() : undefined))
-                .catch(() => undefined);
+              const { logosInforme } = await import("@/lib/informes/logos");
+              const logo = await logosInforme();
               if (formato === "excel")
                 informes.descargar(
-                  await informes.excelInforme(completo, logo),
+                  await informes.excelInforme(completo, logo.excel),
                   informes.nombreArchivo(completo, "xlsx"),
                 );
-              else {
-                // En el PDF el logo va sobre la franja bordó: el blanco.
-                const blanco = await fetch("/logo-dc-blanco.png")
-                  .then((r) => (r.ok ? r.arrayBuffer() : undefined))
-                  .catch(() => undefined);
-                let binario = "";
-                for (const b of new Uint8Array(blanco ?? new ArrayBuffer(0)))
-                  binario += String.fromCharCode(b);
-                const dataUrl = blanco
-                  ? `data:image/png;base64,${btoa(binario)}`
-                  : undefined;
+              else
                 informes.descargar(
-                  await informes.pdfInforme(completo, dataUrl),
+                  await informes.pdfInforme(completo, logo.pdf),
                   informes.nombreArchivo(completo, "pdf"),
                 );
-              }
             }}
           />
         </div>
@@ -1496,6 +1485,7 @@ export function Importador({
             planes={planes}
             puedeEditar={esEstudio}
             cuitEmpresa={conexion?.empresa.cuit}
+            empresa={empresaMono.razon_social}
             onGuardar={async (p) => {
               const id = conexion
                 ? await conexion.repo.guardarPlan(conexion.empresa.id, p)

@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import { fechaCorta, pesos } from "@/lib/formato";
+import { useMemo, useState } from "react";
+import { BotonesDescarga } from "@/components/BotonesDescarga";
+import { cuadroPlanes } from "@/lib/informes/planes";
+import { fechaCorta, nombrePeriodo, pesos } from "@/lib/formato";
 import { leerPlanDePago } from "@/lib/planes/leer-plan";
 import { cuotasDelPlan, type PlanPago } from "@/lib/vencimientos/vencimientos";
 
@@ -216,15 +218,201 @@ function Formulario({
 }
 
 /** Planes de pago (Mis Facilidades y provinciales) con sus cuotas. */
+/** Cuadro resumen de todos los planes vigentes: cuánto se paga cada mes y hasta cuándo. */
+function CuadroResumen({
+  planes,
+  hoy,
+  empresa,
+  cuit,
+}: {
+  planes: PlanPago[];
+  hoy: string;
+  empresa: string;
+  cuit: string;
+}) {
+  const c = useMemo(() => cuadroPlanes(planes, hoy), [planes, hoy]);
+  const mesLindo = (m: string) => {
+    const n = nombrePeriodo(m);
+    return n.charAt(0).toUpperCase() + n.slice(1);
+  };
+  const [todos, setTodos] = useState(false);
+  const visibles = todos ? c.meses : c.meses.slice(0, 12);
+  const proximoMes = c.meses.find((m) => !m.vencido);
+  const ultima = c.planes
+    .map((x) => x.ultima)
+    .sort()
+    .at(-1);
+  return (
+    <section className="rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm sm:p-6">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-semibold">
+            Cuadro resumen para el cliente
+          </h2>
+          <p className="mt-1 max-w-2xl text-sm text-stone-600">
+            Todos los planes vigentes juntos: cuánto paga cada mes y hasta
+            cuándo. Descargalo en PDF (con tu logo) para mandárselo, o en Excel.
+          </p>
+        </div>
+        <BotonesDescarga
+          onDescargar={async (formato) => {
+            const datos = {
+              empresa,
+              cuit,
+              generado: hoy,
+              cuadro: c,
+            };
+            const m = await import("@/lib/informes/planes");
+            const { descargar } = await import("@/lib/informes/informe");
+            const { logosInforme } = await import("@/lib/informes/logos");
+            const logo = await logosInforme();
+            const nombre = `Planes_de_pago_${empresa
+              .normalize("NFD")
+              .replace(/[\u0300-\u036f]/g, "")
+              .replace(/[^\w]+/g, "_")}`;
+            if (formato === "pdf")
+              descargar(await m.pdfPlanes(datos, logo.pdf), `${nombre}.pdf`);
+            else
+              descargar(
+                await m.excelPlanes(datos, logo.excel),
+                `${nombre}.xlsx`,
+              );
+          }}
+        />
+      </div>
+      <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
+        {(
+          [
+            ["Planes vigentes", String(c.planes.length), ""],
+            ["Falta pagar en total", pesos(c.total), ""],
+            [
+              "Próximo mes",
+              proximoMes ? pesos(proximoMes.total) : "—",
+              proximoMes ? mesLindo(proximoMes.mes) : "",
+            ],
+            ["Último pago", ultima ? mesLindo(ultima) : "—", ""],
+          ] as const
+        ).map(([t, v, nota]) => (
+          <div key={t} className="rounded-xl bg-stone-50 p-3">
+            <div className="text-xs text-stone-500">{t}</div>
+            <div className="mt-0.5 text-lg font-semibold tabular-nums">{v}</div>
+            {nota && <div className="text-xs text-stone-500">{nota}</div>}
+          </div>
+        ))}
+      </div>
+      <div className="mt-4 overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="text-left text-xs uppercase tracking-wide text-stone-500">
+            <tr>
+              <th className="py-2 pr-3">Plan</th>
+              <th className="py-2 pr-3 text-right">Cuotas</th>
+              <th className="py-2 pr-3 text-right">Pagadas</th>
+              <th className="py-2 pr-3 text-right">Cuota</th>
+              <th className="py-2 pr-3">Hasta</th>
+              <th className="py-2 text-right">Falta pagar</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-stone-100">
+            {c.planes.map((x) => (
+              <tr key={x.nombre + x.primera}>
+                <td className="py-2 pr-3">
+                  <div className="font-medium">{x.nombre}</div>
+                  {x.descripcion && (
+                    <div className="text-xs text-stone-500">
+                      {x.descripcion}
+                    </div>
+                  )}
+                </td>
+                <td className="cifra py-2 pr-3">{x.cuotas}</td>
+                <td className="cifra py-2 pr-3">
+                  {x.pagadas}
+                  {x.vencidas > 0 && (
+                    <span className="ml-1 text-xs text-red-700">
+                      ({x.vencidas} vencida{x.vencidas > 1 ? "s" : ""})
+                    </span>
+                  )}
+                </td>
+                <td className="cifra py-2 pr-3">{pesos(x.importeCuota)}</td>
+                <td className="py-2 pr-3">{mesLindo(x.ultima)}</td>
+                <td className="cifra py-2 font-semibold">{pesos(x.saldo)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <h3 className="mt-6 font-semibold">Cuánto se paga cada mes</h3>
+      <div className="mt-2 overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="bg-stone-50 text-left text-xs uppercase tracking-wide text-stone-500">
+            <tr>
+              <th className="px-2 py-2">Mes</th>
+              {c.planes.map((x) => (
+                <th key={x.nombre + x.primera} className="px-2 py-2 text-right">
+                  {x.nombre}
+                </th>
+              ))}
+              <th className="px-2 py-2 text-right">Total del mes</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-stone-100">
+            {visibles.map((m) => (
+              <tr key={m.mes} className={m.vencido ? "text-red-700" : ""}>
+                <td className="px-2 py-1.5">
+                  {mesLindo(m.mes)}
+                  {m.vencido && <span className="ml-1 text-xs">(vencida)</span>}
+                </td>
+                {m.importes.map((v, i) => (
+                  <td key={i} className="cifra px-2 py-1.5">
+                    {v ? pesos(v) : ""}
+                  </td>
+                ))}
+                <td className="cifra px-2 py-1.5 font-semibold">
+                  {pesos(m.total)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {c.meses.length > 12 && (
+        <button
+          type="button"
+          onClick={() => setTodos(!todos)}
+          className="mt-2 text-sm font-medium text-marca hover:underline"
+        >
+          {todos
+            ? "Ver solo los próximos 12 meses"
+            : `Ver los ${c.meses.length} meses`}
+        </button>
+      )}
+      {c.porAnio.length > 1 && (
+        <div className="mt-4 flex flex-wrap gap-2 text-sm">
+          {c.porAnio.map((a) => (
+            <span
+              key={a.anio}
+              className="rounded-full bg-marca-claro px-3 py-1 text-marca"
+            >
+              {a.anio}: <b>{pesos(a.total)}</b>
+            </span>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
 export function PlanesPago({
   planes,
   puedeEditar,
   cuitEmpresa,
+  empresa = "",
   onGuardar,
   onBorrar,
 }: {
   planes: PlanPago[];
   puedeEditar: boolean;
+  /** Razón social, para el cuadro que se le manda al cliente. */
+  empresa?: string;
   /** Para avisar si el PDF es de otro contribuyente. */
   cuitEmpresa?: string;
   onGuardar: (p: PlanPago) => Promise<void>;
@@ -531,6 +719,14 @@ export function PlanesPago({
         })
       )}
       {error && <p className="text-sm text-red-700">{error}</p>}
+      {planes.some((p) => p.estado === "vigente") && (
+        <CuadroResumen
+          planes={planes}
+          hoy={hoyIso}
+          empresa={empresa}
+          cuit={cuitEmpresa ?? ""}
+        />
+      )}
     </div>
   );
 }
