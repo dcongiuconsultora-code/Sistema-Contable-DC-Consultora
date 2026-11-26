@@ -670,7 +670,7 @@ export function Tablero({
       cuit: "",
       periodo,
       unidad: nombreVista,
-      generado: new Date().toISOString().slice(0, 10),
+      generado: new Date().toLocaleDateString("en-CA"),
       resumen: {
         ventas: r.ventas,
         ventasMesAnterior: anterior.ventas || null,

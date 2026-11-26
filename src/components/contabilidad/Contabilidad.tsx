@@ -10,8 +10,10 @@ import type { Asiento } from "@/lib/contabilidad/diario";
 import type { SaldosIniciales } from "@/lib/contabilidad/indicadores";
 import {
   indicadoresMensuales,
+  RENGLONES_MENSUALES,
   resultadosMensuales,
 } from "@/lib/contabilidad/sumas-saldos";
+import { BotonesDescarga } from "@/components/BotonesDescarga";
 import type { Empresa, Repositorio } from "@/lib/datos/repositorio";
 import { fechaCorta, pesos } from "@/lib/formato";
 import type { ConfigUnidades } from "@/lib/unidades/unidades";
@@ -122,11 +124,13 @@ function ResultadosMensuales({
   iniciales,
   desde,
   hasta,
+  empresa,
 }: {
   asientos: Asiento[];
   iniciales: SaldosIniciales;
   desde: string;
   hasta: string;
+  empresa: Empresa;
 }) {
   const r = useMemo(
     () => resultadosMensuales(asientos, desde || "1900-01-01", hasta),
@@ -191,13 +195,57 @@ function ResultadosMensuales({
   ];
   return (
     <div className="space-y-5">
-      <section>
-        <h1 className="text-2xl font-semibold">Resultados mensuales</h1>
-        <p className="mt-1 max-w-3xl text-stone-600">
-          El estado de resultados mes por mes, en cifras históricas, para ver
-          cómo viene el año y armar intermedios, con los indicadores de
-          rentabilidad y liquidez de cada mes.
-        </p>
+      <section className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold">Resultados mensuales</h1>
+          <p className="mt-1 max-w-3xl text-stone-600">
+            El estado de resultados mes por mes, en cifras históricas, para ver
+            cómo viene el año y armar intermedios, con los indicadores de
+            rentabilidad y liquidez de cada mes.
+          </p>
+        </div>
+        <BotonesDescarga
+          onDescargar={async (formato) => {
+            const datos = {
+              empresa: empresa.razon_social,
+              cuit: empresa.cuit,
+              desde: desde || `${r.meses[0]}-01`,
+              hasta,
+              generado: new Date().toLocaleDateString("en-CA"),
+              meses: r.meses,
+              filas: r.filas.map((f) => ({
+                nombre: f.nombre,
+                valores: f.valores,
+                total: f.total,
+                esTotal: Boolean(
+                  RENGLONES_MENSUALES.find((x) => x.clave === f.clave)?.total,
+                ),
+              })),
+              indicadores: filasInd.map(([, nombre, texto]) => ({
+                nombre,
+                valores: ind.map(texto),
+              })),
+            };
+            const g = await import("@/lib/informes/gestion");
+            const { descargar } = await import("@/lib/informes/informe");
+            const { logosInforme } = await import("@/lib/informes/logos");
+            const logo = await logosInforme();
+            const nombre = `Resultados_${empresa.razon_social
+              .normalize("NFD")
+              .replace(/[\u0300-\u036f]/g, "")
+              .replace(/[^\w]+/g, "_")}_${hasta}`;
+            if (formato === "pdf")
+              descargar(
+                await g.pdfResultados(datos, logo.pdf),
+                `${nombre}.pdf`,
+              );
+            else
+              descargar(
+                await g.excelResultados(datos, logo.excel),
+                `${nombre}.xlsx`,
+              );
+          }}
+        />
       </section>
       <section className="overflow-x-auto rounded-2xl border border-stone-200/80 bg-white shadow-sm">
         <table className="w-full text-sm">
@@ -218,7 +266,11 @@ function ResultadosMensuales({
             {r.filas.map((f) => (
               <tr
                 key={f.clave}
-                className={f.total ? "bg-stone-50 font-semibold" : ""}
+                className={
+                  RENGLONES_MENSUALES.find((x) => x.clave === f.clave)?.total
+                    ? "bg-stone-50 font-semibold"
+                    : ""
+                }
               >
                 <td className="sticky left-0 whitespace-nowrap bg-inherit px-3 py-1.5">
                   {f.nombre}
@@ -416,6 +468,7 @@ export function Contabilidad({
         <ResultadosMensuales
           asientos={asientos}
           iniciales={iniciales}
+          empresa={empresa}
           desde={desdeEfectivo}
           hasta={hasta}
         />

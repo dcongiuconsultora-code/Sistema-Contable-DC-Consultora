@@ -76,17 +76,22 @@ function Registrar({
   // Un débito o crédito que el banco identifica como préstamo arranca como préstamo.
   const esPrestamo = fila.clasificacion.cuenta === "2.1.02.002";
   const [tipo, setTipo] = useState<TipoMovimiento>(
-    esPrestamo
-      ? "prestamo"
-      : entra
-        ? "cobro"
-        : /AFIP|ARCA|VEP/i.test(fila.movimiento.descripcion)
-          ? "impuesto"
-          : "pago_proveedor",
+    fila.sugerencia
+      ? fila.sugerencia.tipo
+      : esPrestamo
+        ? "prestamo"
+        : entra
+          ? "cobro"
+          : /AFIP|ARCA|VEP/i.test(fila.movimiento.descripcion)
+            ? "impuesto"
+            : "pago_proveedor",
   );
+  // Si el sistema propuso algo (sugerido), el formulario arranca con eso para poder cambiarlo.
+  const propuesta = fila.sugerencia;
   const [contraparte, setContraparte] = useState(
-    esPrestamo ? "" : sugerido.nombre,
+    propuesta?.contraparte ?? (esPrestamo ? "" : sugerido.nombre),
   );
+  const [conFactura, setConFactura] = useState(true);
   const [cuenta, setCuenta] = useState(
     esPrestamo ? (entra ? "acreditacion" : "cuota") : "",
   );
@@ -134,11 +139,15 @@ function Registrar({
           importe: Math.abs(fila.movimiento.importe),
           medio,
           contraparte: contraparte.trim(),
-          cuitContraparte: sugerido.cuit,
+          cuitContraparte: propuesta?.cuitContraparte || sugerido.cuit,
           cuenta: conceptos ? cuenta : undefined,
           // Lo que sale del banco sin factura cargada va directo al gasto; los honorarios, contra Proveedores.
           conFactura:
-            tipo === "honorarios" ? true : tipo === "gasto" ? false : undefined,
+            tipo === "honorarios"
+              ? conFactura
+              : tipo === "gasto"
+                ? false
+                : undefined,
           retenciones: tipo === "cobro" ? [] : undefined,
           desglose:
             tipo === "prestamo" && cuenta === "cuota" && desglose.length
@@ -186,6 +195,17 @@ function Registrar({
           placeholder={entra ? "Cliente" : "Proveedor"}
           className="min-w-0 rounded-md border border-stone-300 px-2 py-1.5 text-sm"
         />
+      )}
+      {tipo === "honorarios" && (
+        <label className="flex items-center gap-2 text-xs text-stone-600 sm:col-span-3">
+          <input
+            type="checkbox"
+            checked={conFactura}
+            onChange={(e) => setConFactura(e.target.checked)}
+          />
+          Tiene factura cargada (el gasto lo registra la factura y el pago
+          cancela la deuda). Sin factura, va directo a Honorarios.
+        </label>
       )}
       {tipo === "prestamo" && cuenta === "cuota" && (
         <div className="rounded-md border border-stone-200 bg-white p-2 sm:col-span-3">
@@ -491,13 +511,31 @@ export function ConciliacionBancaria({
                             </>
                           )}
                         </div>
-                        {f.estado === "sugerido" && (
+                        {f.estado === "sugerido" && registrando !== m && (
+                          <div className="mt-1 flex flex-wrap gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => onRegistrar([f.sugerencia!])}
+                              className="rounded bg-sky-700 px-2 py-0.5 text-xs font-medium text-white"
+                            >
+                              Registrar así
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setRegistrando(m)}
+                              className="rounded border border-marca px-2 py-0.5 text-xs font-medium text-marca"
+                            >
+                              Cambiar…
+                            </button>
+                          </div>
+                        )}
+                        {f.estado === "automatico" && registrando !== m && (
                           <button
                             type="button"
-                            onClick={() => onRegistrar([f.sugerencia!])}
-                            className="mt-1 rounded bg-sky-700 px-2 py-0.5 text-xs font-medium text-white"
+                            onClick={() => setRegistrando(m)}
+                            className="mt-1 rounded px-2 py-0.5 text-xs text-stone-500 underline hover:text-marca"
                           >
-                            Registrar
+                            Registrar como otra cosa…
                           </button>
                         )}
                         {f.estado === "conciliado" &&

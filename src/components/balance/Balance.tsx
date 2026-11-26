@@ -318,6 +318,55 @@ function AjusteContable({
   );
 }
 
+/** Balance (anual o intermedio) en PDF con el logo, para presentar al cliente. */
+function BotonPdfBalance({
+  estados,
+  empresa,
+  intermedio,
+}: {
+  estados: EstadosContables;
+  empresa: Empresa;
+  intermedio: boolean;
+}) {
+  const [armando, setArmando] = useState(false);
+  return (
+    <button
+      type="button"
+      disabled={armando}
+      onClick={async () => {
+        setArmando(true);
+        try {
+          const g = await import("@/lib/informes/gestion");
+          const { descargar } = await import("@/lib/informes/informe");
+          const { logosInforme } = await import("@/lib/informes/logos");
+          const logo = await logosInforme();
+          descargar(
+            await g.pdfBalance(
+              {
+                empresa: empresa.razon_social,
+                cuit: empresa.cuit,
+                generado: new Date().toLocaleDateString("en-CA"),
+                e: estados,
+                intermedio,
+              },
+              logo.pdf,
+            ),
+            `Balance_${empresa.razon_social
+              .normalize("NFD")
+              .replace(/[\u0300-\u036f]/g, "")
+              .replace(/[^\w]+/g, "_")}_${estados.cierre}.pdf`,
+          );
+        } finally {
+          setArmando(false);
+        }
+      }}
+      className="rounded-md border border-marca px-4 py-2 font-medium text-marca hover:bg-marca-claro disabled:opacity-50"
+    >
+      {armando ? "Armando el PDF…" : "⬇ PDF para presentar (con logo)"}
+    </button>
+  );
+}
+
 export function Balance({
   repo,
   empresa,
@@ -692,6 +741,11 @@ export function Balance({
                 ? "Armando el Excel…"
                 : "Descargar estados contables (Excel, modelo RT 54)"}
             </button>
+            <BotonPdfBalance
+              estados={estados}
+              empresa={empresa}
+              intermedio={cierre < cierreSugerido(iniciales.fecha)}
+            />
             {estados.diferencia !== 0 && (
               <span className="text-sm text-amber-700">
                 ⚠ El activo no iguala al pasivo más el patrimonio neto (
