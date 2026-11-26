@@ -30,7 +30,52 @@ function titulo(texto: string) {
 
 // Las cuentas son las del plan modelo de la consultora (datos/plan-de-cuentas-modelo.csv).
 // El orden importa: gana la primera regla que coincide.
+// Préstamos: "PRESTAMO", "PREST.", "PTMO" (van primero: sus intereses e IVA son del préstamo).
+const PRESTAMO = String.raw`(?:PR[EÉ]STAMO|\bPREST\b|\bPREST\.|\bPTMO\b|\bPRES\.?\s*PERS)`;
+
 const REGLAS: Regla[] = [
+  {
+    patron: new RegExp(String.raw`IVA.*${PRESTAMO}|${PRESTAMO}.*\bIVA\b`, "i"),
+    signo: -1,
+    concepto: "IVA sobre intereses del préstamo",
+    cuenta: "1.1.04.004",
+    nombreCuenta: "IVA crédito fiscal",
+    automatica: true,
+  },
+  {
+    patron: new RegExp(String.raw`\bINT(ERES(ES)?|\.)?\b.*${PRESTAMO}|${PRESTAMO}.*\bINT(ERES(ES)?|\.)?\b`, "i"),
+    signo: -1,
+    concepto: "Intereses del préstamo",
+    cuenta: "5.4.01.001",
+    nombreCuenta: "Intereses bancarios",
+    automatica: true,
+  },
+  {
+    patron: new RegExp(String.raw`SEGURO.*${PRESTAMO}|${PRESTAMO}.*SEGURO`, "i"),
+    signo: -1,
+    concepto: "Seguro del préstamo",
+    cuenta: "5.3.01.015",
+    nombreCuenta: "Seguros",
+    automatica: true,
+  },
+  {
+    patron: new RegExp(PRESTAMO, "i"),
+    signo: 1,
+    concepto: "Acreditación de préstamo",
+    cuenta: "2.1.02.002",
+    nombreCuenta: "Préstamos bancarios",
+    automatica: false,
+    nota: "Registralo como Préstamo bancario → Acreditación.",
+  },
+  {
+    patron: new RegExp(PRESTAMO, "i"),
+    signo: -1,
+    concepto: "Cuota de préstamo",
+    cuenta: "2.1.02.002",
+    nombreCuenta: "Préstamos bancarios",
+    automatica: false,
+    nota: "Registrala como Préstamo bancario → Cuota y separá intereses e IVA con el cronograma.",
+  },
   {
     patron: /SIRCREB/i,
     concepto: "Retención IIBB SIRCREB",
@@ -97,15 +142,6 @@ const REGLAS: Regla[] = [
     cuenta: "1.1.01.006",
     nombreCuenta: "Banco cuenta corriente en pesos",
     automatica: true,
-  },
-  {
-    patron: /PRESTAMO/i,
-    signo: -1,
-    concepto: "Cuota de préstamo",
-    cuenta: "2.1.02.002",
-    nombreCuenta: "Préstamos bancarios",
-    automatica: false,
-    nota: "Separar capital e intereses con el cronograma del préstamo.",
   },
   {
     patron: /DB TARJETA DE CREDITO/i,

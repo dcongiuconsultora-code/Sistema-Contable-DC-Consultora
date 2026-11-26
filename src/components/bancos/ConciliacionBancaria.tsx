@@ -17,7 +17,9 @@ import {
   IMPUESTOS,
   MEDIOS,
   type Movimiento,
+  OPERACIONES_PRESTAMO,
   OPERACIONES_SOCIOS,
+  PARTES_CUOTA,
   TIPOS,
   type TipoMovimiento,
 } from "@/lib/movimientos/tipos";
@@ -71,25 +73,52 @@ function Registrar({
 }) {
   const entra = fila.movimiento.importe > 0;
   const sugerido = sugerenciaDesdeBanco(fila.movimiento);
+  // Un débito o crédito que el banco identifica como préstamo arranca como préstamo.
+  const esPrestamo = fila.clasificacion.cuenta === "2.1.02.002";
   const [tipo, setTipo] = useState<TipoMovimiento>(
-    entra
-      ? "cobro"
-      : /AFIP|ARCA|VEP/i.test(fila.movimiento.descripcion)
-        ? "impuesto"
-        : "pago_proveedor",
+    esPrestamo
+      ? "prestamo"
+      : entra
+        ? "cobro"
+        : /AFIP|ARCA|VEP/i.test(fila.movimiento.descripcion)
+          ? "impuesto"
+          : "pago_proveedor",
   );
-  const [contraparte, setContraparte] = useState(sugerido.nombre);
-  const [cuenta, setCuenta] = useState("");
+  const [contraparte, setContraparte] = useState(
+    esPrestamo ? "" : sugerido.nombre,
+  );
+  const [cuenta, setCuenta] = useState(
+    esPrestamo ? (entra ? "acreditacion" : "cuota") : "",
+  );
+  const [partes, setPartes] = useState<Record<string, string>>({});
   const conceptos =
     tipo === "socios"
       ? OPERACIONES_SOCIOS.filter(
           ([, , sentido]) => (sentido === "entrada") === entra,
         ).map(([c, n]) => [c, n] as [string, string])
-      : CONCEPTOS[tipo];
+      : tipo === "prestamo"
+        ? OPERACIONES_PRESTAMO.filter(
+            ([, , sentido]) => (sentido === "entrada") === entra,
+          ).map(([c, n]) => [c, n] as [string, string])
+        : CONCEPTOS[tipo];
   const tipos = TIPOS.filter((t) =>
-    entra ? t.id === "cobro" || t.id === "socios" : t.id !== "cobro",
+    entra
+      ? t.id === "cobro" || t.id === "socios" || t.id === "prestamo"
+      : t.id !== "cobro",
   );
-  const falta = conceptos ? !cuenta : !contraparte.trim();
+  const desglose = PARTES_CUOTA.map(([c]) => ({
+    cuenta: c,
+    importe: Math.round((Number(partes[c]) || 0) * 100) / 100,
+  })).filter((d) => d.importe > 0);
+  const capital =
+    Math.round(
+      (Math.abs(fila.movimiento.importe) -
+        desglose.reduce((t, d) => t + d.importe, 0)) *
+        100,
+    ) / 100;
+  const falta =
+    (conceptos ? !cuenta : !contraparte.trim()) ||
+    (tipo === "prestamo" && capital < 0);
 
   return (
     <form
@@ -111,6 +140,10 @@ function Registrar({
           conFactura:
             tipo === "honorarios" ? true : tipo === "gasto" ? false : undefined,
           retenciones: tipo === "cobro" ? [] : undefined,
+          desglose:
+            tipo === "prestamo" && cuenta === "cuota" && desglose.length
+              ? desglose
+              : undefined,
           nota: fila.movimiento.descripcion,
           estado: "aprobado",
         });
@@ -153,6 +186,39 @@ function Registrar({
           placeholder={entra ? "Cliente" : "Proveedor"}
           className="min-w-0 rounded-md border border-stone-300 px-2 py-1.5 text-sm"
         />
+      )}
+      {tipo === "prestamo" && cuenta === "cuota" && (
+        <div className="rounded-md border border-stone-200 bg-white p-2 sm:col-span-3">
+          <div className="text-xs text-stone-600">
+            Si tenés el cronograma, separá lo que no es capital (lo que no
+            cargues queda como capital):
+          </div>
+          <div className="mt-1 grid gap-2 sm:grid-cols-4">
+            {PARTES_CUOTA.map(([c, n]) => (
+              <label key={c} className="text-xs text-stone-600">
+                {n}
+                <input
+                  aria-label={n}
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={partes[c] ?? ""}
+                  onChange={(e) =>
+                    setPartes({ ...partes, [c]: e.target.value })
+                  }
+                  className="mt-0.5 block w-full rounded-md border border-stone-300 px-2 py-1 text-right text-sm"
+                />
+              </label>
+            ))}
+          </div>
+          <div
+            className={`mt-1 text-xs ${capital < 0 ? "text-red-700" : "text-stone-600"}`}
+          >
+            {capital < 0
+              ? "Lo separado supera la cuota."
+              : `Capital: $ ${capital.toLocaleString("es-AR", { minimumFractionDigits: 2 })}`}
+          </div>
+        </div>
       )}
       <div className="flex gap-1">
         <button

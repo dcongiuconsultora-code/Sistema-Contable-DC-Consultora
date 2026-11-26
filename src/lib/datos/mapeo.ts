@@ -129,6 +129,7 @@ export interface FilaMovimiento {
   observacion: string | null;
   origen: "cliente" | "banco";
   unidad_id: string | null;
+  desglose?: { cuenta: string; importe: number }[] | null;
 }
 
 export function movimientoAFila(
@@ -155,6 +156,7 @@ export function movimientoAFila(
     observacion: m.observacion ?? null,
     origen: m.origen ?? "cliente",
     unidad_id: m.unidad ?? null,
+    desglose: m.desglose?.length ? m.desglose : null,
   };
 }
 
@@ -181,6 +183,9 @@ export function filaAMovimiento(f: FilaMovimiento): Movimiento {
     observacion: f.observacion ?? undefined,
     origen: f.origen,
     unidad: f.unidad_id ?? undefined,
+    desglose: f.desglose?.length
+      ? f.desglose.map((d) => ({ cuenta: d.cuenta, importe: num(d.importe) }))
+      : undefined,
   };
 }
 

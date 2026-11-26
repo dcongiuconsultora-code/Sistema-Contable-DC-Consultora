@@ -8,7 +8,8 @@ export type TipoMovimiento =
   | "honorarios"
   | "gasto"
   | "impuesto"
-  | "socios";
+  | "socios"
+  | "prestamo";
 
 export type EstadoMovimiento = "enviado" | "aprobado" | "observado";
 
@@ -117,6 +118,46 @@ export const OPERACIONES_SOCIOS: [string, string, "entrada" | "salida"][] = [
   ["2.1.02.004", "Préstamo de un socio", "entrada"],
 ];
 
+/**
+ * Operaciones con préstamos bancarios: [código, nombre, sentido, cuenta]. En la cuota se pueden
+ * separar intereses, IVA y gastos (el resto es capital).
+ */
+export const OPERACIONES_PRESTAMO: [
+  string,
+  string,
+  "entrada" | "salida",
+  string,
+][] = [
+  ["cuota", "Cuota del préstamo", "salida", "2.1.02.002"],
+  ["intereses", "Solo intereses del préstamo", "salida", "5.4.01.001"],
+  [
+    "gastos",
+    "Gastos, comisiones o seguro del préstamo",
+    "salida",
+    "5.3.01.024",
+  ],
+  [
+    "cancelacion",
+    "Cancelación anticipada del préstamo",
+    "salida",
+    "2.1.02.002",
+  ],
+  [
+    "acreditacion",
+    "Acreditación del préstamo (lo deposita el banco)",
+    "entrada",
+    "2.1.02.002",
+  ],
+];
+
+/** Partes de una cuota de préstamo que no son capital. */
+export const PARTES_CUOTA: [string, string][] = [
+  ["5.4.01.001", "Intereses"],
+  ["1.1.04.004", "IVA sobre intereses"],
+  ["5.3.01.015", "Seguro"],
+  ["5.3.01.024", "Gastos y comisiones"],
+];
+
 export interface RetencionSufrida {
   impuesto: "IVA" | "Ganancias" | "IIBB";
   jurisdiccion?: string;
@@ -155,6 +196,8 @@ export interface Movimiento {
   origen?: "cliente" | "banco";
   /** Unidad de negocio, en empresas que las tienen. */
   unidad?: string;
+  /** Cuota de préstamo: intereses, IVA, seguro o gastos incluidos (el resto es capital). */
+  desglose?: { cuenta: string; importe: number }[];
 }
 
 export const TIPOS: {
@@ -205,6 +248,12 @@ export const TIPOS: {
     ayuda: "Plata que sacan o ponen los dueños",
     entra: false,
   },
+  {
+    id: "prestamo",
+    nombre: "Préstamo bancario",
+    ayuda: "Cuota (capital, intereses, IVA) o acreditación del préstamo",
+    entra: false,
+  },
 ];
 
 /** Si el movimiento hace entrar plata al medio de pago. */
@@ -212,5 +261,9 @@ export function entraPlata(m: Pick<Movimiento, "tipo" | "cuenta">) {
   if (m.tipo === "cobro") return true;
   if (m.tipo === "socios")
     return OPERACIONES_SOCIOS.find(([c]) => c === m.cuenta)?.[2] === "entrada";
+  if (m.tipo === "prestamo")
+    return (
+      OPERACIONES_PRESTAMO.find(([c]) => c === m.cuenta)?.[2] === "entrada"
+    );
   return false;
 }

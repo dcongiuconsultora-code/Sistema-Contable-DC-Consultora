@@ -1,6 +1,11 @@
 import { cuitValido } from "@/lib/tickets/validar";
 import { nombreCuenta } from "@/lib/plan/plan";
-import { entraPlata, medio, type Movimiento } from "./tipos";
+import {
+  entraPlata,
+  medio,
+  type Movimiento,
+  OPERACIONES_PRESTAMO,
+} from "./tipos";
 
 export interface LineaAsiento {
   cuenta: string;
@@ -38,6 +43,10 @@ export function cuentaDelMovimiento(m: Movimiento): string {
       return m.cuenta ?? "2.1.04.015";
     case "socios":
       return m.cuenta ?? "1.1.04.024";
+    case "prestamo":
+      return (
+        OPERACIONES_PRESTAMO.find(([c]) => c === m.cuenta)?.[3] ?? "2.1.02.002"
+      );
   }
 }
 
@@ -82,6 +91,18 @@ export function generarAsiento(m: Movimiento): LineaAsiento[] {
       linea(contra, 0, m.importe, detalle),
     ];
   }
+  // Cuota de préstamo con intereses, IVA o gastos separados: el resto es capital.
+  const partes = (m.desglose ?? []).filter((d) => d.importe > 0);
+  if (partes.length) {
+    const otros = partes.reduce((t, d) => t + d.importe, 0);
+    return [
+      ...(m.importe - otros > 0.004
+        ? [linea(contra, m.importe - otros, 0, detalle)]
+        : []),
+      ...partes.map((d) => linea(d.cuenta, d.importe, 0, detalle)),
+      linea(mp.cuentaSalida, 0, m.importe),
+    ];
+  }
   return [
     linea(contra, m.importe, 0, detalle),
     linea(mp.cuentaSalida, 0, m.importe),
@@ -116,12 +137,17 @@ export function validarMovimiento(m: Movimiento, hoy = new Date()): string[] {
   if (m.cuitContraparte && !cuitValido(m.cuitContraparte))
     errores.push("El CUIT/CUIL no es válido.");
   if (
-    ["gasto", "impuesto", "sueldo", "socios"].includes(m.tipo) &&
+    ["gasto", "impuesto", "sueldo", "socios", "prestamo"].includes(m.tipo) &&
     !m.cuenta &&
     !(m.tipo === "gasto" && m.conFactura)
   ) {
     errores.push("Elegí el concepto.");
   }
+  const desglosado = (m.desglose ?? []).reduce((t, d) => t + d.importe, 0);
+  if ((m.desglose ?? []).some((d) => d.importe < 0))
+    errores.push("Los intereses, IVA y gastos no pueden ser negativos.");
+  if (desglosado > m.importe + 0.004)
+    errores.push("Los intereses, IVA y gastos suman más que la cuota.");
   for (const r of m.retenciones ?? []) {
     if (r.importe < 0) errores.push("Las retenciones no pueden ser negativas.");
     if (r.impuesto === "IIBB" && r.importe > 0 && !r.jurisdiccion)

@@ -29,7 +29,9 @@ import {
   IMPUESTOS,
   MEDIOS,
   type Movimiento,
+  OPERACIONES_PRESTAMO,
   OPERACIONES_SOCIOS,
+  PARTES_CUOTA,
   type RetencionSufrida,
   TIPOS,
   type TipoMovimiento,
@@ -85,7 +87,7 @@ function nuevo(tipo: TipoMovimiento): Movimiento {
 }
 
 function descripcion(m: Movimiento) {
-  const lista =
+  const lista: (readonly string[])[] =
     m.tipo === "gasto"
       ? CATEGORIAS_GASTO
       : m.tipo === "impuesto"
@@ -94,7 +96,9 @@ function descripcion(m: Movimiento) {
           ? CONCEPTOS_SUELDO
           : m.tipo === "socios"
             ? OPERACIONES_SOCIOS
-            : [];
+            : m.tipo === "prestamo"
+              ? OPERACIONES_PRESTAMO
+              : [];
   const concepto = lista.find(([c]) => c === m.cuenta)?.[1];
   return (
     [concepto, m.contraparte].filter(Boolean).join(" · ") ||
@@ -190,9 +194,11 @@ function Formulario({
           ? "Profesional"
           : m.tipo === "socios"
             ? "Socio"
-            : m.tipo === "gasto"
-              ? "A quién se le pagó (opcional)"
-              : "Proveedor";
+            : m.tipo === "prestamo"
+              ? "Banco (opcional)"
+              : m.tipo === "gasto"
+                ? "A quién se le pagó (opcional)"
+                : "Proveedor";
   const conceptos =
     m.tipo === "gasto"
       ? CATEGORIAS_GASTO
@@ -202,7 +208,15 @@ function Formulario({
           ? CONCEPTOS_SUELDO
           : m.tipo === "socios"
             ? OPERACIONES_SOCIOS.map(([c, n]) => [c, n] as [string, string])
-            : null;
+            : m.tipo === "prestamo"
+              ? OPERACIONES_PRESTAMO.map(([c, n]) => [c, n] as [string, string])
+              : null;
+  const parte = (cuenta: string) =>
+    m.desglose?.find((d) => d.cuenta === cuenta)?.importe;
+  const capital =
+    Math.round(
+      (m.importe - (m.desglose ?? []).reduce((t, d) => t + d.importe, 0)) * 100,
+    ) / 100;
 
   return (
     <section className="overflow-hidden rounded-xl border-2 border-marca bg-white shadow-sm">
@@ -306,6 +320,42 @@ function Formulario({
               ))}
             </select>
           </Etiqueta>
+        )}
+
+        {m.tipo === "prestamo" && m.cuenta === "cuota" && (
+          <div className="rounded-lg border border-stone-200 p-3">
+            <div className="text-sm text-stone-600">
+              Si tenés el cronograma, separá lo que no es capital (lo que no
+              cargues queda como capital):
+            </div>
+            <div className="mt-2 grid gap-3 sm:grid-cols-4">
+              {PARTES_CUOTA.map(([c, n]) => (
+                <Etiqueta key={c} texto={n}>
+                  <input
+                    id={`parte-${c}-${m.id}`}
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    value={parte(c) ?? ""}
+                    onChange={(e) => {
+                      const v = Number(e.target.value) || 0;
+                      const otras = (m.desglose ?? []).filter(
+                        (d) => d.cuenta !== c,
+                      );
+                      cambiar({
+                        desglose:
+                          v > 0 ? [...otras, { cuenta: c, importe: v }] : otras,
+                      });
+                    }}
+                    className={`${campo} text-right`}
+                  />
+                </Etiqueta>
+              ))}
+            </div>
+            <div className="mt-2 text-sm text-stone-600">
+              Capital: <b>{pesos(Math.max(0, capital))}</b>
+            </div>
+          </div>
         )}
 
         {m.tipo !== "impuesto" && (
@@ -643,9 +693,9 @@ export function Movimientos({
               className="rounded-2xl border border-stone-200/80 bg-white p-4 text-left shadow-sm transition hover:border-marca hover:shadow"
             >
               <div
-                className={`text-xs font-semibold uppercase tracking-wide ${t.id === "socios" ? "text-stone-500" : t.entra ? "text-emerald-700" : "text-red-700"}`}
+                className={`text-xs font-semibold uppercase tracking-wide ${t.id === "socios" || t.id === "prestamo" ? "text-stone-500" : t.entra ? "text-emerald-700" : "text-red-700"}`}
               >
-                {t.id === "socios"
+                {t.id === "socios" || t.id === "prestamo"
                   ? "Entra o sale plata"
                   : t.entra
                     ? "Entra plata"
