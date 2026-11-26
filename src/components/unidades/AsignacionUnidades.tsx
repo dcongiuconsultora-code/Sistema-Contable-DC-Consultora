@@ -51,7 +51,7 @@ export function AsignacionUnidades({
 
   return (
     <div className="grid gap-4 lg:grid-cols-[1fr_2fr]">
-      <section className="h-fit rounded-xl border border-stone-200 bg-white p-5 shadow-sm">
+      <section className="h-fit rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm">
         <h3 className="font-semibold">Ventas por punto de venta</h3>
         <p className="mb-3 text-sm text-stone-500">
           Se configuran en Empresas → Unidades.
@@ -92,7 +92,7 @@ export function AsignacionUnidades({
         )}
       </section>
 
-      <section className="overflow-hidden rounded-xl border border-stone-200 bg-white shadow-sm">
+      <section className="overflow-hidden rounded-2xl border border-stone-200/80 bg-white shadow-sm">
         <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-stone-200 px-4 py-3">
           <h3 className="font-semibold">Proveedores por unidad</h3>
           <span

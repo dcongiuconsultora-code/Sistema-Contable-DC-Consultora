@@ -124,7 +124,7 @@ export function Bancos({
 
   return (
     <div className="space-y-6">
-      <section className="rounded-xl border border-stone-200 bg-white p-5 shadow-sm">
+      <section className="rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <h2 className="font-semibold">Resumen de cuenta bancaria</h2>
@@ -169,7 +169,7 @@ export function Bancos({
       {resumen && (
         <>
           <section className="grid gap-4 sm:grid-cols-3">
-            <div className="rounded-xl border border-stone-200 bg-white p-4 shadow-sm">
+            <div className="rounded-2xl border border-stone-200/80 bg-white p-4 shadow-sm">
               <div className="text-xs uppercase tracking-wide text-stone-500">
                 Titular
               </div>
@@ -184,7 +184,7 @@ export function Bancos({
                 )}
               </div>
             </div>
-            <div className="rounded-xl border border-stone-200 bg-white p-4 shadow-sm">
+            <div className="rounded-2xl border border-stone-200/80 bg-white p-4 shadow-sm">
               <div className="text-xs uppercase tracking-wide text-stone-500">
                 Control de saldos
               </div>
@@ -201,7 +201,7 @@ export function Bancos({
                 {todos.length} movimientos en {resumen.cuentas.length} cuentas
               </div>
             </div>
-            <div className="rounded-xl border border-stone-200 bg-white p-4 shadow-sm">
+            <div className="rounded-2xl border border-stone-200/80 bg-white p-4 shadow-sm">
               <div className="text-xs uppercase tracking-wide text-stone-500">
                 Clasificados solos
               </div>
@@ -229,7 +229,7 @@ export function Bancos({
             </details>
           )}
 
-          <section className="overflow-hidden rounded-xl border border-stone-200 bg-white shadow-sm">
+          <section className="overflow-hidden rounded-2xl border border-stone-200/80 bg-white shadow-sm">
             <h3 className="border-b border-stone-200 px-4 py-3 font-semibold">
               Cuentas
             </h3>
@@ -282,7 +282,7 @@ export function Bancos({
             </div>
           </section>
 
-          <section className="overflow-hidden rounded-xl border border-stone-200 bg-white shadow-sm">
+          <section className="overflow-hidden rounded-2xl border border-stone-200/80 bg-white shadow-sm">
             <h3 className="border-b border-stone-200 px-4 py-3 font-semibold">
               Resumen por concepto (todas las cuentas)
             </h3>

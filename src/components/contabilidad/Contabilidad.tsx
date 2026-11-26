@@ -199,7 +199,7 @@ function ResultadosMensuales({
           rentabilidad y liquidez de cada mes.
         </p>
       </section>
-      <section className="overflow-x-auto rounded-xl border border-stone-200 bg-white shadow-sm">
+      <section className="overflow-x-auto rounded-2xl border border-stone-200/80 bg-white shadow-sm">
         <table className="w-full text-sm">
           <thead className="bg-stone-50 text-xs uppercase tracking-wide text-stone-500">
             <tr>
@@ -242,7 +242,7 @@ function ResultadosMensuales({
         </table>
       </section>
       {ind.length > 0 && (
-        <section className="overflow-x-auto rounded-xl border border-stone-200 bg-white shadow-sm">
+        <section className="overflow-x-auto rounded-2xl border border-stone-200/80 bg-white shadow-sm">
           <h3 className="px-3 pt-3 font-semibold">Rentabilidad y liquidez</h3>
           <p className="px-3 text-xs text-stone-500">
             Con los saldos acumulados al último día de cada mes. Verde: bien ·
@@ -328,7 +328,7 @@ export function Contabilidad({
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-end gap-3 rounded-xl border border-stone-200 bg-white p-4 shadow-sm">
+      <div className="flex flex-wrap items-end gap-3 rounded-2xl border border-stone-200/80 bg-white p-4 shadow-sm">
         <div className="mr-2 text-sm">
           <div className="text-stone-500">Ejercicio</div>
           <div className="font-semibold">
@@ -397,7 +397,7 @@ export function Contabilidad({
             iniciales={iniciales}
             onIniciales={onIniciales}
           />
-          <div className="rounded-xl border border-stone-200 bg-white p-5 shadow-sm">
+          <div className="rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm">
             <h3 className="mb-2 font-semibold">Saldos de inicio cargados</h3>
             <EditorSaldos iniciales={iniciales} onIniciales={onIniciales} />
           </div>

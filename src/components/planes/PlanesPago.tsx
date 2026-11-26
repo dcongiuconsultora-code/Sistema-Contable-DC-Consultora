@@ -391,7 +391,7 @@ export function PlanesPago({
           return (
             <section
               key={p.id}
-              className="overflow-hidden rounded-xl border border-stone-200 bg-white shadow-sm"
+              className="overflow-hidden rounded-2xl border border-stone-200/80 bg-white shadow-sm"
             >
               <div className="flex flex-wrap items-start justify-between gap-3 border-b border-stone-200 px-4 py-3">
                 <div>

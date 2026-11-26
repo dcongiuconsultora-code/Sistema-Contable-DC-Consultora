@@ -162,7 +162,7 @@ export function Mayor({
         </div>
       )}
       {m && (
-        <section className="overflow-hidden rounded-xl border border-stone-200 bg-white shadow-sm">
+        <section className="overflow-hidden rounded-2xl border border-stone-200/80 bg-white shadow-sm">
           <div className="max-h-[40rem] overflow-auto">
             <table className="w-full text-sm">
               <thead className="sticky top-0 bg-stone-50 text-left text-xs uppercase tracking-wide text-stone-500">

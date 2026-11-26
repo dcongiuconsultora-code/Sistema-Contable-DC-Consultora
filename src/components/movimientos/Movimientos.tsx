@@ -640,7 +640,7 @@ export function Movimientos({
               key={t.id}
               type="button"
               onClick={() => setEditando(nuevo(t.id))}
-              className="rounded-xl border border-stone-200 bg-white p-4 text-left shadow-sm transition hover:border-marca hover:shadow"
+              className="rounded-2xl border border-stone-200/80 bg-white p-4 text-left shadow-sm transition hover:border-marca hover:shadow"
             >
               <div
                 className={`text-xs font-semibold uppercase tracking-wide ${t.id === "socios" ? "text-stone-500" : t.entra ? "text-emerald-700" : "text-red-700"}`}
@@ -671,7 +671,7 @@ export function Movimientos({
         />
       )}
 
-      <section className="overflow-hidden rounded-xl border border-stone-200 bg-white shadow-sm">
+      <section className="overflow-hidden rounded-2xl border border-stone-200/80 bg-white shadow-sm">
         <h3 className="border-b border-stone-200 px-4 py-3 font-semibold">
           Movimientos cargados ({movimientos.length})
         </h3>

@@ -197,7 +197,7 @@ export function ConciliacionBancaria({
 
   return (
     <div className="space-y-6">
-      <section className="rounded-xl border border-stone-200 bg-white p-5 shadow-sm">
+      <section className="rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <h3 className="font-semibold">Conciliación bancaria</h3>
           <span className="text-sm text-stone-600">
@@ -299,7 +299,7 @@ export function ConciliacionBancaria({
         </section>
       )}
 
-      <section className="overflow-hidden rounded-xl border border-stone-200 bg-white shadow-sm">
+      <section className="overflow-hidden rounded-2xl border border-stone-200/80 bg-white shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-stone-200 px-4 py-3">
           <div className="flex flex-wrap gap-1 rounded-lg bg-stone-200/70 p-1 text-sm">
             {FILTROS.map(([id, texto]) => (

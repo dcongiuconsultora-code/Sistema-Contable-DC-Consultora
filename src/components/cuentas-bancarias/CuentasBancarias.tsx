@@ -348,7 +348,7 @@ export function CuentasBancarias({
           {cuentas.map((c) => (
             <article
               key={c.id}
-              className="rounded-xl border border-stone-200 bg-white p-4 shadow-sm"
+              className="rounded-2xl border border-stone-200/80 bg-white p-4 shadow-sm"
             >
               <div className="flex items-start justify-between gap-2">
                 <div>

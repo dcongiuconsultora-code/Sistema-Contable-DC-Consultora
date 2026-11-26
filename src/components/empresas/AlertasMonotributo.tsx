@@ -9,16 +9,17 @@ import {
   esMonotributo,
 } from "@/lib/monotributo/monotributo";
 
-/** Monotributistas cerca o arriba del tope de su categoría (últimos 12 meses facturados). */
-export function AlertasMonotributo({
-  repo,
-  empresas,
-  onAbrir,
-}: {
-  repo: Repositorio;
-  empresas: Empresa[];
-  onAbrir: (e: Empresa) => void;
-}) {
+export interface FilaMonotributo {
+  e: Empresa;
+  total: number;
+  actual?: Categoria;
+  corresponde: Categoria | null;
+  /** Facturado / tope de la categoría (1 = 100 %). */
+  uso: number;
+}
+
+/** Lo facturado por cada monotributista en los últimos 12 meses contra el tope de su categoría. */
+export function useMonotributistas(repo: Repositorio, empresas: Empresa[]) {
   const monos = empresas.filter((e) => esMonotributo(e.condicion_iva));
   const [tabla, setTabla] = useState<Categoria[] | null>(null);
   const [facturado, setFacturado] = useState<Record<string, number>>({});
@@ -41,8 +42,7 @@ export function AlertasMonotributo({
     );
   }, [repo, ids]);
 
-  if (!monos.length) return null;
-  const filas = monos
+  const filas: FilaMonotributo[] = monos
     .map((e) => {
       const total = facturado[e.id] ?? 0;
       const actual = tabla?.find((c) => c.letra === e.categoria_monotributo);
@@ -51,13 +51,25 @@ export function AlertasMonotributo({
       return { e, total, actual, corresponde, uso: tope ? total / tope : 0 };
     })
     .sort((a, b) => b.uso - a.uso);
+  return { filas, tabla };
+}
 
+/** Monotributistas cerca o arriba del tope de su categoría (últimos 12 meses facturados). */
+export function AlertasMonotributo({
+  filas,
+  tabla,
+  onAbrir,
+}: {
+  filas: FilaMonotributo[];
+  tabla: Categoria[] | null;
+  onAbrir: (e: Empresa) => void;
+}) {
+  if (!filas.length) return null;
   return (
-    <section className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
+    <section className="rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm">
       <h2 className="text-lg font-semibold">Monotributistas</h2>
-      <p className="mt-1 text-sm text-stone-600">
-        Lo facturado en los últimos 12 meses contra el tope de su categoría
-        (según los comprobantes de ARCA importados).
+      <p className="mt-1 text-xs text-stone-500">
+        Facturado en los últimos 12 meses contra el tope de su categoría.
       </p>
       {tabla !== null && tabla.length === 0 && (
         <p className="mt-2 text-sm text-amber-700">

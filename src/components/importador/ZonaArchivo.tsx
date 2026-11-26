@@ -64,7 +64,7 @@ export function ZonaArchivo({
     0;
 
   return (
-    <div className="rounded-xl border border-stone-200 bg-white p-5 shadow-sm">
+    <div className="rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm">
       <div className="mb-3">
         <h2 className="font-semibold">{titulo}</h2>
         <p className="text-sm text-stone-500">{ayuda}</p>

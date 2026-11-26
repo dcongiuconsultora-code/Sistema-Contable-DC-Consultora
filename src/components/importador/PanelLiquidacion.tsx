@@ -186,7 +186,7 @@ export function PanelLiquidacion({
 
   return (
     <div className="grid gap-4 lg:grid-cols-[1fr_1.2fr]">
-      <div className="rounded-xl border border-stone-200 bg-white p-5 shadow-sm">
+      <div className="rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm">
         <h3 className="mb-1 font-semibold">Datos del período</h3>
         <p className="mb-4 text-sm text-stone-500">
           {periodoIva.arrastradoDe
@@ -305,7 +305,7 @@ export function PanelLiquidacion({
         )}
       </div>
 
-      <div className="rounded-xl border border-stone-200 bg-white p-5 text-sm shadow-sm">
+      <div className="rounded-2xl border border-stone-200/80 bg-white p-5 text-sm shadow-sm">
         <h3 className="mb-3 font-semibold">
           {periodoIva.calculada
             ? "Liquidación de IVA (según la DDJJ presentada)"

@@ -1,20 +1,32 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type {
   Empresa,
   FichaEmpresa,
   Repositorio,
 } from "@/lib/datos/repositorio";
 import { JURISDICCIONES } from "@/lib/arca/retenciones";
-import type { PlanPago } from "@/lib/vencimientos/vencimientos";
+import {
+  cuotasVencidas,
+  type Impuesto,
+  type PlanPago,
+  vencimientos,
+} from "@/lib/vencimientos/vencimientos";
+import { esMonotributo } from "@/lib/monotributo/monotributo";
+import { Modal } from "@/components/Modal";
+import { inicialesDe } from "@/components/MenuUsuario";
 import { linkGmail } from "@/lib/avisos/avisos";
 import { cuitConGuiones } from "@/lib/formato";
 import { cuitValido } from "@/lib/tickets/validar";
-import { AlertasMonotributo } from "./AlertasMonotributo";
+import { AlertasMonotributo, useMonotributistas } from "./AlertasMonotributo";
 import { Avisos } from "./Avisos";
 import { UnidadesEmpresa } from "./UnidadesEmpresa";
-import { ImpuestosEmpresa, ProximosVencimientos } from "./Vencimientos";
+import {
+  AgendaVencimientos,
+  ETIQUETA_IMPUESTO,
+  ImpuestosEmpresa,
+} from "./Vencimientos";
 
 /** Mensaje listo para mandarle al cliente con su acceso. */
 function mensajeAcceso(empresa: string, email: string, clave: string) {
@@ -496,6 +508,85 @@ function EditarEmpresa({
   );
 }
 
+type Panel = "ficha" | "impuestos" | "unidades" | "accesos";
+
+const TITULO_PANEL: Record<Panel, string> = {
+  ficha: "Ficha del cliente",
+  impuestos: "Impuestos y cierre de ejercicio",
+  unidades: "Unidades de negocio",
+  accesos: "Acceso del cliente al sistema",
+};
+
+function hoyIso() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function sumarDiasIso(iso: string, dias: number) {
+  const d = new Date(`${iso}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + dias);
+  return d.toISOString().slice(0, 10);
+}
+
+function saludo() {
+  const h = new Date().getHours();
+  return h < 13 ? "Buen día" : h < 20 ? "Buenas tardes" : "Buenas noches";
+}
+
+function fechaHoyLarga() {
+  const t = new Date().toLocaleDateString("es-AR", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  });
+  return t.charAt(0).toUpperCase() + t.slice(1);
+}
+
+function Kpi({
+  titulo,
+  valor,
+  detalle,
+  icono,
+  tono,
+  onClick,
+}: {
+  titulo: string;
+  valor: string | number;
+  detalle: string;
+  icono: string;
+  tono: string;
+  onClick?: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="rounded-2xl border border-stone-200/80 bg-white p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+    >
+      <div className="flex items-center justify-between">
+        <span className="text-sm text-stone-500">{titulo}</span>
+        <span
+          className={`flex h-9 w-9 items-center justify-center rounded-xl text-lg ${tono}`}
+        >
+          {icono}
+        </span>
+      </div>
+      <div className="mt-2 text-3xl font-semibold tracking-tight">{valor}</div>
+      <div className="mt-1 text-sm text-stone-500">{detalle}</div>
+    </button>
+  );
+}
+
+interface Alerta {
+  empresa: Empresa;
+  nivel: "rojo" | "ambar";
+  texto: string;
+  accion: string;
+  onClick: () => void;
+}
+
+type Filtro = "todos" | "ri" | "mono" | "alertas";
+
 export function AdminEmpresas({
   repo,
   empresas,
@@ -520,15 +611,113 @@ export function AdminEmpresas({
   const [cuit, setCuit] = useState("");
   const [condicion, setCondicion] = useState(CONDICIONES[0]);
   const [error, setError] = useState<string | null>(null);
-  const [abierta, setAbierta] = useState<string | null>(null);
-  const [conUnidades, setConUnidades] = useState<string | null>(null);
-  const [conImpuestos, setConImpuestos] = useState<string | null>(null);
   const [creando, setCreando] = useState(false);
+  const [nuevoCliente, setNuevoCliente] = useState(false);
+  const [conAvisos, setConAvisos] = useState(false);
+  const [panel, setPanel] = useState<{ tipo: Panel; id: string } | null>(null);
+  const [menuDe, setMenuDe] = useState<string | null>(null);
+  const [buscar, setBuscar] = useState("");
+  const [filtro, setFiltro] = useState<Filtro>("todos");
   const [planes, setPlanes] = useState<Record<string, PlanPago[]>>({});
   useEffect(() => {
     repo.planesPago().then(setPlanes, () => {});
   }, [repo]);
-  const [editando, setEditando] = useState<string | null>(null);
+  const mono = useMonotributistas(repo, empresas);
+  useEffect(() => {
+    if (!menuDe) return;
+    const cerrar = (ev: MouseEvent) => {
+      if (!(ev.target as HTMLElement).closest("[data-menu-cliente]"))
+        setMenuDe(null);
+    };
+    document.addEventListener("mousedown", cerrar);
+    return () => document.removeEventListener("mousedown", cerrar);
+  }, [menuDe]);
+
+  const hoy = hoyIso();
+  const semana = useMemo(
+    () => vencimientos(empresas, hoy, sumarDiasIso(hoy, 7), planes).lista,
+    [empresas, hoy, planes],
+  );
+  const proximos = useMemo(() => {
+    const m = new Map<
+      string,
+      { fecha: string; impuesto: Impuesto; detalle: string }
+    >();
+    for (const v of vencimientos(empresas, hoy, sumarDiasIso(hoy, 45), planes)
+      .lista)
+      if (!m.has(v.empresaId)) m.set(v.empresaId, v);
+    return m;
+  }, [empresas, hoy, planes]);
+
+  const alertas: Alerta[] = [];
+  for (const f of mono.filas) {
+    if (!mono.tabla?.length || f.uso < 0.8) continue;
+    alertas.push({
+      empresa: f.e,
+      nivel: f.uso > 1 ? "rojo" : "ambar",
+      texto:
+        f.uso > 1
+          ? `${f.e.razon_social} pasó el tope de la categoría ${f.actual?.letra ?? ""}${f.corresponde ? ` (corresponde ${f.corresponde.letra})` : ""}`
+          : `${f.e.razon_social} está al ${(f.uso * 100).toFixed(0)} % del tope de su categoría`,
+      accion: "Ver",
+      onClick: () => onAbrir(f.e),
+    });
+  }
+  for (const e of empresas) {
+    const vencidas = cuotasVencidas(planes[e.id] ?? [], hoy);
+    if (vencidas.length)
+      alertas.push({
+        empresa: e,
+        nivel: "ambar",
+        texto:
+          vencidas.length === 1
+            ? `${e.razon_social} no pagó la cuota ${vencidas[0].cuota.numero} del plan ${vencidas[0].plan.numero || ""}`.trim()
+            : `${e.razon_social} tiene ${vencidas.length} cuotas de planes de pago vencidas`,
+        accion: "Ver plan",
+        onClick: () => onAbrir(e),
+      });
+    if (sinLeer[e.id])
+      alertas.push({
+        empresa: e,
+        nivel: "ambar",
+        texto: `${e.razon_social} te mandó ${sinLeer[e.id] === 1 ? "un mensaje" : `${sinLeer[e.id]} mensajes`}`,
+        accion: "Leer",
+        onClick: () => onMensajes?.(e),
+      });
+  }
+  alertas.sort((a, b) =>
+    a.nivel === b.nivel ? 0 : a.nivel === "rojo" ? -1 : 1,
+  );
+  const conAlerta = new Set(alertas.map((a) => a.empresa.id));
+  const nivelDe = (id: string) =>
+    alertas.find((a) => a.empresa.id === id && a.nivel === "rojo")
+      ? "rojo"
+      : conAlerta.has(id)
+        ? "ambar"
+        : "ok";
+
+  const clientesSemana = new Set(semana.map((v) => v.empresaId)).size;
+  const mensajes = Object.values(sinLeer).reduce((t, n) => t + n, 0);
+  const cantMono = empresas.filter((e) =>
+    esMonotributo(e.condicion_iva),
+  ).length;
+
+  const normal = (t: string) =>
+    t
+      .normalize("NFD")
+      .replace(/\p{Diacritic}/gu, "")
+      .toLowerCase();
+  const visibles = empresas.filter((e) => {
+    if (filtro === "ri" && esMonotributo(e.condicion_iva)) return false;
+    if (filtro === "mono" && !esMonotributo(e.condicion_iva)) return false;
+    if (filtro === "alertas" && !conAlerta.has(e.id)) return false;
+    const q = normal(buscar.trim());
+    if (!q) return true;
+    return (
+      normal(e.razon_social).includes(q) ||
+      e.cuit.includes(q.replace(/\D/g, "") || "@")
+    );
+  });
 
   async function crear(e: React.FormEvent) {
     e.preventDefault();
@@ -548,7 +737,8 @@ export function AdminEmpresas({
       setRazonSocial("");
       setCuit("");
       onCreada(nueva);
-      setAbierta(nueva.id);
+      setNuevoCliente(false);
+      setPanel({ tipo: "accesos", id: nueva.id });
     } catch (err) {
       const mensaje = err instanceof Error ? err.message : String(err);
       setError(
@@ -561,180 +751,416 @@ export function AdminEmpresas({
     }
   }
 
+  const empresaPanel = panel && empresas.find((e) => e.id === panel.id);
+  const irAClientes = (f: Filtro) => {
+    setFiltro(f);
+    document.getElementById("clientes")?.scrollIntoView({ behavior: "smooth" });
+  };
+
   return (
-    <div className="mx-auto max-w-4xl space-y-6 px-4 py-8">
-      <ProximosVencimientos empresas={empresas} planes={planes} />
-      <AlertasMonotributo repo={repo} empresas={empresas} onAbrir={onAbrir} />
-      <Avisos repo={repo} empresas={empresas} />
-      <section>
-        <h1 className="text-2xl font-semibold">Empresas</h1>
-        <p className="mt-1 text-stone-600">
-          Tus clientes. Para que un cliente entre al sistema, dale acceso con su
-          mail: cuando entre por primera vez va a ver solo su empresa.
-        </p>
-      </section>
-
-      <form
-        onSubmit={crear}
-        className="grid gap-3 rounded-2xl border border-stone-200 bg-white p-5 shadow-sm sm:grid-cols-[2fr_1fr_1fr_auto] sm:items-end"
-      >
-        <label className="block text-sm">
-          <span className="text-stone-600">Razón social</span>
-          <input
-            id="nueva-razon-social"
-            value={razonSocial}
-            onChange={(e) => setRazonSocial(e.target.value)}
-            className="mt-1 block w-full rounded-md border border-stone-300 px-3 py-2"
-          />
-        </label>
-        <label className="block text-sm">
-          <span className="text-stone-600">CUIT</span>
-          <input
-            id="nuevo-cuit"
-            inputMode="numeric"
-            value={cuit}
-            onChange={(e) =>
-              setCuit(e.target.value.replace(/\D/g, "").slice(0, 11))
-            }
-            placeholder="30711111111"
-            className="mt-1 block w-full rounded-md border border-stone-300 px-3 py-2 tabular-nums"
-          />
-        </label>
-        <label className="block text-sm">
-          <span className="text-stone-600">Condición IVA</span>
-          <select
-            id="nueva-condicion"
-            value={condicion}
-            onChange={(e) => setCondicion(e.target.value)}
-            className="mt-1 block w-full rounded-md border border-stone-300 bg-white px-2 py-2"
-          >
-            {CONDICIONES.map((c) => (
-              <option key={c}>{c}</option>
-            ))}
-          </select>
-        </label>
-        <button
-          type="submit"
-          disabled={creando}
-          className="rounded-md bg-marca px-4 py-2 font-medium text-white hover:opacity-90 disabled:opacity-50"
-        >
-          {creando ? "Agregando…" : "Agregar empresa"}
-        </button>
-        {error && <p className="text-sm text-red-700 sm:col-span-4">{error}</p>}
-      </form>
-
-      <section className="space-y-3">
-        {empresas.length === 0 ? (
-          <p className="rounded-2xl border border-dashed border-stone-300 p-6 text-center text-stone-500">
-            Todavía no cargaste empresas.
+    <div className="mx-auto max-w-7xl space-y-6 px-4 pb-16 pt-8">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="text-sm text-stone-500">{fechaHoyLarga()}</p>
+          <h1 className="text-3xl font-semibold tracking-tight">
+            {saludo()} 👋
+          </h1>
+          <p className="mt-1 text-stone-600">
+            {semana.length ? (
+              <>
+                Esta semana vencen <b>{semana.length}</b>{" "}
+                {semana.length === 1 ? "obligación" : "obligaciones"} de{" "}
+                {clientesSemana} {clientesSemana === 1 ? "cliente" : "clientes"}
+              </>
+            ) : (
+              "No hay vencimientos esta semana"
+            )}
+            {alertas.length ? (
+              <>
+                {" "}
+                y hay <b>{alertas.length}</b>{" "}
+                {alertas.length === 1 ? "cosa" : "cosas"} para atender.
+              </>
+            ) : (
+              " y no hay nada urgente. 🎉"
+            )}
           </p>
-        ) : (
-          empresas.map((e) => (
-            <div
-              key={e.id}
-              className="rounded-2xl border border-stone-200 bg-white p-4 shadow-sm"
-            >
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="font-semibold">{e.razon_social}</div>
-                  <div className="text-sm text-stone-500">
-                    CUIT {cuitConGuiones(e.cuit)} · {e.condicion_iva}
-                  </div>
-                  {(e.actividad || e.telefono || e.email_contacto) && (
-                    <div className="mt-0.5 truncate text-xs text-stone-500">
-                      {[
-                        e.actividad,
-                        e.telefono && `☎ ${e.telefono}`,
-                        e.email_contacto,
-                      ]
-                        .filter(Boolean)
-                        .join(" · ")}
-                    </div>
-                  )}
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {sinLeer[e.id] ? (
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => setConAvisos(true)}
+            className="rounded-xl border border-stone-300 bg-white px-4 py-2.5 text-sm font-medium hover:bg-stone-50"
+          >
+            ✉️ Enviar aviso
+          </button>
+          <button
+            type="button"
+            onClick={() => setNuevoCliente(true)}
+            className="rounded-xl bg-marca px-4 py-2.5 text-sm font-medium text-white hover:opacity-90"
+          >
+            ＋ Nuevo cliente
+          </button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
+        <Kpi
+          titulo="Vencen esta semana"
+          valor={semana.length}
+          detalle={`${clientesSemana} ${clientesSemana === 1 ? "cliente" : "clientes"}`}
+          icono="📅"
+          tono="bg-marca-claro"
+          onClick={() =>
+            document
+              .getElementById("agenda")
+              ?.scrollIntoView({ behavior: "smooth" })
+          }
+        />
+        <Kpi
+          titulo="Para atender"
+          valor={alertas.length}
+          detalle={
+            alertas.filter((a) => a.nivel === "rojo").length
+              ? `${alertas.filter((a) => a.nivel === "rojo").length} urgente`
+              : "nada urgente"
+          }
+          icono="⚠️"
+          tono="bg-red-50"
+          onClick={() => irAClientes("alertas")}
+        />
+        <Kpi
+          titulo="Mensajes sin leer"
+          valor={mensajes}
+          detalle={
+            mensajes
+              ? `de ${Object.keys(sinLeer).length} ${Object.keys(sinLeer).length === 1 ? "cliente" : "clientes"}`
+              : "todo leído"
+          }
+          icono="💬"
+          tono="bg-amber-50"
+          onClick={() => irAClientes("alertas")}
+        />
+        <Kpi
+          titulo="Clientes"
+          valor={empresas.length}
+          detalle={`${empresas.length - cantMono} RI/exentos · ${cantMono} monotributo`}
+          icono="👥"
+          tono="bg-emerald-50"
+          onClick={() => irAClientes("todos")}
+        />
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-[1.5fr_1fr]">
+        <div id="agenda">
+          <AgendaVencimientos
+            empresas={empresas}
+            planes={planes}
+            onAbrir={(id) => {
+              const e = empresas.find((x) => x.id === id);
+              if (e) onAbrir(e);
+            }}
+          />
+        </div>
+        <div className="space-y-6">
+          <section className="rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm">
+            <h2 className="mb-3 text-lg font-semibold">Para atender</h2>
+            {alertas.length === 0 ? (
+              <p className="rounded-xl bg-emerald-50 p-3 text-sm text-emerald-800">
+                ✓ No hay nada pendiente.
+              </p>
+            ) : (
+              <ul className="space-y-2 text-sm">
+                {alertas.slice(0, 8).map((a) => (
+                  <li
+                    key={a.texto}
+                    className="flex items-center gap-3 rounded-xl bg-stone-50 p-3"
+                  >
+                    <span
+                      className={`h-2.5 w-2.5 shrink-0 rounded-full ${a.nivel === "rojo" ? "bg-red-500" : "bg-amber-500"}`}
+                    />
+                    <span className="flex-1">{a.texto}</span>
                     <button
                       type="button"
-                      onClick={() => onMensajes?.(e)}
-                      className="rounded-md bg-amber-100 px-3 py-1.5 text-sm font-medium text-amber-900 hover:bg-amber-200"
+                      onClick={a.onClick}
+                      className="shrink-0 font-medium text-marca hover:underline"
                     >
-                      ✉ {sinLeer[e.id]}{" "}
-                      {sinLeer[e.id] === 1
-                        ? "mensaje nuevo"
-                        : "mensajes nuevos"}
+                      {a.accion}
                     </button>
-                  ) : null}
-                  <button
-                    type="button"
-                    onClick={() => setEditando(editando === e.id ? null : e.id)}
-                    className="rounded-md px-3 py-1.5 text-sm text-stone-600 hover:bg-stone-100"
-                  >
-                    {editando === e.id ? "Cerrar ficha" : "Ficha"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setConImpuestos(conImpuestos === e.id ? null : e.id)
-                    }
-                    className="rounded-md px-3 py-1.5 text-sm text-stone-600 hover:bg-stone-100"
-                  >
-                    {conImpuestos === e.id ? "Ocultar impuestos" : "Impuestos"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setConUnidades(conUnidades === e.id ? null : e.id)
-                    }
-                    className="rounded-md px-3 py-1.5 text-sm text-stone-600 hover:bg-stone-100"
-                  >
-                    {conUnidades === e.id
-                      ? "Ocultar unidades"
-                      : "Unidades de negocio"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setAbierta(abierta === e.id ? null : e.id)}
-                    className="rounded-md px-3 py-1.5 text-sm text-stone-600 hover:bg-stone-100"
-                  >
-                    {abierta === e.id ? "Ocultar accesos" : "Accesos"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => onAbrir(e)}
-                    className="rounded-md bg-marca px-3 py-1.5 text-sm font-medium text-white hover:opacity-90"
-                  >
-                    Abrir
-                  </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+          <AlertasMonotributo
+            filas={mono.filas}
+            tabla={mono.tabla}
+            onAbrir={onAbrir}
+          />
+        </div>
+      </div>
+
+      <section
+        id="clientes"
+        className="scroll-mt-20 rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm sm:p-6"
+      >
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-lg font-semibold">
+            Clientes <span className="text-stone-400">· {empresas.length}</span>
+          </h2>
+          <input
+            id="buscar-cliente"
+            type="search"
+            value={buscar}
+            onChange={(e) => setBuscar(e.target.value)}
+            placeholder="🔍 Buscar por nombre o CUIT…"
+            className="w-full rounded-full border border-stone-200 bg-stone-50 px-4 py-2 text-sm sm:w-72"
+          />
+        </div>
+        <div className="mb-4 flex flex-wrap gap-2 text-sm">
+          {(
+            [
+              ["todos", "Todos"],
+              ["ri", "Responsables inscriptos"],
+              ["mono", "Monotributo"],
+              ["alertas", `Con algo pendiente (${conAlerta.size})`],
+            ] as const
+          ).map(([f, texto]) => (
+            <button
+              key={f}
+              type="button"
+              onClick={() => setFiltro(f)}
+              className={`rounded-full px-3 py-1.5 ${filtro === f ? "bg-marca text-white" : "bg-stone-100 text-stone-600 hover:bg-stone-200"}`}
+            >
+              {texto}
+            </button>
+          ))}
+        </div>
+        {empresas.length === 0 ? (
+          <p className="rounded-2xl border border-dashed border-stone-300 p-8 text-center text-stone-500">
+            Todavía no cargaste clientes. Empezá con “＋ Nuevo cliente”.
+          </p>
+        ) : visibles.length === 0 ? (
+          <p className="p-6 text-center text-stone-500">
+            No hay clientes con ese filtro.
+          </p>
+        ) : (
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {visibles.map((e) => {
+              const nivel = nivelDe(e.id);
+              const alerta = alertas.find((a) => a.empresa.id === e.id);
+              const prox = proximos.get(e.id);
+              const esMono = esMonotributo(e.condicion_iva);
+              const filaMono = mono.filas.find((f) => f.e.id === e.id);
+              return (
+                <div
+                  key={e.id}
+                  className="relative flex flex-col rounded-xl border border-stone-200 p-4 transition hover:border-marca/40 hover:shadow-md"
+                >
+                  <div className="flex items-start gap-3">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-marca-claro text-sm font-semibold text-marca">
+                      {inicialesDe(e.razon_social)}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <button
+                        type="button"
+                        onClick={() => onAbrir(e)}
+                        className="block max-w-full truncate text-left font-semibold hover:text-marca"
+                      >
+                        {e.razon_social}
+                      </button>
+                      <div className="text-xs text-stone-500">
+                        {cuitConGuiones(e.cuit)} ·{" "}
+                        <span className="rounded bg-stone-100 px-1.5 py-0.5">
+                          {esMono
+                            ? `Mono ${e.categoria_monotributo ?? ""}`.trim()
+                            : e.condicion_iva === "Exento"
+                              ? "Exento"
+                              : "RI"}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="relative" data-menu-cliente>
+                      <button
+                        type="button"
+                        aria-label={`Más opciones de ${e.razon_social}`}
+                        onClick={() => setMenuDe(menuDe === e.id ? null : e.id)}
+                        className="rounded-lg px-2 py-0.5 text-lg leading-none text-stone-400 hover:bg-stone-100 hover:text-stone-700"
+                      >
+                        ⋯
+                      </button>
+                      {menuDe === e.id && (
+                        <div
+                          role="menu"
+                          className="absolute right-0 z-20 mt-1 w-56 rounded-xl border border-stone-200 bg-white p-1.5 text-sm shadow-xl"
+                        >
+                          {(
+                            [
+                              ["ficha", "📇 Ficha del cliente"],
+                              ["impuestos", "🧾 Impuestos y cierre"],
+                              ["accesos", "🔑 Acceso del cliente"],
+                              ["unidades", "🏷 Unidades de negocio"],
+                            ] as const
+                          ).map(([tipo, texto]) => (
+                            <button
+                              key={tipo}
+                              type="button"
+                              role="menuitem"
+                              onClick={() => {
+                                setMenuDe(null);
+                                setPanel({ tipo, id: e.id });
+                              }}
+                              className="block w-full rounded-lg px-3 py-2 text-left hover:bg-stone-100"
+                            >
+                              {texto}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="mt-3 flex items-start gap-2 text-sm text-stone-600">
+                    <span
+                      className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${nivel === "rojo" ? "bg-red-500" : nivel === "ambar" ? "bg-amber-500" : "bg-emerald-500"}`}
+                    />
+                    <span className="min-w-0">
+                      {alerta
+                        ? alerta.texto
+                            .replace(`${e.razon_social} `, "")
+                            .replace(/^./, (c) => c.toUpperCase())
+                        : prox
+                          ? `Próximo: ${ETIQUETA_IMPUESTO[prox.impuesto][0]} el ${prox.fecha.slice(8)}/${prox.fecha.slice(5, 7)}`
+                          : filaMono && mono.tabla?.length
+                            ? `${(filaMono.uso * 100).toFixed(0)} % del tope anual`
+                            : "Todo al día"}
+                    </span>
+                  </div>
+                  <div className="mt-auto flex items-center justify-end gap-2 pt-3">
+                    {sinLeer[e.id] ? (
+                      <button
+                        type="button"
+                        onClick={() => onMensajes?.(e)}
+                        className="rounded-lg bg-amber-100 px-3 py-1.5 text-sm font-medium text-amber-900 hover:bg-amber-200"
+                      >
+                        💬 {sinLeer[e.id]}
+                      </button>
+                    ) : null}
+                    <button
+                      type="button"
+                      onClick={() => onAbrir(e)}
+                      className="rounded-lg bg-marca px-3.5 py-1.5 text-sm font-medium text-white hover:opacity-90"
+                    >
+                      Abrir
+                    </button>
+                  </div>
                 </div>
-              </div>
-              {editando === e.id && (
-                <EditarEmpresa
-                  repo={repo}
-                  empresa={e}
-                  onActualizada={(nueva) => onActualizada?.(nueva)}
-                  onBorrada={(id) => {
-                    setEditando(null);
-                    onBorrada?.(id);
-                  }}
-                  onCerrar={() => setEditando(null)}
-                />
-              )}
-              {conImpuestos === e.id && (
-                <ImpuestosEmpresa
-                  repo={repo}
-                  empresa={e}
-                  onCambio={(nueva) => onActualizada?.(nueva)}
-                />
-              )}
-              {conUnidades === e.id && (
-                <UnidadesEmpresa repo={repo} empresaId={e.id} />
-              )}
-              {abierta === e.id && <Invitaciones repo={repo} empresa={e} />}
-            </div>
-          ))
+              );
+            })}
+          </div>
         )}
       </section>
+
+      {nuevoCliente && (
+        <Modal
+          titulo="Nuevo cliente"
+          subtitulo="Después le das acceso con su mail para que entre al sistema."
+          onCerrar={() => setNuevoCliente(false)}
+          ancho="max-w-xl"
+        >
+          <form onSubmit={crear} className="grid gap-4">
+            <label className="block text-sm">
+              <span className="text-stone-600">Razón social o nombre</span>
+              <input
+                id="nueva-razon-social"
+                value={razonSocial}
+                onChange={(e) => setRazonSocial(e.target.value)}
+                className="mt-1 block w-full rounded-xl border border-stone-300 px-3 py-2.5"
+              />
+            </label>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="block text-sm">
+                <span className="text-stone-600">CUIT</span>
+                <input
+                  id="nuevo-cuit"
+                  inputMode="numeric"
+                  value={cuit}
+                  onChange={(e) =>
+                    setCuit(e.target.value.replace(/\D/g, "").slice(0, 11))
+                  }
+                  placeholder="30711111111"
+                  className="mt-1 block w-full rounded-xl border border-stone-300 px-3 py-2.5 tabular-nums"
+                />
+              </label>
+              <label className="block text-sm">
+                <span className="text-stone-600">Condición frente al IVA</span>
+                <select
+                  id="nueva-condicion"
+                  value={condicion}
+                  onChange={(e) => setCondicion(e.target.value)}
+                  className="mt-1 block w-full rounded-xl border border-stone-300 bg-white px-3 py-2.5"
+                >
+                  {CONDICIONES.map((c) => (
+                    <option key={c}>{c}</option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            {error && <p className="text-sm text-red-700">{error}</p>}
+            <button
+              type="submit"
+              disabled={creando}
+              className="justify-self-end rounded-xl bg-marca px-5 py-2.5 font-medium text-white hover:opacity-90 disabled:opacity-50"
+            >
+              {creando ? "Agregando…" : "Agregar cliente"}
+            </button>
+          </form>
+        </Modal>
+      )}
+
+      {conAvisos && (
+        <Modal
+          titulo="Avisos a clientes"
+          subtitulo="Recordatorios y pedidos de documentación con texto prearmado."
+          onCerrar={() => setConAvisos(false)}
+          ancho="max-w-5xl"
+        >
+          <Avisos repo={repo} empresas={empresas} />
+        </Modal>
+      )}
+
+      {panel && empresaPanel && (
+        <Modal
+          titulo={TITULO_PANEL[panel.tipo]}
+          subtitulo={`${empresaPanel.razon_social} · CUIT ${cuitConGuiones(empresaPanel.cuit)}`}
+          onCerrar={() => setPanel(null)}
+        >
+          {panel.tipo === "ficha" && (
+            <EditarEmpresa
+              repo={repo}
+              empresa={empresaPanel}
+              onActualizada={(nueva) => onActualizada?.(nueva)}
+              onBorrada={(id) => {
+                setPanel(null);
+                onBorrada?.(id);
+              }}
+              onCerrar={() => setPanel(null)}
+            />
+          )}
+          {panel.tipo === "impuestos" && (
+            <ImpuestosEmpresa
+              repo={repo}
+              empresa={empresaPanel}
+              onCambio={(nueva) => onActualizada?.(nueva)}
+            />
+          )}
+          {panel.tipo === "unidades" && (
+            <UnidadesEmpresa repo={repo} empresaId={empresaPanel.id} />
+          )}
+          {panel.tipo === "accesos" && (
+            <Invitaciones repo={repo} empresa={empresaPanel} />
+          )}
+        </Modal>
+      )}
     </div>
   );
 }

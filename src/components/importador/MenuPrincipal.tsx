@@ -21,9 +21,12 @@ export interface EntradaMenu<D> {
 export function MenuPrincipal<D>({
   entradas,
   onIr,
+  lista = false,
 }: {
   entradas: EntradaMenu<D>[];
   onIr: (d: D) => void;
+  /** En el celular: todo desplegado, una opción debajo de otra. */
+  lista?: boolean;
 }) {
   const [abierto, setAbierto] = useState<string | null>(null);
   // Los menús de la derecha se abren hacia la izquierda, para no salirse de la pantalla.
@@ -44,12 +47,53 @@ export function MenuPrincipal<D>({
     };
   }, [abierto]);
 
+  if (lista)
+    return (
+      <nav className="space-y-4 text-sm">
+        {entradas.map((e) => {
+          const grupos = e.grupos?.filter(([, items]) => items.length) ?? [];
+          if (e.grupos && grupos.length === 0) return null;
+          if (!e.grupos)
+            return (
+              <button
+                key={e.texto}
+                type="button"
+                onClick={() => e.destino !== undefined && onIr(e.destino)}
+                className={`flex w-full items-center rounded-xl px-3 py-2.5 text-left text-base font-medium ${e.activo ? "bg-marca-claro text-marca" : "text-stone-800 hover:bg-stone-100"}`}
+              >
+                {e.texto}
+                {e.extra}
+              </button>
+            );
+          return (
+            <div key={e.texto}>
+              <div className="px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-stone-400">
+                {e.texto}
+              </div>
+              {grupos
+                .flatMap(([, items]) => items)
+                .map((i) => (
+                  <button
+                    key={i.texto}
+                    type="button"
+                    onClick={() => onIr(i.destino)}
+                    className="block w-full rounded-xl px-3 py-2 text-left text-stone-700 hover:bg-stone-100"
+                  >
+                    {i.texto}
+                  </button>
+                ))}
+            </div>
+          );
+        })}
+      </nav>
+    );
+
   return (
     <nav ref={ref} className="flex flex-wrap gap-1 text-sm">
       {entradas.map((e) => {
         const grupos = e.grupos?.filter(([, items]) => items.length) ?? [];
         if (e.grupos && grupos.length === 0) return null;
-        const clase = `rounded-md px-3 py-1.5 font-medium ${e.activo || abierto === e.texto ? "bg-white/20" : "opacity-80 hover:bg-white/10 hover:opacity-100"}`;
+        const clase = `inline-flex items-center rounded-full px-3.5 py-1.5 transition ${e.activo || abierto === e.texto ? "bg-marca-claro font-semibold text-marca" : "font-medium text-stone-600 hover:bg-stone-100 hover:text-stone-900"}`;
         if (!e.grupos)
           return (
             <button
@@ -86,7 +130,7 @@ export function MenuPrincipal<D>({
             {abierto === e.texto && (
               <div
                 role="menu"
-                className={`absolute ${haciaIzquierda ? "right-0" : "left-0"} z-40 mt-1 grid w-max max-w-[calc(100vw-2rem)] gap-x-8 gap-y-4 rounded-xl border border-stone-200 bg-white p-4 text-stone-800 shadow-xl ${grupos.length > 2 ? "sm:grid-cols-2" : ""}`}
+                className={`absolute ${haciaIzquierda ? "right-0" : "left-0"} z-40 mt-2 grid w-max max-w-[calc(100vw-2rem)] gap-x-8 gap-y-4 rounded-2xl border border-stone-200 bg-white p-4 text-stone-800 shadow-xl shadow-stone-900/10 ${grupos.length > 2 ? "sm:grid-cols-2" : ""}`}
               >
                 {grupos.map(([titulo, items]) => (
                   <div key={titulo} className="min-w-48">
@@ -103,7 +147,7 @@ export function MenuPrincipal<D>({
                               setAbierto(null);
                               onIr(i.destino);
                             }}
-                            className="w-full rounded-md px-2 py-1.5 text-left hover:bg-marca-claro hover:text-marca"
+                            className="w-full rounded-lg px-2 py-1.5 text-left hover:bg-marca-claro hover:text-marca"
                           >
                             {i.texto}
                           </button>

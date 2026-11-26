@@ -47,7 +47,7 @@ export function PanelQuebrantos({
   const estimado = q.ipcHasta && q.ipcHasta < q.aCierre.slice(0, 7);
 
   return (
-    <section className="mb-4 rounded-xl border border-stone-200 bg-white p-5 text-sm shadow-sm">
+    <section className="mb-4 rounded-2xl border border-stone-200/80 bg-white p-5 text-sm shadow-sm">
       <h3 className="font-semibold">Quebrantos de Ganancias para compensar</h3>
       <p className="mt-1 max-w-3xl text-stone-600">
         Salen de las DDJJ de Ganancias cargadas (y de los que cargues de años

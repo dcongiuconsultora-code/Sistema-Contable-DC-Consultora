@@ -14,7 +14,7 @@ function TablaAsiento({ a, abierto }: { a: Asiento; abierto?: boolean }) {
   return (
     <details
       open={abierto}
-      className="rounded-xl border border-stone-200 bg-white p-4 text-sm shadow-sm"
+      className="rounded-2xl border border-stone-200/80 bg-white p-4 text-sm shadow-sm"
     >
       <summary className="cursor-pointer font-semibold">
         {a.descripcion}{" "}
@@ -77,7 +77,7 @@ export function CierreEjercicio({
   return (
     <div className="space-y-4">
       <section className="grid gap-3 sm:grid-cols-3">
-        <div className="rounded-xl border border-stone-200 bg-white p-4 shadow-sm">
+        <div className="rounded-2xl border border-stone-200/80 bg-white p-4 shadow-sm">
           <div className="text-sm text-stone-500">Resultado del ejercicio</div>
           <div
             className={`cifra text-xl font-semibold ${f.resultado < 0 ? "text-red-700" : "text-emerald-700"}`}
@@ -89,7 +89,7 @@ export function CierreEjercicio({
             {e.enMonedaHomogenea ? " · en moneda de cierre" : " · histórico"}
           </div>
         </div>
-        <div className="rounded-xl border border-stone-200 bg-white p-4 shadow-sm">
+        <div className="rounded-2xl border border-stone-200/80 bg-white p-4 shadow-sm">
           <div className="text-sm text-stone-500">Período</div>
           <div className="font-semibold">
             {fechaCorta(e.inicio)} al {fechaCorta(e.cierre)}
@@ -98,7 +98,7 @@ export function CierreEjercicio({
             {anual ? "Ejercicio completo" : "Cierre intermedio (no se cierra)"}
           </div>
         </div>
-        <div className="rounded-xl border border-stone-200 bg-white p-4 shadow-sm">
+        <div className="rounded-2xl border border-stone-200/80 bg-white p-4 shadow-sm">
           <div className="text-sm text-stone-500">Control</div>
           <div
             className={`font-semibold ${e.diferencia === 0 ? "text-emerald-700" : "text-amber-700"}`}

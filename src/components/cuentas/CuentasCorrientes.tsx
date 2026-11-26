@@ -278,7 +278,7 @@ export function CuentasCorrientes({
         ].map(([titulo, valor, clase]) => (
           <div
             key={titulo as string}
-            className="rounded-xl border border-stone-200 bg-white p-4 shadow-sm"
+            className="rounded-2xl border border-stone-200/80 bg-white p-4 shadow-sm"
           >
             <div className="text-xs uppercase tracking-wide text-stone-500">
               {titulo}
@@ -300,7 +300,7 @@ export function CuentasCorrientes({
         />
       )}
 
-      <section className="overflow-hidden rounded-xl border border-stone-200 bg-white shadow-sm">
+      <section className="overflow-hidden rounded-2xl border border-stone-200/80 bg-white shadow-sm">
         {visibles.length === 0 ? (
           <p className="p-6 text-sm text-stone-500">
             {cuentas.length === 0

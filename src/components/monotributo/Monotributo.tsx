@@ -260,7 +260,7 @@ export function Monotributo({
         )}
 
       <div className="grid gap-4 md:grid-cols-3">
-        <section className="rounded-xl border border-stone-200 bg-white p-5 shadow-sm md:col-span-2">
+        <section className="rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm md:col-span-2">
           <h3 className="font-semibold">¿Cuánto falta para el tope?</h3>
           {tabla.length === 0 ? (
             <p className="mt-2 text-sm text-stone-500">
@@ -348,7 +348,7 @@ export function Monotributo({
           </div>
         </section>
 
-        <section className="space-y-3 rounded-xl border border-stone-200 bg-white p-5 shadow-sm">
+        <section className="space-y-3 rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm">
           <h3 className="font-semibold">Recategorización</h3>
           <p className="text-sm text-stone-700">
             La próxima es en <strong>{recat.presentarEn}</strong>, con lo
@@ -427,7 +427,7 @@ export function Monotributo({
       </div>
 
       {esEstudio && (
-        <section className="rounded-xl border border-stone-200 bg-white p-5 text-sm shadow-sm">
+        <section className="rounded-2xl border border-stone-200/80 bg-white p-5 text-sm shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h3 className="font-semibold">Tabla de categorías vigente</h3>
             <button

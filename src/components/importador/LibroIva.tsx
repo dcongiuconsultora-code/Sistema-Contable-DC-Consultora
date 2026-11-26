@@ -49,7 +49,7 @@ function numeroComprobante(c: Comprobante) {
 function ListaSimple({ titulo, comprobantes, accion }: Props) {
   const total = comprobantes.reduce((s, c) => s + c.total, 0);
   return (
-    <div className="overflow-hidden rounded-xl border border-stone-200 bg-white shadow-sm">
+    <div className="overflow-hidden rounded-2xl border border-stone-200/80 bg-white shadow-sm">
       <h3 className="border-b border-stone-200 px-4 py-3 font-semibold">
         {titulo}
       </h3>
@@ -254,14 +254,14 @@ function TablaLibroIva({ titulo, comprobantes, simple, accion }: Props) {
 
   if (comprobantes.length === 0) {
     return (
-      <p className="rounded-xl border border-stone-200 bg-white p-6 text-sm text-stone-500">
+      <p className="rounded-2xl border border-stone-200/80 bg-white p-6 text-sm text-stone-500">
         No hay comprobantes en este período.
       </p>
     );
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-stone-200 bg-white shadow-sm">
+    <div className="overflow-hidden rounded-2xl border border-stone-200/80 bg-white shadow-sm">
       <h3 className="border-b border-stone-200 px-4 py-3 font-semibold">
         {titulo}
       </h3>

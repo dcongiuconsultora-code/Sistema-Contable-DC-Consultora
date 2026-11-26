@@ -151,7 +151,7 @@ function Vista({ e }: { e: EstadosContables }) {
     e.resultados.find((x) => x.clave === clave)?.actual ?? 0;
   return (
     <div className="grid gap-4 lg:grid-cols-2">
-      <section className="space-y-4 rounded-xl border border-stone-200 bg-white p-5 shadow-sm">
+      <section className="space-y-4 rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm">
         <h3 className="font-semibold">Estado de situación patrimonial</h3>
         <Tabla
           titulo="Activo corriente"
@@ -181,7 +181,7 @@ function Vista({ e }: { e: EstadosContables }) {
           </span>
         </div>
       </section>
-      <section className="h-fit space-y-4 rounded-xl border border-stone-200 bg-white p-5 shadow-sm">
+      <section className="h-fit space-y-4 rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm">
         <h3 className="font-semibold">Estado de resultados</h3>
         <Tabla
           titulo="Concepto"
@@ -262,7 +262,7 @@ function AjusteContable({
         ).map(([t, v]) => (
           <div
             key={t}
-            className="rounded-xl border border-stone-200 bg-white p-4 shadow-sm"
+            className="rounded-2xl border border-stone-200/80 bg-white p-4 shadow-sm"
           >
             <div className="text-stone-500">{t}</div>
             <div className="mt-0.5 font-semibold tabular-nums">{v}</div>
@@ -275,7 +275,7 @@ function AjusteContable({
           publicado.
         </p>
       )}
-      <section className="overflow-x-auto rounded-xl border border-stone-200 bg-white shadow-sm">
+      <section className="overflow-x-auto rounded-2xl border border-stone-200/80 bg-white shadow-sm">
         <table className="w-full text-sm">
           <thead className="bg-stone-50 text-left text-xs uppercase tracking-wide text-stone-500">
             <tr>
@@ -548,7 +548,7 @@ export function Balance({
           className="grid gap-4 lg:grid-cols-3"
           hidden={modo !== "estados" && modo !== "cierre"}
         >
-          <section className="space-y-3 rounded-xl border border-stone-200 bg-white p-5 shadow-sm">
+          <section className="space-y-3 rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm">
             <h3 className="font-semibold">Ejercicio</h3>
             <p className="text-sm text-stone-600">
               Inicia el día siguiente al último balance (
@@ -593,7 +593,7 @@ export function Balance({
             )}
           </section>
 
-          <section className="space-y-3 rounded-xl border border-stone-200 bg-white p-5 shadow-sm">
+          <section className="space-y-3 rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm">
             <h3 className="font-semibold">Inventario final</h3>
             <p className="text-sm text-stone-600">
               Valor de las existencias al cierre. El costo de lo vendido se
@@ -629,7 +629,7 @@ export function Balance({
             ))}
           </section>
 
-          <section className="space-y-3 rounded-xl border border-stone-200 bg-white p-5 shadow-sm">
+          <section className="space-y-3 rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm">
             <h3 className="font-semibold">Carátula</h3>
             {(
               [
@@ -703,7 +703,7 @@ export function Balance({
         </>
       )}
 
-      <section className="rounded-xl border border-stone-200 bg-white p-5 text-sm shadow-sm">
+      <section className="rounded-2xl border border-stone-200/80 bg-white p-5 text-sm shadow-sm">
         <h3 className="font-semibold">Índices de inflación (FACPCE)</h3>
         <p className="mt-1 text-stone-600">
           IPC nacional empalmado con IPIM (Res. JG 539/18). Cargado hasta{" "}

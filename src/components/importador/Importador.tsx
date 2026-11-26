@@ -11,10 +11,14 @@ import {
   type VistaContable,
 } from "@/components/contabilidad/Contabilidad";
 import { Inventarios } from "@/components/inventarios/Inventarios";
-import { MenuPrincipal } from "@/components/importador/MenuPrincipal";
+import {
+  type EntradaMenu,
+  MenuPrincipal,
+} from "@/components/importador/MenuPrincipal";
+import { BarraInferior } from "@/components/importador/BarraInferior";
 import { AlertasCliente } from "@/components/planes/AlertasCliente";
 import { PlanesPago } from "@/components/planes/PlanesPago";
-import type { PlanPago } from "@/lib/vencimientos/vencimientos";
+import { type PlanPago, vencimientos } from "@/lib/vencimientos/vencimientos";
 import {
   CobrarPagar,
   type PedidoCobroPago,
@@ -323,6 +327,7 @@ export function Importador({
     Record<string, number>
   >({});
   const [indicesIpc, setIndicesIpc] = useState<Indices>(INDICES_FACPCE);
+  const [menuMovil, setMenuMovil] = useState(false);
   const [avisoImportacion, setAvisoImportacion] = useState<string | null>(null);
   const [iibbGuardadas, setIibbGuardadas] = useState<Record<string, DatosIibb>>(
     {},
@@ -731,6 +736,16 @@ export function Importador({
       ivaGuardadas,
     ],
   );
+  const proximosEmpresa = useMemo(() => {
+    if (!conexion) return [];
+    const d = new Date();
+    const hoy = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    const hasta = new Date(d.getTime() + 45 * 864e5).toISOString().slice(0, 10);
+    return vencimientos([empresaMono], hoy, hasta, {
+      [empresaMono.id]: planes,
+    }).lista;
+  }, [conexion, empresaMono, planes]);
+
   const cadenaIibb = useMemo(
     () => encadenarIibb(iibbGuardadas),
     [iibbGuardadas],
@@ -962,229 +977,280 @@ export function Importador({
       guardar(() => repo!.asignarProveedor(empresaId, cuit, unidadId));
   };
 
-  return (
-    <div className="min-h-screen">
-      <header className="bg-marca text-white">
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-4 py-3">
-          <Marca />
-          <MenuPrincipal<Destino>
-            onIr={ir}
-            entradas={[
-              {
-                texto: "Inicio",
-                destino: { seccion: "inicio" },
-                activo: seccion === "inicio",
-              },
-              {
-                texto: "Impuestos",
-                activo:
-                  (seccion === "arca" && pestana !== "unidades") ||
-                  seccion === "planes",
-                grupos: esMono
-                  ? [
-                      [
-                        "Monotributo",
-                        [
-                          {
-                            texto: "Categoría, topes y recategorización",
-                            destino: { seccion: "inicio" },
-                          },
-                        ],
-                      ],
-                      [
-                        "Facturas (ARCA)",
-                        [
-                          {
-                            texto: "Ventas · facturas emitidas",
-                            destino: { seccion: "arca", pestana: "ventas" },
-                          },
-                          {
-                            texto: "Compras y gastos",
-                            destino: { seccion: "arca", pestana: "compras" },
-                          },
-                        ],
-                      ],
-                      [
-                        "Planes de pago",
-                        [
-                          {
-                            texto: "Planes de pago (Mis Facilidades)",
-                            destino: { seccion: "planes" },
-                          },
-                        ],
-                      ],
-                    ]
-                  : [
-                      [
-                        "IVA",
-                        [
-                          {
-                            texto: "Importar de ARCA · Libro IVA Ventas",
-                            destino: { seccion: "arca", pestana: "ventas" },
-                          },
-                          {
-                            texto: "Libro IVA Compras",
-                            destino: { seccion: "arca", pestana: "compras" },
-                          },
-                          {
-                            texto: "Liquidación de IVA",
-                            destino: {
-                              seccion: "arca",
-                              pestana: "liquidacion",
-                            },
-                          },
-                        ],
-                      ],
-                      [
-                        "Retenciones y percepciones",
-                        [
-                          {
-                            texto: "Retenciones, percepciones y SIRCREB",
-                            destino: {
-                              seccion: "arca",
-                              pestana: "deducciones",
-                            },
-                          },
-                        ],
-                      ],
-                      [
-                        "Planes de pago",
-                        [
-                          {
-                            texto: "Planes de pago (Mis Facilidades)",
-                            destino: { seccion: "planes" },
-                          },
-                        ],
-                      ],
-                      [
-                        "Ganancias",
-                        esEstudio
-                          ? [
-                              {
-                                texto: "Ajuste por inflación impositivo",
-                                destino: {
-                                  seccion: "contabilidad",
-                                  vista: "axi",
-                                },
-                              },
-                            ]
-                          : [],
-                      ],
-                    ],
-              },
-              {
-                texto: "Finanzas",
-                activo: [
-                  "movimientos",
-                  "tickets",
-                  "bancos",
-                  "caja",
-                  "cuentas",
-                  "cuentasBancarias",
-                ].includes(seccion),
-                grupos: [
-                  [
-                    "Movimientos",
-                    [
-                      {
-                        texto: "Cobros y pagos",
-                        destino: { seccion: "movimientos" },
-                      },
-                      {
-                        texto: "Tickets y facturas (fotos)",
-                        destino: { seccion: "tickets" },
-                      },
-                    ],
-                  ],
-                  [
-                    "Caja y bancos",
-                    [
-                      {
-                        texto: "Caja y bancos día por día",
-                        destino: { seccion: "caja" },
-                      },
-                      {
-                        texto: "Resumen y conciliación bancaria",
-                        destino: { seccion: "bancos" },
-                      },
-                      {
-                        texto: "Cuentas bancarias y billeteras",
-                        destino: { seccion: "cuentasBancarias" },
-                      },
-                    ],
-                  ],
-                  [
-                    "Cuentas corrientes",
-                    [
-                      {
-                        texto: "Clientes y proveedores",
-                        destino: { seccion: "cuentas" },
-                      },
-                    ],
-                  ],
-                  [
-                    "Unidades de negocio",
-                    [
-                      {
-                        texto: "Proveedores por unidad",
-                        destino: { seccion: "arca", pestana: "unidades" },
-                      },
-                    ],
-                  ],
-                ],
-              },
-              {
-                texto: "Inventarios",
-                activo: seccion === "inventarios",
-                grupos: [
-                  [
-                    "Stock",
-                    [
-                      {
-                        texto: "Inventarios y existencias",
-                        destino: { seccion: "inventarios" },
-                      },
-                    ],
-                  ],
-                ],
-              },
-              {
-                texto: "Contabilidad",
-                activo: seccion === "contabilidad",
-                grupos:
-                  esEstudio && !esMono
-                    ? MENU_CONTABLE.map(([titulo, items]) => [
-                        titulo,
-                        items.map(([vista, texto]) => ({
-                          texto,
-                          destino: { seccion: "contabilidad" as const, vista },
-                        })),
-                      ])
-                    : [],
-              },
-              ...(conexion
+  const entradasMenu: EntradaMenu<Destino>[] = [
+    {
+      texto: "Inicio",
+      destino: { seccion: "inicio" },
+      activo: seccion === "inicio",
+    },
+    {
+      texto: "Impuestos",
+      activo:
+        (seccion === "arca" && pestana !== "unidades") || seccion === "planes",
+      grupos: esMono
+        ? [
+            [
+              "Monotributo",
+              [
+                {
+                  texto: "Categoría, topes y recategorización",
+                  destino: { seccion: "inicio" },
+                },
+              ],
+            ],
+            [
+              "Facturas (ARCA)",
+              [
+                {
+                  texto: "Ventas · facturas emitidas",
+                  destino: { seccion: "arca", pestana: "ventas" },
+                },
+                {
+                  texto: "Compras y gastos",
+                  destino: { seccion: "arca", pestana: "compras" },
+                },
+              ],
+            ],
+            [
+              "Planes de pago",
+              [
+                {
+                  texto: "Planes de pago (Mis Facilidades)",
+                  destino: { seccion: "planes" },
+                },
+              ],
+            ],
+          ]
+        : [
+            [
+              "IVA",
+              [
+                {
+                  texto: "Importar de ARCA · Libro IVA Ventas",
+                  destino: { seccion: "arca", pestana: "ventas" },
+                },
+                {
+                  texto: "Libro IVA Compras",
+                  destino: { seccion: "arca", pestana: "compras" },
+                },
+                {
+                  texto: "Liquidación de IVA",
+                  destino: {
+                    seccion: "arca",
+                    pestana: "liquidacion",
+                  },
+                },
+              ],
+            ],
+            [
+              "Retenciones y percepciones",
+              [
+                {
+                  texto: "Retenciones, percepciones y SIRCREB",
+                  destino: {
+                    seccion: "arca",
+                    pestana: "deducciones",
+                  },
+                },
+              ],
+            ],
+            [
+              "Planes de pago",
+              [
+                {
+                  texto: "Planes de pago (Mis Facilidades)",
+                  destino: { seccion: "planes" },
+                },
+              ],
+            ],
+            [
+              "Ganancias",
+              esEstudio
                 ? [
                     {
-                      texto: "Mensajes",
-                      destino: { seccion: "mensajes" as const },
-                      activo: seccion === "mensajes",
-                      extra:
-                        noLeidos > 0 ? (
-                          <span
-                            aria-label={`${noLeidos} sin leer`}
-                            className="ml-1.5 inline-flex min-w-5 items-center justify-center rounded-full bg-white px-1.5 text-xs font-semibold text-marca"
-                          >
-                            {noLeidos}
-                          </span>
-                        ) : undefined,
+                      texto: "Ajuste por inflación impositivo",
+                      destino: {
+                        seccion: "contabilidad",
+                        vista: "axi",
+                      },
                     },
                   ]
-                : []),
-            ]}
-          />
-          {conexion?.encabezado}
+                : [],
+            ],
+          ],
+    },
+    {
+      texto: "Finanzas",
+      activo: [
+        "movimientos",
+        "tickets",
+        "bancos",
+        "caja",
+        "cuentas",
+        "cuentasBancarias",
+      ].includes(seccion),
+      grupos: [
+        [
+          "Movimientos",
+          [
+            {
+              texto: "Cobros y pagos",
+              destino: { seccion: "movimientos" },
+            },
+            {
+              texto: "Tickets y facturas (fotos)",
+              destino: { seccion: "tickets" },
+            },
+          ],
+        ],
+        [
+          "Caja y bancos",
+          [
+            {
+              texto: "Caja y bancos día por día",
+              destino: { seccion: "caja" },
+            },
+            {
+              texto: "Resumen y conciliación bancaria",
+              destino: { seccion: "bancos" },
+            },
+            {
+              texto: "Cuentas bancarias y billeteras",
+              destino: { seccion: "cuentasBancarias" },
+            },
+          ],
+        ],
+        [
+          "Cuentas corrientes",
+          [
+            {
+              texto: "Clientes y proveedores",
+              destino: { seccion: "cuentas" },
+            },
+          ],
+        ],
+        [
+          "Unidades de negocio",
+          [
+            {
+              texto: "Proveedores por unidad",
+              destino: { seccion: "arca", pestana: "unidades" },
+            },
+          ],
+        ],
+      ],
+    },
+    {
+      texto: "Inventarios",
+      activo: seccion === "inventarios",
+      grupos: [
+        [
+          "Stock",
+          [
+            {
+              texto: "Inventarios y existencias",
+              destino: { seccion: "inventarios" },
+            },
+          ],
+        ],
+      ],
+    },
+    {
+      texto: "Contabilidad",
+      activo: seccion === "contabilidad",
+      grupos:
+        esEstudio && !esMono
+          ? MENU_CONTABLE.map(([titulo, items]) => [
+              titulo,
+              items.map(([vista, texto]) => ({
+                texto,
+                destino: { seccion: "contabilidad" as const, vista },
+              })),
+            ])
+          : [],
+    },
+    ...(conexion
+      ? [
+          {
+            texto: "Mensajes",
+            destino: { seccion: "mensajes" as const },
+            activo: seccion === "mensajes",
+            extra:
+              noLeidos > 0 ? (
+                <span
+                  aria-label={`${noLeidos} sin leer`}
+                  className="ml-1.5 inline-flex min-w-5 items-center justify-center rounded-full bg-marca px-1.5 text-xs font-semibold text-white"
+                >
+                  {noLeidos}
+                </span>
+              ) : undefined,
+          },
+        ]
+      : []),
+  ];
+
+  return (
+    <div className="min-h-screen">
+      <header className="sticky top-0 z-30 border-b border-stone-200/80 bg-white/90 backdrop-blur">
+        <div className="mx-auto flex max-w-7xl items-center gap-x-6 gap-y-2 px-4 py-2.5">
+          <span className="shrink-0 text-marca">
+            <Marca claro />
+          </span>
+          <div className="hidden flex-1 lg:block">
+            <MenuPrincipal<Destino> onIr={ir} entradas={entradasMenu} />
+          </div>
+          <div className="ml-auto flex items-center gap-2">
+            {conexion?.encabezado}
+            <button
+              type="button"
+              aria-label="Menú"
+              onClick={() => setMenuMovil(true)}
+              className="rounded-full p-2 text-xl text-stone-700 hover:bg-stone-100 lg:hidden"
+            >
+              ☰
+            </button>
+          </div>
         </div>
       </header>
+      {menuMovil && (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          <button
+            type="button"
+            aria-label="Cerrar menú"
+            onClick={() => setMenuMovil(false)}
+            className="absolute inset-0 bg-stone-900/30"
+          />
+          <div className="absolute inset-y-0 right-0 w-[85%] max-w-sm overflow-y-auto bg-white p-4 shadow-2xl">
+            <div className="mb-4 flex items-center justify-between">
+              <span className="text-marca">
+                <Marca claro />
+              </span>
+              <button
+                type="button"
+                onClick={() => setMenuMovil(false)}
+                className="rounded-full px-3 py-1 text-2xl text-stone-500"
+              >
+                ×
+              </button>
+            </div>
+            <MenuPrincipal<Destino>
+              lista
+              onIr={(d) => {
+                setMenuMovil(false);
+                ir(d);
+              }}
+              entradas={entradasMenu}
+            />
+          </div>
+        </div>
+      )}
+      <BarraInferior
+        seccion={seccion}
+        noLeidos={conexion ? noLeidos : 0}
+        conMensajes={Boolean(conexion)}
+        onIr={(d) => ir(d)}
+        onMenu={() => setMenuMovil(true)}
+      />
 
       {conexion?.salirDeVistaCliente && (
         <div className="bg-amber-100 text-amber-950">
@@ -1236,7 +1302,7 @@ export function Importador({
           </button>
         </div>
       )}
-      <main className="mx-auto max-w-7xl space-y-6 px-4 py-6">
+      <main className="mx-auto max-w-7xl space-y-6 px-4 pb-28 pt-6 lg:pb-10">
         {errorDatos && (
           <div
             role="alert"
@@ -1281,6 +1347,46 @@ export function Importador({
             alertas={alertas}
             onIr={setSeccion}
             unidades={unidades}
+            proximos={proximosEmpresa}
+            onDescargar={async (inf, formato) => {
+              const completo = {
+                ...inf,
+                cuit: empresaMono.cuit ?? "",
+                ventas: comprobantesDelPeriodo(
+                  ventas?.comprobantes ?? [],
+                  inf.periodo,
+                ),
+                compras: comprobantesDelPeriodo(
+                  [...(compras?.comprobantes ?? []), ...ticketsPendientes],
+                  inf.periodo,
+                ),
+              };
+              const informes = await import("@/lib/informes/informe");
+              const logo = await fetch("/logo-dc.png")
+                .then((r) => (r.ok ? r.arrayBuffer() : undefined))
+                .catch(() => undefined);
+              if (formato === "excel")
+                informes.descargar(
+                  await informes.excelInforme(completo, logo),
+                  informes.nombreArchivo(completo, "xlsx"),
+                );
+              else {
+                // En el PDF el logo va sobre la franja bordó: el blanco.
+                const blanco = await fetch("/logo-dc-blanco.png")
+                  .then((r) => (r.ok ? r.arrayBuffer() : undefined))
+                  .catch(() => undefined);
+                let binario = "";
+                for (const b of new Uint8Array(blanco ?? new ArrayBuffer(0)))
+                  binario += String.fromCharCode(b);
+                const dataUrl = blanco
+                  ? `data:image/png;base64,${btoa(binario)}`
+                  : undefined;
+                informes.descargar(
+                  await informes.pdfInforme(completo, dataUrl),
+                  informes.nombreArchivo(completo, "pdf"),
+                );
+              }
+            }}
           />
         </div>
         <div hidden={seccion !== "movimientos"}>

@@ -423,7 +423,7 @@ export function Inventarios({
           Todavía no hay inventarios cargados.
         </p>
       ) : (
-        <section className="overflow-hidden rounded-xl border border-stone-200 bg-white shadow-sm">
+        <section className="overflow-hidden rounded-2xl border border-stone-200/80 bg-white shadow-sm">
           <table className="w-full text-sm">
             <thead className="bg-stone-50 text-left text-xs uppercase tracking-wide text-stone-500">
               <tr>

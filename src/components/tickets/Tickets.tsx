@@ -161,7 +161,7 @@ export function Tickets({
 
   return (
     <div className="space-y-6">
-      <section className="rounded-xl border border-stone-200 bg-white p-5 shadow-sm">
+      <section className="rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <label className="text-sm">
             <span className="text-stone-600">CUIT del cliente</span>
@@ -414,7 +414,7 @@ export function Tickets({
         </section>
       )}
 
-      <section className="overflow-hidden rounded-xl border border-stone-200 bg-white shadow-sm">
+      <section className="overflow-hidden rounded-2xl border border-stone-200/80 bg-white shadow-sm">
         <h3 className="border-b border-stone-200 px-4 py-3 font-semibold">
           Tickets cargados ({tickets.length})
         </h3>

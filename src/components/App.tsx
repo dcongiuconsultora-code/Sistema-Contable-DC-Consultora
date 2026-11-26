@@ -7,6 +7,7 @@ import { Ingreso } from "@/components/acceso/Ingreso";
 import { AdminEmpresas } from "@/components/empresas/AdminEmpresas";
 import { Importador } from "@/components/importador/Importador";
 import { Marca } from "@/components/Marca";
+import { inicialesDe, MenuUsuario } from "@/components/MenuUsuario";
 import {
   crearCliente,
   type Empresa,
@@ -142,18 +143,66 @@ export function App() {
     setVerEmpresas(false);
   };
 
+  const hayOtrosSinLeer = Object.keys(sinLeer).some((id) => id !== empresaId);
+  const opcionesCuenta = (enEmpresa: boolean) => [
+    ...(esEstudio && enEmpresa
+      ? [
+          {
+            texto: "Mi estudio (todos los clientes)",
+            icono: "🏠",
+            onClick: () => {
+              setComoCliente(false);
+              setVerEmpresas(true);
+            },
+          },
+        ]
+      : []),
+    ...(esEstudio && enEmpresa && !comoCliente
+      ? [
+          {
+            texto: "Ver como la ve el cliente",
+            icono: "👁",
+            onClick: () => setComoCliente(true),
+          },
+        ]
+      : []),
+    {
+      texto: "Cambiar contraseña",
+      icono: "🔑",
+      onClick: () => setCambiandoClave(true),
+    },
+    { texto: "Salir", icono: "↩", onClick: salir },
+  ];
+  const cuenta = (enEmpresa: boolean) => (
+    <>
+      <MenuUsuario
+        iniciales={
+          esEstudio
+            ? "DC"
+            : inicialesDe(empresa?.razon_social ?? sesion.user.email ?? "")
+        }
+        titulo={sesion.user.email ?? ""}
+        opciones={opcionesCuenta(enEmpresa)}
+        punto={esEstudio && hayOtrosSinLeer}
+      />
+      {cambiandoClave && (
+        <CambiarClave db={db} onCerrar={() => setCambiandoClave(false)} />
+      )}
+    </>
+  );
+
   const encabezado = (
-    <div className="flex flex-wrap items-center gap-2 text-sm">
+    <div className="flex items-center gap-2 text-sm">
       {empresas.length > 1 && (
         <select
           id="empresa-elegida"
           aria-label="Empresa"
           value={empresaId ?? ""}
           onChange={(e) => elegir(e.target.value)}
-          className="max-w-56 rounded-md border border-white/30 bg-white/10 px-2 py-1.5 text-white"
+          className="hidden max-w-52 rounded-full border border-stone-200 bg-stone-50 px-3 py-1.5 text-stone-800 hover:border-stone-300 sm:block"
         >
           {empresas.map((e) => (
-            <option key={e.id} value={e.id} className="text-stone-900">
+            <option key={e.id} value={e.id}>
               {e.razon_social}
               {sinLeer[e.id] && e.id !== empresaId
                 ? ` (✉ ${sinLeer[e.id]})`
@@ -162,16 +211,6 @@ export function App() {
           ))}
         </select>
       )}
-      {esEstudio && !comoCliente && (
-        <button
-          type="button"
-          onClick={() => setComoCliente(true)}
-          title="Ver la app como la ve el cliente de esta empresa"
-          className="rounded-md px-3 py-1.5 font-medium opacity-80 hover:bg-white/10 hover:opacity-100"
-        >
-          Ver como cliente
-        </button>
-      )}
       {esEstudio && (
         <button
           type="button"
@@ -179,74 +218,40 @@ export function App() {
             setComoCliente(false);
             setVerEmpresas(true);
           }}
-          className="rounded-md px-3 py-1.5 font-medium opacity-80 hover:bg-white/10 hover:opacity-100"
+          className="hidden items-center gap-1.5 rounded-full border border-stone-200 px-3 py-1.5 font-medium text-stone-700 hover:bg-stone-100 sm:inline-flex"
         >
-          Mi estudio
-          {Object.keys(sinLeer).some((id) => id !== empresaId) && (
+          🏠 Mi estudio
+          {hayOtrosSinLeer && (
             <span
               title="Hay mensajes sin leer de otros clientes"
-              className="ml-1.5 inline-block h-2 w-2 rounded-full bg-amber-300 align-middle"
+              className="inline-block h-2 w-2 rounded-full bg-amber-400"
             />
           )}
         </button>
       )}
-      <button
-        type="button"
-        onClick={() => setCambiandoClave(true)}
-        className="rounded-md px-3 py-1.5 opacity-80 hover:bg-white/10 hover:opacity-100"
-      >
-        Contraseña
-      </button>
-      {cambiandoClave && (
-        <CambiarClave db={db} onCerrar={() => setCambiandoClave(false)} />
-      )}
-      <button
-        type="button"
-        onClick={salir}
-        title={sesion.user.email}
-        className="rounded-md px-3 py-1.5 opacity-80 hover:bg-white/10 hover:opacity-100"
-      >
-        Salir
-      </button>
+      {cuenta(true)}
     </div>
   );
 
   if (esEstudio && (verEmpresas || !empresa)) {
     return (
       <div className="min-h-screen">
-        <header className="bg-marca text-white">
-          <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3">
-            <Marca />
+        <header className="sticky top-0 z-30 border-b border-stone-200/80 bg-white/90 backdrop-blur">
+          <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-2.5">
+            <span className="text-marca">
+              <Marca claro />
+            </span>
             <div className="flex items-center gap-2 text-sm">
               {empresa && (
                 <button
                   type="button"
                   onClick={() => setVerEmpresas(false)}
-                  className="rounded-md px-3 py-1.5 font-medium opacity-80 hover:bg-white/10 hover:opacity-100"
+                  className="hidden rounded-full border border-stone-200 px-3 py-1.5 font-medium text-stone-700 hover:bg-stone-100 sm:block"
                 >
                   Volver a {empresa.razon_social}
                 </button>
               )}
-              <button
-                type="button"
-                onClick={() => setCambiandoClave(true)}
-                className="rounded-md px-3 py-1.5 opacity-80 hover:bg-white/10 hover:opacity-100"
-              >
-                Contraseña
-              </button>
-              {cambiandoClave && (
-                <CambiarClave
-                  db={db}
-                  onCerrar={() => setCambiandoClave(false)}
-                />
-              )}
-              <button
-                type="button"
-                onClick={salir}
-                className="rounded-md px-3 py-1.5 opacity-80 hover:bg-white/10 hover:opacity-100"
-              >
-                Salir
-              </button>
+              {cuenta(false)}
             </div>
           </div>
         </header>

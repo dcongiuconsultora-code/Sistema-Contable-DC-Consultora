@@ -144,7 +144,7 @@ export function CajaDiaria({
         ).map(([t, v, color]) => (
           <div
             key={t}
-            className="rounded-xl border border-stone-200 bg-white p-4 shadow-sm"
+            className="rounded-2xl border border-stone-200/80 bg-white p-4 shadow-sm"
           >
             <div className="text-sm text-stone-500">{t}</div>
             <div className={`text-xl font-semibold tabular-nums ${color}`}>
@@ -160,7 +160,7 @@ export function CajaDiaria({
         </p>
       )}
 
-      <section className="overflow-hidden rounded-xl border border-stone-200 bg-white shadow-sm">
+      <section className="overflow-hidden rounded-2xl border border-stone-200/80 bg-white shadow-sm">
         {caja.dias.length === 0 ? (
           <p className="p-6 text-sm text-stone-500">
             No hay movimientos de caja ni bancos en esas fechas.

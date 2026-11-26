@@ -68,7 +68,7 @@ export function ZonaDeducciones({
   }, [archivosExternos]);
 
   return (
-    <div className="rounded-xl border border-stone-200 bg-white p-5 shadow-sm">
+    <div className="rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm">
       <div className="mb-3">
         <h2 className="font-semibold">Retenciones y percepciones</h2>
         <p className="text-sm text-stone-500">

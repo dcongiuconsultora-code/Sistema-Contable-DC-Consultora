@@ -1,12 +1,17 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import {
+  ETIQUETA_IMPUESTO,
+  EtiquetaImpuesto,
+} from "@/components/empresas/Vencimientos";
+import type { InformeMensual } from "@/lib/informes/informe";
+import type { Impuesto } from "@/lib/vencimientos/vencimientos";
 import type { Asiento } from "@/lib/contabilidad/diario";
 import {
   balance,
   type Estado,
   formatoIndicador,
-  type Indicador,
   indicadores,
   mayor,
   resultados,
@@ -42,6 +47,13 @@ interface Props {
   puedeEditarSaldos?: boolean;
   /** Unidades de negocio de la empresa (vacío si no tiene). */
   unidades?: ConfigUnidades;
+  /** Próximos vencimientos de la empresa (impuestos y cuotas de planes). */
+  proximos?: { fecha: string; impuesto: Impuesto; detalle: string }[];
+  /** Descarga el informe del mes en Excel o PDF (completa CUIT, comprobantes y logo). */
+  onDescargar?: (
+    informe: InformeMensual,
+    formato: "pdf" | "excel",
+  ) => Promise<void>;
 }
 
 const TODAS = "todas";
@@ -145,8 +157,8 @@ function PorUnidad({
 }
 
 // Colores del gráfico (paleta categórica validada: azul y naranja) y de estado (fijos).
-const SERIE_VENTAS = "#2a78d6";
-const SERIE_COMPRAS = "#eb6834";
+const SERIE_VENTAS = "#591101";
+const SERIE_COMPRAS = "#d9a28f";
 const ESTADOS: Record<
   Estado,
   { texto: string; icono: string; color: string; fondo: string }
@@ -192,99 +204,6 @@ function mesAnterior(periodo: string) {
 function variacion(actual: number, anterior: number) {
   if (!anterior) return null;
   return (actual - anterior) / Math.abs(anterior);
-}
-
-function Pastilla({ estado }: { estado: Estado }) {
-  const e = ESTADOS[estado];
-  return (
-    <span
-      className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold"
-      style={{ color: e.color, background: e.fondo }}
-    >
-      <span aria-hidden>{e.icono}</span>
-      {e.texto}
-    </span>
-  );
-}
-
-/** Escala horizontal con las tres zonas y una marca en el valor. */
-function Medidor({ i }: { i: Indicador }) {
-  const { min, max, atencion, bien, menorEsMejor } = i.escala;
-  const pos = (v: number) =>
-    `${((Math.min(max, Math.max(min, v)) - min) / (max - min)) * 100}%`;
-  const zonas = menorEsMejor
-    ? [
-        { desde: min, hasta: bien, estado: "bien" as const },
-        { desde: bien, hasta: atencion, estado: "atencion" as const },
-        { desde: atencion, hasta: max, estado: "critico" as const },
-      ]
-    : [
-        { desde: min, hasta: atencion, estado: "critico" as const },
-        { desde: atencion, hasta: bien, estado: "atencion" as const },
-        { desde: bien, hasta: max, estado: "bien" as const },
-      ];
-  const etiqueta = (v: number) =>
-    i.id === "rentabilidad" ? `${Math.round(v * 100)}%` : MILLONES.format(v);
-  return (
-    <div className="mt-4" aria-hidden>
-      <div className="relative h-2.5">
-        <div className="absolute inset-0 flex gap-0.5 overflow-hidden rounded-full">
-          {zonas.map((z) => (
-            <div
-              key={z.estado}
-              style={{
-                // Base cero y crecimiento proporcional al tramo: llena el ancho aunque la escala sea chica.
-                flex: `${(z.hasta - z.desde) * 1000} 1 0`,
-                background: ESTADOS[z.estado].fondo,
-                borderBottom: `2px solid ${ESTADOS[z.estado].color}55`,
-              }}
-            />
-          ))}
-        </div>
-        {i.valor !== null && (
-          <div
-            className="absolute top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow"
-            style={{ left: pos(i.valor), background: ESTADOS[i.estado].color }}
-          />
-        )}
-      </div>
-      <div className="relative mt-1 h-4 text-[10px] text-stone-500">
-        {[atencion, bien].map((v) => (
-          <span
-            key={v}
-            className="absolute -translate-x-1/2 tabular-nums"
-            style={{ left: pos(v) }}
-          >
-            {etiqueta(v)}
-          </span>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function TarjetaIndicador({ i }: { i: Indicador }) {
-  return (
-    <div className="flex flex-col rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
-      <div className="flex items-start justify-between gap-2">
-        <h3 className="text-sm font-medium text-stone-600">{i.nombre}</h3>
-        <Pastilla estado={i.estado} />
-      </div>
-      <div className="mt-2 text-3xl font-semibold tabular-nums tracking-tight">
-        {formatoIndicador(i)}
-        {i.id !== "rentabilidad" && i.valor !== null && (
-          <span className="ml-1 text-base font-normal text-stone-500">
-            veces
-          </span>
-        )}
-      </div>
-      <p className="mt-2 text-sm text-stone-700">{i.lectura}</p>
-      <div className="mt-auto">
-        <Medidor i={i} />
-        <p className="mt-1 text-xs text-stone-500">{i.formula}</p>
-      </div>
-    </div>
-  );
 }
 
 interface PuntoMes {
@@ -591,7 +510,10 @@ export function Tablero({
   onIr,
   puedeEditarSaldos = true,
   unidades = SIN_UNIDADES,
+  proximos = [],
+  onDescargar,
 }: Props) {
+  const [descargando, setDescargando] = useState<string | null>(null);
   const [vistaUnidad, setVistaUnidad] = useState<string>(TODAS);
   const conUnidades = unidades.unidades.length > 0;
   const filtro: FiltroUnidad =
@@ -698,25 +620,145 @@ export function Tablero({
     });
 
   const ganancia = r.resultado >= 0;
+  const mesCorto = nombrePeriodo(periodo).split(" ")[0].toLowerCase();
+  const tiles: { titulo: string; valor: string; extra?: string }[] = [
+    {
+      titulo: ganancia ? "Ganaste" : "Perdiste",
+      valor: compacto(Math.abs(r.resultado)),
+      extra:
+        r.margen !== null
+          ? `${formatoIndicador(lista[0])} de lo que vendiste`
+          : undefined,
+    },
+    {
+      titulo: "Vendiste",
+      valor: compacto(r.ventas),
+      extra:
+        varVentas === null
+          ? undefined
+          : `${varVentas >= 0 ? "▲" : "▼"} ${Math.abs(Math.round(varVentas * 100))} % vs. ${nombrePeriodo(mesAnterior(periodo)).split(" ")[0].toLowerCase()}`,
+    },
+    ...(filtro === undefined
+      ? [
+          {
+            titulo: "Tenés en caja y bancos",
+            valor: compacto(b.disponibilidades),
+          },
+          {
+            titulo: "Te deben tus clientes",
+            valor: compacto(b.creditosPorVentas),
+            extra: `y vos debés ${compacto(b.deudasComerciales)} a proveedores`,
+          },
+        ]
+      : [
+          {
+            titulo: "Gastos del mes",
+            valor: compacto(r.gastos),
+            extra: `compras ${compacto(r.costos)}`,
+          },
+          {
+            titulo: "Caja del mes",
+            valor: compacto(caja.neto),
+            extra: `entraron ${compacto(caja.entradas)}, salieron ${compacto(caja.salidas)}`,
+          },
+        ]),
+  ];
+  const armarInforme = (): InformeMensual => {
+    const doce = periodos.filter((p) => p <= periodo).slice(-12);
+    return {
+      empresa,
+      cuit: "",
+      periodo,
+      unidad: nombreVista,
+      generado: new Date().toISOString().slice(0, 10),
+      resumen: {
+        ventas: r.ventas,
+        ventasMesAnterior: anterior.ventas || null,
+        compras: r.costos,
+        gastos: r.gastos,
+        resultado: r.resultado,
+        margen: r.margen,
+        cajaYBancos: b.disponibilidades,
+        teDeben: b.creditosPorVentas,
+        debes: b.deudasComerciales,
+      },
+      indicadores: lista.map((i) => ({
+        nombre: i.nombre,
+        valor: formatoIndicador(i),
+        estado: i.estado,
+        lectura: i.lectura,
+        formula: i.formula,
+      })),
+      meses: doce.map((p) => {
+        const x = resultados(asientos, `${p}-01`, finDeMes(p), filtro);
+        return {
+          periodo: p,
+          ventas: x.ventas,
+          compras: x.costos,
+          resultado: x.resultado,
+        };
+      }),
+      vencimientos: proximos.slice(0, 8).map((v) => ({
+        fecha: v.fecha,
+        impuesto: ETIQUETA_IMPUESTO[v.impuesto][0],
+        detalle: v.detalle,
+      })),
+      pendientes: pendientes.map((p) => p.texto),
+    };
+  };
+  const conValor = lista.filter((i) => i.valor !== null);
+  const general: Estado = !conValor.length
+    ? "sin_datos"
+    : conValor.some((i) => i.estado === "critico")
+      ? "critico"
+      : conValor.some((i) => i.estado === "atencion")
+        ? "atencion"
+        : "bien";
+  const ICONO_INDICADOR: Record<string, string> = {
+    rentabilidad: "💰",
+    liquidez: "💧",
+    acida: "📦",
+    endeudamiento: "⚖️",
+  };
+  const fondo: Record<Estado, string> = {
+    bien: "bg-emerald-50/80",
+    atencion: "bg-amber-50",
+    critico: "bg-red-50",
+    sin_datos: "bg-stone-50",
+  };
+
   return (
-    <div className="space-y-6">
-      {/* Encabezado con el resultado del mes */}
-      <section className="overflow-hidden rounded-2xl bg-gradient-to-br from-marca to-[#7a2412] text-white shadow-md">
-        <div className="flex flex-wrap items-end justify-between gap-6 px-6 py-6 sm:px-8">
+    <div className="space-y-5">
+      {/* Encabezado con los números del mes */}
+      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-marca to-[#8a2a12] p-6 text-white shadow-md sm:p-8">
+        <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-white/5" />
+        <div className="relative flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
-            <p className="text-sm opacity-80">Hola, {empresa}</p>
+            <p className="text-sm text-white/70">Hola, {empresa} 👋</p>
             <h1 className="mt-1 text-2xl font-semibold sm:text-3xl">
-              Así está {nombreVista ?? "tu empresa"} en{" "}
-              <span className="capitalize">{nombrePeriodo(periodo)}</span>
+              Así viene {nombreVista ?? "tu negocio"} en {mesCorto}
             </h1>
-            {conUnidades && (
-              <label className="mr-4 mt-3 inline-flex items-center gap-2 text-sm">
-                <span className="opacity-80">Unidad</span>
+            <div className="mt-3 flex flex-wrap gap-2 text-sm">
+              <select
+                id="periodo-tablero"
+                aria-label="Mes"
+                value={periodo}
+                onChange={(e) => setElegido(e.target.value)}
+                className="rounded-full border border-white/25 bg-white/10 px-3 py-1 capitalize text-white"
+              >
+                {[...periodos].reverse().map((p) => (
+                  <option key={p} value={p} className="text-stone-900">
+                    {nombrePeriodo(p)}
+                  </option>
+                ))}
+              </select>
+              {conUnidades && (
                 <select
                   id="unidad-tablero"
+                  aria-label="Unidad de negocio"
                   value={vistaUnidad}
                   onChange={(e) => setVistaUnidad(e.target.value)}
-                  className="rounded-md border border-white/30 bg-white/10 px-2 py-1 text-white"
+                  className="rounded-full border border-white/25 bg-white/10 px-3 py-1 text-white"
                 >
                   <option value={TODAS} className="text-stone-900">
                     Toda la empresa
@@ -730,156 +772,68 @@ export function Tablero({
                     Compartido
                   </option>
                 </select>
-              </label>
-            )}
-            <label className="mt-3 inline-flex items-center gap-2 text-sm">
-              <span className="opacity-80">Ver otro mes</span>
-              <select
-                id="periodo-tablero"
-                value={periodo}
-                onChange={(e) => setElegido(e.target.value)}
-                className="rounded-md border border-white/30 bg-white/10 px-2 py-1 capitalize text-white"
-              >
-                {[...periodos].reverse().map((p) => (
-                  <option key={p} value={p} className="text-stone-900">
-                    {nombrePeriodo(p)}
-                  </option>
-                ))}
-              </select>
-            </label>
+              )}
+            </div>
           </div>
-          <div className="text-right">
-            <p className="text-sm opacity-80">
-              {ganancia ? "Ganancia del mes" : "Pérdida del mes"}
-            </p>
-            <p className="text-4xl font-semibold tabular-nums tracking-tight sm:text-5xl">
-              {pesos(Math.abs(r.resultado))}
-            </p>
-            {r.margen !== null && (
-              <p className="mt-1 text-sm opacity-90">
-                Rentabilidad {formatoIndicador(lista[0])} sobre ventas
-              </p>
-            )}
-          </div>
+          {onDescargar && (
+            <div className="flex gap-2">
+              {(
+                [
+                  ["pdf", "PDF para presentar"],
+                  ["excel", "Excel"],
+                ] as const
+              ).map(([f, texto]) => (
+                <button
+                  key={f}
+                  type="button"
+                  disabled={descargando !== null}
+                  onClick={async () => {
+                    setDescargando(f);
+                    try {
+                      await onDescargar(armarInforme(), f);
+                    } finally {
+                      setDescargando(null);
+                    }
+                  }}
+                  className="rounded-full border border-white/30 bg-white/10 px-3.5 py-1.5 text-sm font-medium text-white hover:bg-white/20 disabled:opacity-60"
+                >
+                  {descargando === f ? "Armando…" : `⬇ ${texto}`}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
-      </section>
-
-      {/* Números principales */}
-      <section className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        {[
-          {
-            titulo: "Ventas del mes",
-            valor: r.ventas,
-            extra:
-              varVentas === null
-                ? "sin datos del mes anterior"
-                : `${varVentas >= 0 ? "▲" : "▼"} ${Math.abs(Math.round(varVentas * 100))}% vs. ${nombrePeriodo(mesAnterior(periodo)).split(" ")[0]}`,
-            tono:
-              varVentas === null
-                ? ""
-                : varVentas >= 0
-                  ? "text-emerald-700"
-                  : "text-red-700",
-          },
-          ...(filtro === undefined
-            ? [
-                {
-                  titulo: "Plata disponible",
-                  valor: b.disponibilidades,
-                  extra: "caja y bancos",
-                  tono: "",
-                },
-                {
-                  titulo: "Te deben",
-                  valor: b.creditosPorVentas,
-                  extra: "clientes",
-                  tono: "",
-                },
-                {
-                  titulo: "Debés",
-                  valor: b.deudasComerciales,
-                  extra: "proveedores",
-                  tono: "",
-                },
-              ]
-            : [
-                {
-                  titulo: "Compras del mes",
-                  valor: r.costos,
-                  extra: "netas de IVA",
-                  tono: "",
-                },
-                {
-                  titulo: "Gastos del mes",
-                  valor: r.gastos,
-                  extra: "sueldos, servicios y otros",
-                  tono: "",
-                },
-                {
-                  titulo: "Caja del mes",
-                  valor: caja.neto,
-                  extra: `entraron ${compacto(caja.entradas)}, salieron ${compacto(caja.salidas)}`,
-                  tono: caja.neto < 0 ? "text-red-700" : "",
-                },
-              ]),
-        ].map((k) => (
-          <div
-            key={k.titulo}
-            className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm"
-          >
-            <p className="text-sm text-stone-600">{k.titulo}</p>
-            <p className="mt-1 text-2xl font-semibold tabular-nums tracking-tight">
-              {compacto(k.valor)}
-            </p>
-            <p className={`mt-1 text-xs ${k.tono || "text-stone-500"}`}>
-              {k.extra}
-            </p>
-          </div>
-        ))}
-      </section>
-
-      {/* Índices */}
-      <section>
-        <h2 className="mb-3 text-lg font-semibold">Salud financiera</h2>
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {lista.map((i) => (
-            <TarjetaIndicador key={i.id} i={i} />
+        <div className="relative mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {tiles.map((t) => (
+            <div
+              key={t.titulo}
+              className="rounded-2xl bg-white/10 p-4 backdrop-blur-sm"
+            >
+              <div className="text-xs text-white/70">{t.titulo}</div>
+              <div className="mt-1 text-xl font-semibold tabular-nums tracking-tight sm:text-2xl">
+                {t.valor}
+              </div>
+              {t.extra && (
+                <div className="mt-1 text-xs text-white/70">{t.extra}</div>
+              )}
+            </div>
           ))}
         </div>
-        <p className="mt-2 text-xs text-stone-500">
-          Índices al {fechaCorta(hasta)}.
-          {filtro !== undefined &&
-            " La rentabilidad es de la unidad; liquidez, prueba ácida y endeudamiento son de toda la empresa (la razón social)."}{" "}
-          Los rangos de &quot;bien&quot; y &quot;atención&quot; son referencias
-          generales: el estudio los ajusta según el rubro.
-        </p>
       </section>
 
-      {conUnidades && filtro === undefined && (
-        <PorUnidad
-          asientos={asientos}
-          desde={desde}
-          hasta={hasta}
-          unidades={unidades}
-          onElegir={setVistaUnidad}
-        />
-      )}
-
-      <section className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
-        <div className="min-w-0 rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
-          <h2 className="mb-3 font-semibold">Ventas y compras por mes</h2>
-          <GraficoMensual datos={mensual} />
-        </div>
-        <div className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
-          <h2 className="mb-3 font-semibold">Para atender</h2>
+      <div className="grid gap-5 lg:grid-cols-[1.2fr_1fr]">
+        <section className="rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm">
+          <h2 className="text-lg font-semibold">Lo que tenés que hacer</h2>
           {pendientes.length === 0 ? (
-            <p className="text-sm text-emerald-700">✓ Todo al día.</p>
+            <p className="mt-3 rounded-xl bg-emerald-50 p-4 text-sm text-emerald-800">
+              ✓ Está todo al día. ¡Bien!
+            </p>
           ) : (
-            <ul className="space-y-2">
+            <ul className="mt-3 space-y-2.5 text-sm">
               {pendientes.map((p) => (
                 <li
                   key={p.texto}
-                  className="flex items-center gap-3 rounded-lg border border-stone-100 p-3 text-sm"
+                  className="flex items-center gap-3 rounded-xl border border-stone-200 p-3"
                 >
                   <span
                     aria-hidden
@@ -895,7 +849,7 @@ export function Tablero({
                   <button
                     type="button"
                     onClick={() => onIr(p.ir)}
-                    className="shrink-0 rounded-md px-2 py-1 font-medium text-marca hover:bg-marca-claro"
+                    className="shrink-0 rounded-lg bg-marca px-3 py-1.5 font-medium text-white hover:opacity-90"
                   >
                     {p.accion}
                   </button>
@@ -903,8 +857,156 @@ export function Tablero({
               ))}
             </ul>
           )}
+        </section>
+        <section className="rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm">
+          <h2 className="text-lg font-semibold">Próximos vencimientos</h2>
+          {proximos.length === 0 ? (
+            <p className="mt-3 text-sm text-stone-500">
+              No tenés vencimientos en las próximas semanas.
+            </p>
+          ) : (
+            <ul className="mt-3 space-y-3 text-sm">
+              {proximos.slice(0, 5).map((v) => {
+                const d = new Date(`${v.fecha}T12:00:00Z`);
+                return (
+                  <li
+                    key={`${v.fecha}-${v.impuesto}-${v.detalle}`}
+                    className="flex items-center gap-3"
+                  >
+                    <div className="w-12 shrink-0 rounded-xl bg-stone-50 py-1 text-center">
+                      <div className="text-lg font-semibold leading-tight">
+                        {d.getUTCDate()}
+                      </div>
+                      <div className="text-[10px] font-semibold uppercase text-stone-500">
+                        {d.toLocaleDateString("es-AR", {
+                          month: "short",
+                          timeZone: "UTC",
+                        })}
+                      </div>
+                    </div>
+                    <span className="min-w-0 flex-1">{v.detalle}</span>
+                    <EtiquetaImpuesto impuesto={v.impuesto} />
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
+      </div>
+
+      {/* Índices */}
+      <section className="rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-lg font-semibold">
+            ¿Cómo está la salud de {nombreVista ? "la unidad" : "tu empresa"}?
+          </h2>
+          {general !== "sin_datos" && (
+            <span
+              className="rounded-full px-3 py-1 text-sm font-medium"
+              style={{
+                color: ESTADOS[general].color,
+                background: ESTADOS[general].fondo,
+              }}
+            >
+              ●{" "}
+              {general === "bien"
+                ? "Muy bien"
+                : general === "atencion"
+                  ? "Para mirar"
+                  : "Preocupa"}
+            </span>
+          )}
         </div>
+        <div className="mt-4 grid grid-cols-2 gap-3 xl:grid-cols-4">
+          {lista.map((i) => (
+            <div
+              key={i.id}
+              title={i.formula}
+              className={`rounded-2xl p-4 ${fondo[i.estado]}`}
+            >
+              <div className="flex items-center justify-between gap-2 text-sm text-stone-700">
+                <span>
+                  {ICONO_INDICADOR[i.id] ?? "📈"} {i.nombre}
+                </span>
+                <span
+                  className="h-2.5 w-2.5 shrink-0 rounded-full"
+                  style={{ background: ESTADOS[i.estado].color }}
+                />
+              </div>
+              <div className="mt-2 text-2xl font-semibold tabular-nums">
+                {formatoIndicador(i)}
+              </div>
+              <p className="mt-1 text-xs text-stone-600">{i.lectura}</p>
+            </div>
+          ))}
+        </div>
+        <p className="mt-3 text-xs text-stone-400">
+          Al {fechaCorta(hasta)}.
+          {filtro !== undefined &&
+            " La rentabilidad es de la unidad; el resto es de toda la empresa."}{" "}
+          Verde: bien · amarillo: para mirar · rojo: preocupa. Son referencias
+          generales; el estudio las ajusta según el rubro.
+        </p>
       </section>
+
+      {conUnidades && filtro === undefined && (
+        <PorUnidad
+          asientos={asientos}
+          desde={desde}
+          hasta={hasta}
+          unidades={unidades}
+          onElegir={setVistaUnidad}
+        />
+      )}
+
+      <div className="grid gap-5 lg:grid-cols-[1.6fr_1fr]">
+        <section className="min-w-0 rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm">
+          <h2 className="mb-3 text-lg font-semibold">
+            Ventas y compras de los últimos meses
+          </h2>
+          <GraficoMensual datos={mensual} />
+        </section>
+        <section className="rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm">
+          <h2 className="mb-3 text-lg font-semibold">Tu mes en números</h2>
+          <dl className="divide-y divide-stone-100 text-sm">
+            {(
+              [
+                ["Vendiste", r.ventas, ""],
+                ["Compraste (mercadería)", -r.costos, ""],
+                ["Gastos", -r.gastos, "sueldos, servicios y otros"],
+                [
+                  ganancia ? "Te quedó de ganancia" : "Perdiste",
+                  r.resultado,
+                  "",
+                ],
+              ] as const
+            ).map(([t, v, nota], i) => (
+              <div
+                key={t}
+                className={`flex items-baseline justify-between gap-3 py-2.5 ${i === 3 ? "font-semibold" : ""}`}
+              >
+                <dt>
+                  {t}
+                  {nota && (
+                    <span className="block text-xs font-normal text-stone-500">
+                      {nota}
+                    </span>
+                  )}
+                </dt>
+                <dd
+                  className={`cifra ${v < 0 ? "text-stone-600" : ""} ${i === 3 ? (v < 0 ? "text-red-700" : "text-emerald-700") : ""}`}
+                >
+                  {pesos(v || 0)}
+                </dd>
+              </div>
+            ))}
+          </dl>
+          <p className="mt-2 text-xs text-stone-400">
+            Netos de IVA. Entraron {compacto(caja.entradas)} y salieron{" "}
+            {compacto(caja.salidas)} de caja y bancos en el mes.
+          </p>
+        </section>
+      </div>
 
       <details className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
         <summary className="cursor-pointer font-semibold">

@@ -19,7 +19,7 @@ export function TablaDeducciones({ deducciones, periodo }: Props) {
 
   if (delPeriodo.length === 0) {
     return (
-      <p className="rounded-xl border border-stone-200 bg-white p-6 text-sm text-stone-500">
+      <p className="rounded-2xl border border-stone-200/80 bg-white p-6 text-sm text-stone-500">
         No hay retenciones ni percepciones cargadas para este período.
       </p>
     );
@@ -27,7 +27,7 @@ export function TablaDeducciones({ deducciones, periodo }: Props) {
 
   return (
     <div className="space-y-4">
-      <div className="overflow-hidden rounded-xl border border-stone-200 bg-white shadow-sm">
+      <div className="overflow-hidden rounded-2xl border border-stone-200/80 bg-white shadow-sm">
         <h3 className="border-b border-stone-200 px-4 py-3 font-semibold">
           Resumen para las declaraciones juradas
         </h3>
@@ -59,7 +59,7 @@ export function TablaDeducciones({ deducciones, periodo }: Props) {
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-stone-200 bg-white shadow-sm">
+      <div className="overflow-hidden rounded-2xl border border-stone-200/80 bg-white shadow-sm">
         <h3 className="border-b border-stone-200 px-4 py-3 font-semibold">
           Detalle ({delPeriodo.length})
         </h3>

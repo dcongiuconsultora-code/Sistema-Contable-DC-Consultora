@@ -465,7 +465,7 @@ export function LibroDiario({
       )}
 
       {vista === "sumas" ? (
-        <section className="overflow-hidden rounded-xl border border-stone-200 bg-white shadow-sm">
+        <section className="overflow-hidden rounded-2xl border border-stone-200/80 bg-white shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-stone-200 px-4 py-3">
             <h3 className="font-semibold">
               Balance de sumas y saldos · {fechaCorta(desdeEfectivo)} al{" "}
@@ -580,7 +580,7 @@ export function LibroDiario({
           {filtrados.slice(0, cantidad).map((a, i) => (
             <article
               key={a.id ?? `${a.fecha}-${i}`}
-              className="rounded-xl border border-stone-200 bg-white p-3 shadow-sm"
+              className="rounded-2xl border border-stone-200/80 bg-white p-3 shadow-sm"
             >
               <div className="flex flex-wrap items-center gap-2 text-sm">
                 <span className="font-medium tabular-nums">
