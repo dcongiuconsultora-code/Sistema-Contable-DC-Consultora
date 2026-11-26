@@ -173,7 +173,7 @@ describe.skipIf(!URL || !ANON || !SERVICIO)(
           deducciones: sircreb.deducciones,
         },
       ]);
-      expect(datos.resumen).toEqual(resumen);
+      expect(datos.resumenes.map((x) => x.resumen)).toEqual([resumen]);
       expect(datos.saldos).toEqual({
         fecha: "2026-08-31",
         saldos: { "1.1.01.006": 100, "3.1.01.001": 100 },

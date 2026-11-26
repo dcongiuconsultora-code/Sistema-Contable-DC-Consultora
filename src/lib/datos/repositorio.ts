@@ -2,6 +2,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { Deduccion } from "@/lib/arca/retenciones";
 import type { Comprobante, Operacion } from "@/lib/arca/tipos";
 import type { ResumenBancario } from "@/lib/bancos/tipos";
+import type { ResumenCargado } from "@/lib/bancos/resumenes";
 import type { SaldosIniciales } from "@/lib/contabilidad/indicadores";
 import type { Movimiento } from "@/lib/movimientos/tipos";
 import type { TicketExtraido } from "@/lib/tickets/esquema";
@@ -135,7 +136,7 @@ export interface DatosEmpresa {
   tickets: TicketGuardado[];
   archivosDeducciones: ArchivoDeduccionesGuardado[];
   saldos: SaldosIniciales;
-  resumen: ResumenBancario | null;
+  resumenes: ResumenCargado[];
   unidades: ConfigUnidades;
 }
 
@@ -416,7 +417,7 @@ export class Repositorio {
       deducciones,
       archivos,
       saldos,
-      resumen,
+      resumenes,
       unidades,
     ] = await Promise.all([
       todas<FilaComprobante>(
@@ -460,7 +461,7 @@ export class Repositorio {
         .from("saldos_iniciales")
         .select("fecha, cuenta, importe")
         .eq("empresa_id", empresaId),
-      this.ultimoResumen(empresaId),
+      this.resumenes(empresaId),
       this.configUnidades(empresaId),
     ]);
     fallar(archivos.error, "leer los archivos importados");
@@ -493,7 +494,7 @@ export class Repositorio {
           (saldos.data ?? []).map((s) => [s.cuenta, Number(s.importe)]),
         ),
       },
-      resumen,
+      resumenes,
       unidades,
     };
   }
@@ -1292,37 +1293,49 @@ export class Repositorio {
 
   // Banco ----------------------------------------------------------------------------------------
 
-  private async ultimoResumen(
-    empresaId: string,
-  ): Promise<ResumenBancario | null> {
+  /** Todos los resúmenes bancarios subidos (varios bancos y meses), del más viejo al más nuevo. */
+  async resumenes(empresaId: string): Promise<ResumenCargado[]> {
     const { data, error } = await this.db
       .from("archivos_importados")
-      .select("id, datos")
+      .select("id, nombre, datos")
       .eq("empresa_id", empresaId)
       .eq("tipo", "resumen_bancario")
-      .order("cargado_en", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    fallar(error, "leer el resumen bancario");
-    if (!data) return null;
+      .order("cargado_en", { ascending: true });
+    fallar(error, "leer los resúmenes bancarios");
+    if (!data?.length) return [];
     const filas = await todas<FilaMovimientoBancario>(
       (d, h) =>
         this.db
           .from("movimientos_bancarios")
           .select("*")
-          .eq("archivo_id", data.id)
+          .eq("empresa_id", empresaId)
+          .not("archivo_id", "is", null)
           .order("orden")
           .range(d, h),
       "leer los movimientos del banco",
     );
-    return filasAResumen(data.datos as DatosResumen, filas);
+    const porArchivo = new Map<string, FilaMovimientoBancario[]>();
+    for (const f of filas)
+      porArchivo.set(f.archivo_id, [
+        ...(porArchivo.get(f.archivo_id) ?? []),
+        f,
+      ]);
+    return data.map((a) => ({
+      id: a.id,
+      nombre: a.nombre,
+      resumen: filasAResumen(
+        a.datos as DatosResumen,
+        porArchivo.get(a.id) ?? [],
+      ),
+    }));
   }
 
+  /** Guarda un resumen bancario; devuelve el id del archivo. */
   async guardarResumen(
     empresaId: string,
     resumen: ResumenBancario,
     nombre: string,
-  ) {
+  ): Promise<string> {
     const { datos } = resumenAFilas(resumen, empresaId, "");
     const archivoId = await this.registrarArchivo(
       empresaId,
@@ -1337,6 +1350,21 @@ export class Repositorio {
         .insert(filas.slice(i, i + 500));
       fallar(error, "guardar los movimientos del banco");
     }
+    return archivoId;
+  }
+
+  /** Quita un resumen bancario con sus movimientos. */
+  async borrarResumen(archivoId: string) {
+    const r = await this.db
+      .from("archivos_importados")
+      .delete()
+      .eq("id", archivoId)
+      .select("id");
+    fallar(r.error, "quitar el resumen");
+    if (!r.data?.length)
+      throw new Error(
+        "Solo puede quitar este resumen quien lo subió o el estudio.",
+      );
   }
 
   // Saldos de inicio ---------------------------------------------------------------------------

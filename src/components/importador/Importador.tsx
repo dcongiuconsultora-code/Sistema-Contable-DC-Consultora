@@ -45,6 +45,11 @@ import {
 } from "@/lib/unidades/unidades";
 import { type Alertas, Tablero } from "@/components/tablero/Tablero";
 import { conciliarResumen } from "@/lib/bancos/conciliacion";
+import {
+  consolidar,
+  mismoResumen,
+  type ResumenCargado,
+} from "@/lib/bancos/resumenes";
 import type { ResumenBancario } from "@/lib/bancos/tipos";
 import { type Asiento, generarDiario } from "@/lib/contabilidad/diario";
 import type { SaldosIniciales } from "@/lib/contabilidad/indicadores";
@@ -300,9 +305,9 @@ export function Importador({
     if (d.vista) setVistaContable(d.vista);
     window.scrollTo({ top: 0 });
   };
-  const [resumenBanco, setResumenBanco] = useState<ResumenBancario | null>(
-    null,
-  );
+  const [resumenes, setResumenes] = useState<ResumenCargado[]>([]);
+  // Todos los resúmenes (varios bancos y meses) juntos, para conciliar y para la contabilidad.
+  const resumenBanco = useMemo(() => consolidar(resumenes), [resumenes]);
   const [iniciales, setIniciales] = useState<SaldosIniciales>({
     fecha: "",
     saldos: {},
@@ -350,8 +355,6 @@ export function Importador({
   const [cargando, setCargando] = useState(Boolean(conexion));
   const [noLeidos, setNoLeidos] = useState(0);
   const [errorDatos, setErrorDatos] = useState<string | null>(null);
-  const [resumenGuardado, setResumenGuardado] =
-    useState<ResumenBancario | null>(null);
   const repo = conexion?.repo;
   const empresaId = conexion?.empresa.id;
   const condicionIva = conexion?.empresa.condicion_iva ?? "";
@@ -449,8 +452,7 @@ export function Importador({
         );
         setIniciales(d.saldos);
         setUnidades(d.unidades);
-        setResumenBanco(d.resumen);
-        setResumenGuardado(d.resumen);
+        setResumenes(d.resumenes);
       } catch (e) {
         setErrorDatos(e instanceof Error ? e.message : String(e));
       } finally {
@@ -578,10 +580,37 @@ export function Importador({
     );
   };
 
-  const recibirResumen = (r: ResumenBancario | null, nombre?: string) => {
-    setResumenBanco(r);
-    if (r && empresaId && repo)
-      guardar(() => repo.guardarResumen(empresaId, r, nombre ?? "resumen.pdf"));
+  /** Agrega resúmenes; si uno ya estaba (mismo banco, cuentas y período), lo reemplaza. */
+  const agregarResumenes = async (
+    nuevos: { resumen: ResumenBancario; nombre: string }[],
+  ) => {
+    let lista = [...resumenes];
+    for (const n of nuevos) {
+      const anterior = lista.find((x) => mismoResumen(x.resumen, n.resumen));
+      lista = lista.filter((x) => x !== anterior);
+      let id: string | undefined;
+      if (repo && empresaId) {
+        try {
+          if (anterior?.id) await repo.borrarResumen(anterior.id);
+          id = await repo.guardarResumen(empresaId, n.resumen, n.nombre);
+        } catch (e) {
+          setErrorDatos(e instanceof Error ? e.message : String(e));
+        }
+      }
+      lista.push({ id, nombre: n.nombre, resumen: n.resumen });
+    }
+    setResumenes(lista);
+  };
+  const quitarResumen = async (r: ResumenCargado) => {
+    if (repo && r.id) {
+      try {
+        await repo.borrarResumen(r.id);
+      } catch (e) {
+        setErrorDatos(e instanceof Error ? e.message : String(e));
+        return;
+      }
+    }
+    setResumenes((lista) => lista.filter((x) => x !== r));
   };
 
   // Los tickets que el cliente cargó y todavía no aparecen en Mis Comprobantes recibidos.
@@ -646,9 +675,12 @@ export function Importador({
   const conciliacion = useMemo(
     () =>
       resumenBanco
-        ? conciliarResumen(resumenBanco, movimientos, conocidos)
+        ? conciliarResumen(resumenBanco, movimientos, conocidos, {
+            ventas: ventas?.comprobantes ?? [],
+            compras: [...(compras?.comprobantes ?? []), ...ticketsPendientes],
+          })
         : null,
-    [resumenBanco, movimientos, conocidos],
+    [resumenBanco, movimientos, conocidos, ventas, compras, ticketsPendientes],
   );
   const deducciones = useMemo(
     () => archivosDeducciones.flatMap((a) => a.resultado.deducciones),
@@ -1571,8 +1603,8 @@ export function Importador({
             <h1 className="text-2xl font-semibold">Bancos</h1>
             <p className="mt-1 max-w-3xl text-stone-600">
               {conexion?.rol === "cliente"
-                ? "Subí el resumen del banco en PDF, tal como lo descargás del home banking. El sistema lo lee solo; si hay movimientos que no reconoce, podés indicar qué fueron y el estudio los revisa."
-                : "Subí el resumen del banco en PDF. El sistema lee todas las cuentas, controla que los saldos cierren y clasifica cada movimiento con las cuentas del plan. Los que necesitan tu criterio quedan marcados para revisar."}
+                ? "Subí los resúmenes de tus bancos en PDF, tal como los descargás del home banking: de todos los bancos y de todos los meses. El sistema los lee solos; si hay movimientos que no reconoce, podés indicar qué fueron y el estudio los revisa."
+                : "Subí los resúmenes en PDF de todos los bancos y meses. El sistema lee todas las cuentas, controla que los saldos cierren, clasifica cada movimiento con las cuentas del plan y propone qué factura se paga o se cobra con cada transferencia. Los que necesitan tu criterio quedan marcados para revisar."}
             </p>
           </section>
           <Bancos
@@ -1580,8 +1612,13 @@ export function Importador({
             movimientosCliente={movimientos}
             conocidos={conocidos}
             onRegistrar={registrarDesdeBanco}
-            onResumen={recibirResumen}
-            resumenGuardado={resumenGuardado}
+            resumenes={resumenes}
+            onAgregar={agregarResumenes}
+            onQuitar={quitarResumen}
+            facturas={{
+              ventas: ventas?.comprobantes ?? [],
+              compras: [...(compras?.comprobantes ?? []), ...ticketsPendientes],
+            }}
           />
         </div>
         <div hidden={seccion !== "arca"} className="space-y-6">

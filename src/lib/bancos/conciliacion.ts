@@ -1,6 +1,7 @@
 import { normalizarNombre } from "@/lib/cuentas/cuenta-corriente";
 import { conciliar } from "@/lib/movimientos/conciliar";
 import { medio, type Movimiento } from "@/lib/movimientos/tipos";
+import type { Comprobante } from "@/lib/arca/tipos";
 import { type Clasificacion, clasificarMovimiento } from "./clasificar";
 import type { MovimientoBancario, ResumenBancario } from "./tipos";
 
@@ -54,7 +55,37 @@ export function conciliarResumen(
   resumen: ResumenBancario,
   movimientos: Movimiento[],
   conocidos: Conocidos = { clientes: new Map(), proveedores: new Map() },
+  /** Facturas cargadas: un débito o crédito del mismo importe se propone como su pago o cobro. */
+  facturas: { ventas: Comprobante[]; compras: Comprobante[] } = {
+    ventas: [],
+    compras: [],
+  },
 ): Conciliacion {
+  const usadas = new Set<Comprobante>();
+  /** La factura que se paga o cobra con este movimiento: mismo importe, hasta 120 días antes. */
+  const facturaDe = (
+    lista: Comprobante[],
+    m: MovimientoBancario,
+    cuit?: string,
+  ): Comprobante | undefined => {
+    const desde = sumarDias(m.fecha, -120);
+    const candidatas = lista.filter(
+      (c) =>
+        !usadas.has(c) &&
+        c.total > 0 &&
+        Math.abs(c.total - Math.abs(m.importe)) <= 1 &&
+        c.fecha <= sumarDias(m.fecha, 5) &&
+        c.fecha >= desde &&
+        (!cuit || c.cuitContraparte === cuit),
+    );
+    // Sin CUIT conocido solo se propone si hay una única factura con ese importe.
+    if (!cuit && candidatas.length !== 1) return undefined;
+    const f = candidatas.sort((a, b) => b.fecha.localeCompare(a.fecha))[0];
+    if (f) usadas.add(f);
+    return f;
+  };
+  const textoFactura = (c: Comprobante) =>
+    `${c.tipoNombre} ${String(c.puntoVenta).padStart(5, "0")}-${String(c.numeroDesde).padStart(8, "0")} del ${c.fecha.slice(8)}/${c.fecha.slice(5, 7)}`;
   const clientePorNombre = new Map(
     [...conocidos.clientes].map(([cuit, nombre]) => [
       normalizarNombre(nombre),
@@ -92,13 +123,20 @@ export function conciliarResumen(
     const cuitCliente = conocidos.clientes.has(cuit)
       ? cuit
       : clientePorNombre.get(normalizarNombre(nombre));
-    if (m.importe > 0 && cuitCliente) {
+    if (m.importe > 0) {
+      const factura = facturaDe(facturas.ventas, m, cuitCliente);
+      const cuitFinal = cuitCliente ?? factura?.cuitContraparte;
+      if (!cuitFinal) return undefined;
       return {
         ...base,
         tipo: "cobro",
-        contraparte: conocidos.clientes.get(cuitCliente)!,
-        cuitContraparte: cuitCliente,
+        contraparte:
+          conocidos.clientes.get(cuitFinal) ?? factura?.contraparte ?? "",
+        cuitContraparte: cuitFinal,
         retenciones: [],
+        nota: factura
+          ? `Cobro de ${textoFactura(factura)} · ${m.descripcion}`
+          : m.descripcion,
       };
     }
     if (m.importe < 0) {
@@ -106,12 +144,18 @@ export function conciliarResumen(
         ? cuit
         : (proveedorPorNombre.get(normalizarNombre(nombre)) ??
           proveedorPorNombre.get(normalizarNombre(m.descripcion)));
-      if (cuitProveedor) {
+      const factura = facturaDe(facturas.compras, m, cuitProveedor);
+      const cuitFinal = cuitProveedor ?? factura?.cuitContraparte;
+      if (cuitFinal) {
         return {
           ...base,
           tipo: "pago_proveedor",
-          contraparte: conocidos.proveedores.get(cuitProveedor)!,
-          cuitContraparte: cuitProveedor,
+          contraparte:
+            conocidos.proveedores.get(cuitFinal) ?? factura?.contraparte ?? "",
+          cuitContraparte: cuitFinal,
+          nota: factura
+            ? `Pago de ${textoFactura(factura)} · ${m.descripcion}`
+            : m.descripcion,
         };
       }
     }

@@ -13,6 +13,14 @@ import { ConciliacionBancaria } from "./ConciliacionBancaria";
 import { nombreCuenta } from "@/lib/plan/plan";
 import { esResumenMacro, importarResumenMacro } from "@/lib/bancos/macro";
 import type { MovimientoBancario, ResumenBancario } from "@/lib/bancos/tipos";
+import type { Comprobante } from "@/lib/arca/tipos";
+import {
+  cobertura,
+  consolidar,
+  filtrar,
+  mismoResumen,
+  type ResumenCargado,
+} from "@/lib/bancos/resumenes";
 import { cuitConGuiones, fechaCorta, pesos } from "@/lib/formato";
 import { leerPdf } from "@/lib/pdf/abrir";
 
@@ -23,12 +31,16 @@ interface Props {
   movimientosCliente?: Movimiento[];
   /** Clientes y proveedores conocidos, para sugerir a quién corresponde cada movimiento. */
   conocidos?: Conocidos;
+  /** Facturas cargadas: un débito o crédito del mismo importe se propone como su pago o cobro. */
+  facturas?: { ventas: Comprobante[]; compras: Comprobante[] };
   /** Registra cobros o pagos creados desde la conciliación. */
   onRegistrar?: (movimientos: Movimiento[]) => void;
-  /** Avisa el resumen leído, para que el resto del sistema (tablero) lo use. */
-  onResumen?: (resumen: ResumenBancario | null, nombreArchivo?: string) => void;
-  /** Resumen ya guardado en la base, para mostrarlo al entrar. */
-  resumenGuardado?: ResumenBancario | null;
+  /** Todos los resúmenes subidos (varios bancos y meses). */
+  resumenes?: ResumenCargado[];
+  onAgregar?: (
+    nuevos: { resumen: ResumenBancario; nombre: string }[],
+  ) => Promise<void> | void;
+  onQuitar?: (r: ResumenCargado) => Promise<void> | void;
 }
 
 async function leerResumen(archivo: File): Promise<ResumenBancario> {
@@ -41,48 +53,84 @@ async function leerResumen(archivo: File): Promise<ResumenBancario> {
   );
 }
 
+const MESES_CORTOS = [
+  "Ene",
+  "Feb",
+  "Mar",
+  "Abr",
+  "May",
+  "Jun",
+  "Jul",
+  "Ago",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dic",
+];
+const mesCorto = (m: string) =>
+  `${MESES_CORTOS[Number(m.slice(5)) - 1]} ${m.slice(2, 4)}`;
+
 export function Bancos({
   archivoExterno,
   movimientosCliente = [],
   conocidos,
+  facturas,
   onRegistrar = () => {},
-  onResumen = () => {},
-  resumenGuardado = null,
+  resumenes = [],
+  onAgregar = () => {},
+  onQuitar = () => {},
 }: Props) {
   const input = useRef<HTMLInputElement>(null);
-  const [resumen, setResumen] = useState<ResumenBancario | null>(null);
-  const [nombre, setNombre] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (resumenGuardado) {
-      setResumen(resumenGuardado);
-      setNombre("Último resumen guardado");
-    }
-  }, [resumenGuardado]);
-  const [error, setError] = useState<string | null>(null);
+  const [avisos, setAvisos] = useState<{ texto: string; error?: boolean }[]>(
+    [],
+  );
   const [cargando, setCargando] = useState(false);
+  const [arrastrando, setArrastrando] = useState(false);
+  const [mes, setMes] = useState<string>("");
+  const [cuenta, setCuenta] = useState<string>("");
 
-  async function procesar(archivo: File) {
+  async function procesar(archivos: File[]) {
     setCargando(true);
-    setError(null);
-    setNombre(archivo.name);
-    try {
-      const r = await leerResumen(archivo);
-      setResumen(r);
-      onResumen(r, archivo.name);
-    } catch (e) {
-      setResumen(null);
-      setError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setCargando(false);
+    const leidos: { resumen: ResumenBancario; nombre: string }[] = [];
+    const mensajes: { texto: string; error?: boolean }[] = [];
+    for (const archivo of archivos) {
+      try {
+        const r = await leerResumen(archivo);
+        const repetido = [
+          ...resumenes.map((x) => x.resumen),
+          ...leidos.map((x) => x.resumen),
+        ].some((x) => mismoResumen(x, r));
+        leidos.push({ resumen: r, nombre: archivo.name });
+        mensajes.push({
+          texto: `✓ ${archivo.name}: ${r.banco}${r.desde && r.hasta ? `, del ${fechaCorta(r.desde)} al ${fechaCorta(r.hasta)}` : ""} · ${r.cuentas.reduce((t, c) => t + c.movimientos.length, 0)} movimientos${repetido ? " (ya estaba: se reemplazó)" : ""}${r.controles.length ? ` · ⚠ ${r.controles.length} diferencias de saldos` : ""}`,
+        });
+      } catch (e) {
+        mensajes.push({
+          texto: `✗ ${archivo.name}: ${e instanceof Error ? e.message : String(e)}`,
+          error: true,
+        });
+      }
     }
+    if (leidos.length) await onAgregar(leidos);
+    setAvisos(mensajes);
+    setCargando(false);
   }
 
   useEffect(() => {
-    if (archivoExterno) procesar(archivoExterno);
+    if (archivoExterno) procesar([archivoExterno]);
     // Solo cuando llega un archivo nuevo desde afuera.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [archivoExterno]);
+
+  const consolidado = useMemo(() => consolidar(resumenes), [resumenes]);
+  const cober = useMemo(() => cobertura(resumenes), [resumenes]);
+  const resumen = useMemo(
+    () =>
+      consolidado
+        ? filtrar(consolidado, { mes: mes || null, cuenta: cuenta || null })
+        : null,
+    [consolidado, mes, cuenta],
+  );
 
   const todos = useMemo(
     () => resumen?.cuentas.flatMap((c) => c.movimientos) ?? [],
@@ -90,8 +138,10 @@ export function Bancos({
   );
   const conciliacion = useMemo(
     () =>
-      resumen ? conciliarResumen(resumen, movimientosCliente, conocidos) : null,
-    [resumen, movimientosCliente, conocidos],
+      resumen
+        ? conciliarResumen(resumen, movimientosCliente, conocidos, facturas)
+        : null,
+    [resumen, movimientosCliente, conocidos, facturas],
   );
   // Para el resumen por concepto: lo que cargó el cliente (o lo sugerido) manda sobre las reglas.
   const clasificar = useMemo(() => {
@@ -124,47 +174,213 @@ export function Bancos({
 
   return (
     <div className="space-y-6">
-      <section className="rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm">
+      <section
+        onDragOver={(e) => {
+          e.preventDefault();
+          setArrastrando(true);
+        }}
+        onDragLeave={() => setArrastrando(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setArrastrando(false);
+          const f = [...e.dataTransfer.files].filter((x) =>
+            /\.pdf$/i.test(x.name),
+          );
+          if (f.length) procesar(f);
+        }}
+        className={`rounded-2xl border bg-white p-5 shadow-sm ${arrastrando ? "border-marca bg-marca-claro" : "border-stone-200/80"}`}
+      >
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h2 className="font-semibold">Resumen de cuenta bancaria</h2>
-            <p className="text-sm text-stone-500">
-              PDF del banco. Por ahora: Banco Macro (todas las cuentas del
-              resumen).
+            <h2 className="font-semibold">Resúmenes bancarios</h2>
+            <p className="max-w-2xl text-sm text-stone-500">
+              Subí los resúmenes en PDF de todos los bancos y de todos los meses
+              (podés elegir varios juntos o arrastrarlos acá). Se juntan solos
+              por cuenta; si subís dos veces el mismo, se reemplaza. Por ahora
+              se leen los de Banco Macro.
             </p>
           </div>
           <button
             type="button"
             onClick={() => input.current?.click()}
-            className="rounded-md bg-marca px-4 py-2 text-sm font-medium text-white hover:opacity-90"
+            className="rounded-xl bg-marca px-4 py-2 text-sm font-medium text-white hover:opacity-90"
           >
-            {cargando
-              ? "Leyendo…"
-              : nombre
-                ? "Cambiar resumen"
-                : "Subir resumen"}
+            {cargando ? "Leyendo…" : "Subir resúmenes (PDF)"}
           </button>
           <input
             ref={input}
+            id="subir-resumenes"
             type="file"
             accept=".pdf"
+            multiple
             className="hidden"
             onChange={(e) => {
-              const archivo = e.target.files?.[0];
-              if (archivo) procesar(archivo);
+              const archivos = [...(e.target.files ?? [])];
               e.target.value = "";
+              if (archivos.length) procesar(archivos);
             }}
           />
         </div>
-        {nombre && !error && (
-          <p className="mt-2 text-sm text-stone-500">{nombre}</p>
+        {avisos.length > 0 && (
+          <ul className="mt-3 space-y-1 text-sm">
+            {avisos.map((a) => (
+              <li
+                key={a.texto}
+                className={a.error ? "text-red-700" : "text-emerald-800"}
+              >
+                {a.texto}
+              </li>
+            ))}
+          </ul>
         )}
-        {error && (
-          <p className="mt-3 rounded-md bg-red-50 p-3 text-sm text-red-800">
-            {error}
-          </p>
+
+        {resumenes.length > 0 && (
+          <div className="mt-5">
+            <h3 className="text-sm font-semibold">Qué meses están cargados</h3>
+            <div className="mt-2 overflow-x-auto">
+              <table className="text-sm">
+                <thead>
+                  <tr className="text-xs text-stone-500">
+                    <th className="py-1 pr-4 text-left font-medium">Cuenta</th>
+                    {cober.meses.map((m) => (
+                      <th key={m} className="px-1 py-1 text-center font-medium">
+                        {mesCorto(m)}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {cober.cuentas.map((c) => (
+                    <tr key={c.clave}>
+                      <td className="whitespace-nowrap py-1 pr-4">
+                        <div className="font-medium">{c.banco}</div>
+                        <div className="text-xs text-stone-500">
+                          {c.tipo} · {c.numero}
+                        </div>
+                      </td>
+                      {cober.meses.map((m) => (
+                        <td key={m} className="px-1 py-1 text-center">
+                          {c.meses.has(m) ? (
+                            <button
+                              type="button"
+                              title={`Ver ${mesCorto(m)}`}
+                              onClick={() => {
+                                setMes(m);
+                                setCuenta("");
+                              }}
+                              className="inline-flex h-7 w-9 items-center justify-center rounded-md bg-emerald-100 text-emerald-800 hover:bg-emerald-200"
+                            >
+                              ✓
+                            </button>
+                          ) : (
+                            <span
+                              title="Falta el resumen de este mes"
+                              className="inline-flex h-7 w-9 items-center justify-center rounded-md bg-amber-50 text-xs text-amber-700"
+                            >
+                              falta
+                            </span>
+                          )}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <details className="mt-3 text-sm">
+              <summary className="cursor-pointer text-stone-600">
+                Archivos subidos ({resumenes.length})
+              </summary>
+              <ul className="mt-2 divide-y divide-stone-100 rounded-xl border border-stone-200">
+                {[...resumenes]
+                  .sort((a, b) =>
+                    (b.resumen.desde ?? "").localeCompare(
+                      a.resumen.desde ?? "",
+                    ),
+                  )
+                  .map((r) => (
+                    <li
+                      key={r.id ?? r.nombre}
+                      className="flex flex-wrap items-center justify-between gap-2 px-3 py-2"
+                    >
+                      <span>
+                        <span className="font-medium">{r.resumen.banco}</span>
+                        {r.resumen.desde && r.resumen.hasta && (
+                          <span className="text-stone-500">
+                            {" "}
+                            · {fechaCorta(r.resumen.desde)} al{" "}
+                            {fechaCorta(r.resumen.hasta)}
+                          </span>
+                        )}
+                        <span className="text-xs text-stone-400">
+                          {" "}
+                          · {r.nombre}
+                        </span>
+                        {r.resumen.controles.length > 0 && (
+                          <span className="ml-1 text-xs text-red-700">
+                            ⚠ {r.resumen.controles.length} diferencias
+                          </span>
+                        )}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (confirm(`¿Quitar el resumen ${r.nombre}?`))
+                            onQuitar(r);
+                        }}
+                        className="text-xs text-stone-500 underline hover:text-red-700"
+                      >
+                        Quitar
+                      </button>
+                    </li>
+                  ))}
+              </ul>
+            </details>
+          </div>
         )}
       </section>
+
+      {consolidado && (
+        <section className="flex flex-wrap items-end gap-3 rounded-2xl border border-stone-200/80 bg-white p-4 text-sm shadow-sm">
+          <label className="block">
+            <span className="text-stone-600">Mes</span>
+            <select
+              id="banco-mes"
+              value={mes}
+              onChange={(e) => setMes(e.target.value)}
+              className="mt-1 block rounded-xl border border-stone-300 bg-white px-3 py-1.5"
+            >
+              <option value="">Todos los meses</option>
+              {[...cober.meses].reverse().map((m) => (
+                <option key={m} value={m}>
+                  {mesCorto(m)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="block">
+            <span className="text-stone-600">Cuenta</span>
+            <select
+              id="banco-cuenta"
+              value={cuenta}
+              onChange={(e) => setCuenta(e.target.value)}
+              className="mt-1 block rounded-xl border border-stone-300 bg-white px-3 py-1.5"
+            >
+              <option value="">Todas las cuentas</option>
+              {consolidado.cuentas.map((c) => (
+                <option key={c.numero} value={c.numero}>
+                  {c.banco} · {c.tipo} · {c.numero}
+                </option>
+              ))}
+            </select>
+          </label>
+          <p className="pb-1.5 text-stone-500">
+            Lo de abajo (cuentas, conceptos y conciliación) es de{" "}
+            {mes ? mesCorto(mes) : "todos los meses"} y{" "}
+            {cuenta ? "esa cuenta" : "todas las cuentas"}.
+          </p>
+        </section>
+      )}
 
       {resumen && (
         <>
