@@ -35,6 +35,8 @@ interface Props {
   facturas?: { ventas: Comprobante[]; compras: Comprobante[] };
   /** Registra cobros o pagos creados desde la conciliación. */
   onRegistrar?: (movimientos: Movimiento[]) => void;
+  /** Deshace un cobro o pago registrado (para corregirlo). */
+  onDeshacer?: (movimiento: Movimiento) => void;
   /** Todos los resúmenes subidos (varios bancos y meses). */
   resumenes?: ResumenCargado[];
   onAgregar?: (
@@ -76,6 +78,7 @@ export function Bancos({
   conocidos,
   facturas,
   onRegistrar = () => {},
+  onDeshacer,
   resumenes = [],
   onAgregar = () => {},
   onQuitar = () => {},
@@ -571,6 +574,7 @@ export function Bancos({
               conciliacion={conciliacion}
               cuentas={resumen.cuentas}
               onRegistrar={onRegistrar}
+              onDeshacer={onDeshacer}
             />
           )}
         </>

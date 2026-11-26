@@ -780,6 +780,32 @@ export function Movimientos({
                             Observar
                           </button>
                         )}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditando(m);
+                            window.scrollTo({ top: 0, behavior: "smooth" });
+                          }}
+                          className="rounded px-2 py-1 text-stone-600 hover:bg-stone-100"
+                        >
+                          Editar
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (
+                              confirm(
+                                `¿Eliminar este movimiento (${m.contraparte || m.nota || "sin detalle"})? Si salió del banco, vuelve a quedar sin registrar en la conciliación.`,
+                              )
+                            )
+                              onMovimientos(
+                                movimientos.filter((x) => x.id !== m.id),
+                              );
+                          }}
+                          className="rounded px-2 py-1 text-red-700 hover:bg-red-50"
+                        >
+                          Eliminar
+                        </button>
                       </>
                     )}
                   </div>

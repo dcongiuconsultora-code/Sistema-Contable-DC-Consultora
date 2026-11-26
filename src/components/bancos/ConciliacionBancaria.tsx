@@ -1,5 +1,7 @@
 "use client";
 
+import type { MovimientoBancario } from "@/lib/bancos/tipos";
+
 import { useState } from "react";
 import {
   type Conciliacion,
@@ -26,6 +28,8 @@ interface Props {
   cuentas: { numero: string; tipo: string }[];
   /** Registra cobros o pagos que salen del banco (los crea el estudio, ya aprobados). */
   onRegistrar: (movimientos: Movimiento[]) => void;
+  /** Deshace un cobro o pago ya registrado, para corregirlo. */
+  onDeshacer?: (movimiento: Movimiento) => void;
 }
 
 const FILTROS: [EstadoConciliacion | "todos", string, string][] = [
@@ -174,12 +178,16 @@ export function ConciliacionBancaria({
   conciliacion,
   cuentas,
   onRegistrar,
+  onDeshacer,
 }: Props) {
   const [filtro, setFiltro] = useState<EstadoConciliacion | "todos">(
     "sin_registrar",
   );
   const [cuentaElegida, setCuentaElegida] = useState<string>("todas");
-  const [registrando, setRegistrando] = useState<FilaConciliacion | null>(null);
+  // Se recuerda el movimiento del banco (no la fila): al deshacer, la fila se vuelve a armar.
+  const [registrando, setRegistrando] = useState<MovimientoBancario | null>(
+    null,
+  );
   const { totales, pendientesEnBanco } = conciliacion;
   const medioDe = (numero: string) =>
     /AHORRO/i.test(cuentas.find((c) => c.numero === numero)?.tipo ?? "")
@@ -426,16 +434,48 @@ export function ConciliacionBancaria({
                             Registrar
                           </button>
                         )}
-                        {f.estado === "sin_registrar" && registrando !== f && (
+                        {f.estado === "conciliado" &&
+                          f.delCliente &&
+                          onDeshacer &&
+                          registrando !== m && (
+                            <div className="mt-1 flex flex-wrap gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  onDeshacer(f.delCliente!);
+                                  setRegistrando(m);
+                                  setFiltro("todos");
+                                }}
+                                className="rounded border border-marca px-2 py-0.5 text-xs font-medium text-marca"
+                              >
+                                Cambiar
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (
+                                    confirm(
+                                      "¿Deshacer este registro? El movimiento del banco vuelve a quedar sin registrar.",
+                                    )
+                                  )
+                                    onDeshacer(f.delCliente!);
+                                }}
+                                className="rounded px-2 py-0.5 text-xs text-stone-500 underline hover:text-red-700"
+                              >
+                                Deshacer
+                              </button>
+                            </div>
+                          )}
+                        {f.estado === "sin_registrar" && registrando !== m && (
                           <button
                             type="button"
-                            onClick={() => setRegistrando(f)}
+                            onClick={() => setRegistrando(m)}
                             className="mt-1 rounded border border-marca px-2 py-0.5 text-xs font-medium text-marca"
                           >
                             Registrar…
                           </button>
                         )}
-                        {registrando === f && (
+                        {registrando === m && f.estado !== "conciliado" && (
                           <Registrar
                             fila={f}
                             medio={medioDe(f.cuenta)}

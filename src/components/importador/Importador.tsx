@@ -542,8 +542,16 @@ export function Importador({
     const cambiados = siguientes.filter(
       (m) => anteriores.get(m.id) !== JSON.stringify(m),
     );
-    if (empresaId && cambiados.length)
-      guardar(() => repo!.guardarMovimientos(empresaId, cambiados));
+    const quedan = new Set(siguientes.map((m) => m.id));
+    const quitados = movimientos
+      .filter((m) => !quedan.has(m.id))
+      .map((m) => m.id);
+    if (empresaId && (cambiados.length || quitados.length))
+      guardar(async () => {
+        if (quitados.length) await repo!.borrarMovimientos(quitados);
+        if (cambiados.length)
+          await repo!.guardarMovimientos(empresaId, cambiados);
+      });
   };
 
   const actualizarTickets = (siguientes: TicketCargado[]) => {
@@ -1612,6 +1620,9 @@ export function Importador({
             movimientosCliente={movimientos}
             conocidos={conocidos}
             onRegistrar={registrarDesdeBanco}
+            onDeshacer={(m) =>
+              actualizarMovimientos(movimientos.filter((x) => x.id !== m.id))
+            }
             resumenes={resumenes}
             onAgregar={agregarResumenes}
             onQuitar={quitarResumen}
