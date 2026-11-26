@@ -21,6 +21,7 @@ import { cuitConGuiones } from "@/lib/formato";
 import { cuitValido } from "@/lib/tickets/validar";
 import { AlertasMonotributo, useMonotributistas } from "./AlertasMonotributo";
 import { Avisos } from "./Avisos";
+import { RecordatoriosClientes } from "./RecordatoriosClientes";
 import { UnidadesEmpresa } from "./UnidadesEmpresa";
 import {
   AgendaVencimientos,
@@ -899,6 +900,13 @@ export function AdminEmpresas({
           />
         </div>
       </div>
+
+      <RecordatoriosClientes
+        repo={repo}
+        empresas={empresas}
+        planes={planes}
+        onFicha={(id) => setPanel({ tipo: "ficha", id })}
+      />
 
       <section
         id="clientes"

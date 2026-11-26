@@ -4,6 +4,7 @@ import {
   textoRecordatorio,
 } from "@/lib/vencimientos/recordatorios";
 import type { PlanPago } from "@/lib/vencimientos/vencimientos";
+import { mandarMail } from "@/lib/servidor/mail";
 
 // Recordatorios de vencimientos: todos los días (programado en vercel.json) le deja a cada cliente
 // un aviso en Mensajes con lo que vence en los próximos 3 días y las cuotas de planes impagas.
@@ -30,24 +31,6 @@ async function autorizado(request: Request, admin: SupabaseClient) {
     .eq("usuario_id", data.user.id)
     .maybeSingle();
   return perfil?.rol === "estudio";
-}
-
-async function mandarMail(para: string[], asunto: string, texto: string) {
-  const usuario = process.env.GMAIL_USUARIO;
-  const clave = process.env.GMAIL_CLAVE_APLICACION;
-  if (!usuario || !clave || !para.length) return false;
-  const nodemailer = await import("nodemailer");
-  const transporte = nodemailer.createTransport({
-    service: "gmail",
-    auth: { user: usuario, pass: clave },
-  });
-  await transporte.sendMail({
-    from: `DC Consultora <${usuario}>`,
-    to: para.join(","),
-    subject: asunto,
-    text: texto,
-  });
-  return true;
 }
 
 export async function GET(request: Request) {

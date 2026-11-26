@@ -326,6 +326,36 @@ export class Repositorio {
     return cuerpo;
   }
 
+  /** Si el servidor tiene configurado el mail del estudio para mandar avisos. */
+  async correoConfigurado(): Promise<boolean> {
+    const { data } = await this.db.auth.getSession();
+    const r = await fetch("/api/avisos/mail", {
+      headers: { authorization: `Bearer ${data.session?.access_token ?? ""}` },
+    }).catch(() => null);
+    if (!r?.ok) return false;
+    return Boolean((await r.json().catch(() => ({}))).configurado);
+  }
+
+  /** Manda un mail al cliente desde la cuenta del estudio (y lo deja en sus mensajes). */
+  async mandarMailCliente(
+    empresaId: string,
+    asunto: string,
+    texto: string,
+  ): Promise<string[]> {
+    const { data } = await this.db.auth.getSession();
+    const r = await fetch("/api/avisos/mail", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer ${data.session?.access_token ?? ""}`,
+      },
+      body: JSON.stringify({ empresaId, asunto, texto }),
+    });
+    const cuerpo = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(cuerpo.error ?? "No se pudo mandar el mail.");
+    return cuerpo.para ?? [];
+  }
+
   /** El estudio crea (o renueva) la contraseña de un usuario invitado; devuelve la contraseña. */
   async crearClave(email: string): Promise<string> {
     const { data } = await this.db.auth.getSession();
