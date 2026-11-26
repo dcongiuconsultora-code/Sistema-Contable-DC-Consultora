@@ -287,55 +287,78 @@ export function Bancos({
                 </tbody>
               </table>
             </div>
-            <details className="mt-3 text-sm">
-              <summary className="cursor-pointer text-stone-600">
-                Archivos subidos ({resumenes.length})
-              </summary>
-              <ul className="mt-2 divide-y divide-stone-100 rounded-xl border border-stone-200">
-                {[...resumenes]
-                  .sort((a, b) =>
-                    (b.resumen.desde ?? "").localeCompare(
-                      a.resumen.desde ?? "",
-                    ),
-                  )
-                  .map((r) => (
-                    <li
-                      key={r.id ?? r.nombre}
-                      className="flex flex-wrap items-center justify-between gap-2 px-3 py-2"
-                    >
-                      <span>
-                        <span className="font-medium">{r.resumen.banco}</span>
+            <h3 className="mt-5 text-sm font-semibold">
+              Resúmenes subidos ({resumenes.length})
+            </h3>
+            <p className="text-xs text-stone-500">
+              Si subiste uno equivocado (por ejemplo, la caja de ahorro en vez
+              de la cuenta corriente), eliminalo y subí el correcto.
+            </p>
+            <ul className="mt-2 divide-y divide-stone-100 rounded-xl border border-stone-200 text-sm">
+              {[...resumenes]
+                .sort((a, b) =>
+                  (b.resumen.desde ?? "").localeCompare(a.resumen.desde ?? ""),
+                )
+                .map((r) => (
+                  <li
+                    key={r.id ?? r.nombre}
+                    className="flex flex-wrap items-center justify-between gap-3 px-3 py-2.5"
+                  >
+                    <div className="min-w-0">
+                      <div className="font-medium">
+                        {r.resumen.banco}
                         {r.resumen.desde && r.resumen.hasta && (
-                          <span className="text-stone-500">
+                          <span className="font-normal text-stone-500">
                             {" "}
                             · {fechaCorta(r.resumen.desde)} al{" "}
                             {fechaCorta(r.resumen.hasta)}
                           </span>
                         )}
-                        <span className="text-xs text-stone-400">
-                          {" "}
-                          · {r.nombre}
-                        </span>
+                      </div>
+                      <div className="text-xs text-stone-600">
+                        {r.resumen.cuentas
+                          .map(
+                            (c) =>
+                              `${/AHORRO/i.test(c.tipo) ? "Caja de ahorro" : /CORRIENTE/i.test(c.tipo) ? "Cuenta corriente" : c.tipo} ${c.numero} (${c.movimientos.length} mov.)`,
+                          )
+                          .join(" · ")}
+                      </div>
+                      <div className="text-xs text-stone-400">
+                        {r.nombre}
                         {r.resumen.controles.length > 0 && (
-                          <span className="ml-1 text-xs text-red-700">
-                            ⚠ {r.resumen.controles.length} diferencias
+                          <span className="ml-1 text-red-700">
+                            · ⚠ {r.resumen.controles.length} diferencias de
+                            saldos
                           </span>
                         )}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (confirm(`¿Quitar el resumen ${r.nombre}?`))
-                            onQuitar(r);
-                        }}
-                        className="text-xs text-stone-500 underline hover:text-red-700"
-                      >
-                        Quitar
-                      </button>
-                    </li>
-                  ))}
-              </ul>
-            </details>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      aria-label={`Eliminar el resumen ${r.nombre}`}
+                      onClick={async () => {
+                        if (
+                          !confirm(
+                            `¿Eliminar el resumen de ${r.resumen.banco} (${r.nombre})? Se borran sus movimientos; después lo podés volver a subir.`,
+                          )
+                        )
+                          return;
+                        await onQuitar(r);
+                        setAvisos([
+                          {
+                            texto: `✓ Se eliminó ${r.nombre}. Podés subir el correcto con “Subir resúmenes”.`,
+                          },
+                        ]);
+                        setMes("");
+                        setCuenta("");
+                      }}
+                      className="rounded-lg border border-red-200 px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-50"
+                    >
+                      🗑 Eliminar
+                    </button>
+                  </li>
+                ))}
+            </ul>
           </div>
         )}
       </section>
