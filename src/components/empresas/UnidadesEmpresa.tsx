@@ -108,15 +108,22 @@ function FilaUnidad({
           disabled={!cambiado || guardando || !nombre.trim()}
           className="rounded-md border border-marca px-3 py-1.5 text-sm font-medium text-marca disabled:opacity-40"
         >
-          {unidad ? "Guardar" : "Agregar"}
+          {unidad ? "Guardar cambios" : "Agregar"}
         </button>
         {onBorrar && (
           <button
             type="button"
-            onClick={onBorrar}
-            className="rounded-md px-2 py-1.5 text-sm text-stone-500 hover:bg-stone-100"
+            onClick={() => {
+              if (
+                confirm(
+                  `¿Eliminar la unidad "${unidad?.nombre}"? Lo que tenía asignado (ventas, proveedores, cobros y pagos) queda sin unidad; no se borra nada más.`,
+                )
+              )
+                onBorrar();
+            }}
+            className="rounded-md border border-red-200 px-2.5 py-1.5 text-sm font-medium text-red-700 hover:bg-red-50"
           >
-            Quitar
+            🗑 Eliminar
           </button>
         )}
       </div>
@@ -128,9 +135,12 @@ function FilaUnidad({
 export function UnidadesEmpresa({
   repo,
   empresaId,
+  onCambio,
 }: {
   repo: Repositorio;
   empresaId: string;
+  /** Avisa que cambiaron las unidades (para recalcular lo que depende de ellas). */
+  onCambio?: () => void;
 }) {
   const [unidades, setUnidades] = useState<Unidad[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -147,6 +157,7 @@ export function UnidadesEmpresa({
       setError(null);
       await repo.guardarUnidad(empresaId, u);
       await recargar();
+      onCambio?.();
     } catch (e) {
       const mensaje = e instanceof Error ? e.message : String(e);
       setError(
@@ -163,8 +174,9 @@ export function UnidadesEmpresa({
         Solo si la empresa lleva negocios por separado. Las ventas se asignan
         por punto de venta y el banco por cuenta (si una cuenta la comparten
         varias unidades, dejala vacía: los cobros y pagos llevan la unidad que
-        se elige al cargarlos). A cada proveedor se le asigna su unidad en ARCA
-        → Unidades.
+        se elige al cargarlos). A cada proveedor se le asigna su unidad en
+        Finanzas → Unidades de negocio. Para corregir una unidad, cambiá sus
+        datos y tocá “Guardar cambios”.
       </p>
       {unidades === null ? (
         <p className="text-stone-500">Cargando…</p>
@@ -179,6 +191,7 @@ export function UnidadesEmpresa({
                 try {
                   await repo.borrarUnidad(u.id);
                   await recargar();
+                  onCambio?.();
                 } catch (e) {
                   setError(e instanceof Error ? e.message : String(e));
                 }

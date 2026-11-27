@@ -37,6 +37,7 @@ import {
 import type { Empresa, Repositorio } from "@/lib/datos/repositorio";
 import { Bancos } from "@/components/bancos/Bancos";
 import { AsignacionUnidades } from "@/components/unidades/AsignacionUnidades";
+import { UnidadesEmpresa } from "@/components/empresas/UnidadesEmpresa";
 import {
   type ConfigUnidades,
   SIN_UNIDADES,
@@ -1835,15 +1836,35 @@ export function Importador({
                 <TablaDeducciones deducciones={deducciones} periodo={periodo} />
               )}
               {pestana === "unidades" && (
-                <AsignacionUnidades
-                  unidades={unidades}
-                  ventas={ventas?.comprobantes ?? []}
-                  compras={[
-                    ...(compras?.comprobantes ?? []),
-                    ...ticketsPendientes,
-                  ]}
-                  onAsignarProveedor={asignarProveedor}
-                />
+                <div className="space-y-4">
+                  {esEstudio && conexion && (
+                    <section className="rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm">
+                      <h3 className="font-semibold">
+                        Unidades de negocio de la empresa
+                      </h3>
+                      <UnidadesEmpresa
+                        repo={conexion.repo}
+                        empresaId={conexion.empresa.id}
+                        onCambio={async () =>
+                          setUnidades(
+                            await conexion.repo.configUnidades(
+                              conexion.empresa.id,
+                            ),
+                          )
+                        }
+                      />
+                    </section>
+                  )}
+                  <AsignacionUnidades
+                    unidades={unidades}
+                    ventas={ventas?.comprobantes ?? []}
+                    compras={[
+                      ...(compras?.comprobantes ?? []),
+                      ...ticketsPendientes,
+                    ]}
+                    onAsignarProveedor={asignarProveedor}
+                  />
+                </div>
               )}
               {pestana === "liquidacion" && !esMono && ivaPeriodo && (
                 <PanelLiquidacion
