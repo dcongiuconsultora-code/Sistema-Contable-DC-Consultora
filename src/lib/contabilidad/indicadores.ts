@@ -1,4 +1,5 @@
 import { cuenta as datosCuenta } from "@/lib/plan/plan";
+import { pesoEnUnidad } from "@/lib/unidades/unidades";
 import type { Asiento } from "./diario";
 
 /** Saldos de inicio que carga el estudio (del último balance), en el lado natural de cada cuenta. */
@@ -99,7 +100,7 @@ export interface Resultados {
 export type FiltroUnidad = string | null | undefined;
 
 function deLaUnidad(a: Asiento, unidad: FiltroUnidad) {
-  return unidad === undefined || (a.unidad ?? null) === unidad;
+  return pesoEnUnidad(a, unidad) > 0;
 }
 
 /** Entradas menos salidas de caja y bancos en el período (para ver la caja de cada unidad). */
@@ -113,10 +114,11 @@ export function flujoDeCaja(
   let salidas = 0;
   for (const a of asientos) {
     if (a.fecha < desde || a.fecha > hasta || !deLaUnidad(a, unidad)) continue;
+    const k = pesoEnUnidad(a, unidad);
     for (const l of a.lineas) {
       if (!l.cuenta.startsWith("1.1.01.")) continue;
-      entradas += l.debe;
-      salidas += l.haber;
+      entradas += l.debe * k;
+      salidas += l.haber * k;
     }
   }
   return {
@@ -138,8 +140,9 @@ export function resultados(
   let gastos = 0;
   for (const a of asientos) {
     if (a.fecha < desde || a.fecha > hasta || !deLaUnidad(a, unidad)) continue;
+    const k = pesoEnUnidad(a, unidad);
     for (const l of a.lineas) {
-      const neto = l.haber - l.debe;
+      const neto = (l.haber - l.debe) * k;
       if (l.cuenta.startsWith("4.1.")) ventas += neto;
       else if (l.cuenta.startsWith("4.")) otrosIngresos += neto;
       else if (l.cuenta.startsWith("5.1.")) costos -= neto;

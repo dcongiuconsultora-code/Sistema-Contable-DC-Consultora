@@ -41,8 +41,13 @@ export interface Comprobante {
   computaIva: boolean;
   /** Unidad de negocio elegida a mano (los tickets la traen); si no, se deduce. */
   unidad?: string | null;
+  /** Prorrateo entre unidades elegido para esta factura. */
+  reparto?: Reparto | null;
   advertencias: string[];
 }
+
+/** Reparto por porcentaje entre unidades de negocio (lo que falta para 100 queda compartido). */
+export type Reparto = { unidad: string; porcentaje: number }[];
 
 export interface ErrorFila {
   fila: number;

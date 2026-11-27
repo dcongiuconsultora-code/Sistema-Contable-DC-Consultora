@@ -34,6 +34,7 @@ export interface FilaComprobante {
   advertencias: string[];
   /** Unidad elegida a mano para esta factura (no se envía al importar, para no pisarla). */
   unidad_id?: string | null;
+  reparto?: { unidad: string; porcentaje: number }[] | null;
 }
 
 export function comprobanteAFila(
@@ -109,6 +110,12 @@ export function filaAComprobante(
     computaIva: f.computa_iva,
     advertencias: f.advertencias ?? [],
     unidad: f.unidad_id ?? undefined,
+    reparto: f.reparto?.length
+      ? f.reparto.map((r) => ({
+          unidad: r.unidad,
+          porcentaje: num(r.porcentaje),
+        }))
+      : undefined,
   };
 }
 

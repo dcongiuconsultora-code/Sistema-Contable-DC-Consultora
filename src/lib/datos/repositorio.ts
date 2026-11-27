@@ -15,6 +15,7 @@ import type { Inventario } from "@/lib/inventarios/inventarios";
 import type { Plantilla } from "@/lib/avisos/avisos";
 import type { DatosIibb } from "@/lib/impuestos/asientos";
 import type { DatosArca } from "@/lib/arca/constancia";
+import type { Reparto } from "@/lib/arca/tipos";
 import type { LiquidacionGuardada } from "@/lib/iva/liquidacion";
 import type { CuentaBancaria } from "@/lib/cuentas-bancarias/cuentas";
 import type { PlanPago } from "@/lib/vencimientos/vencimientos";
@@ -1062,7 +1063,7 @@ export class Repositorio {
       this.unidades(empresaId),
       this.db
         .from("proveedores_unidad")
-        .select("cuit, unidad_id")
+        .select("cuit, unidad_id, reparto")
         .eq("empresa_id", empresaId),
     ]);
     fallar(proveedores.error, "leer los proveedores por unidad");
@@ -1070,6 +1071,11 @@ export class Repositorio {
       unidades,
       proveedores: Object.fromEntries(
         (proveedores.data ?? []).map((p) => [p.cuit, p.unidad_id]),
+      ),
+      repartos: Object.fromEntries(
+        (proveedores.data ?? [])
+          .filter((p) => Array.isArray(p.reparto) && p.reparto.length)
+          .map((p) => [p.cuit, p.reparto as Reparto]),
       ),
     };
   }
@@ -1101,11 +1107,17 @@ export class Repositorio {
     empresaId: string,
     cuit: string,
     unidadId: string | null,
+    /** Prorrateo entre unidades (la primera queda como unidad del proveedor). */
+    reparto: Reparto | null = null,
   ) {
-    const { error } = unidadId
-      ? await this.db
-          .from("proveedores_unidad")
-          .upsert({ empresa_id: empresaId, cuit, unidad_id: unidadId })
+    const principal = reparto?.length ? reparto[0].unidad : unidadId;
+    const { error } = principal
+      ? await this.db.from("proveedores_unidad").upsert({
+          empresa_id: empresaId,
+          cuit,
+          unidad_id: principal,
+          reparto: reparto?.length ? reparto : null,
+        })
       : await this.db
           .from("proveedores_unidad")
           .delete()
@@ -1161,10 +1173,14 @@ export class Repositorio {
     operacion: Operacion,
     c: Comprobante,
     unidadId: string | null,
+    reparto: Reparto | null = null,
   ) {
     const { error } = await this.db
       .from("comprobantes")
-      .update({ unidad_id: unidadId })
+      .update({
+        unidad_id: reparto?.length ? null : unidadId,
+        reparto: reparto?.length ? reparto : null,
+      })
       .eq("empresa_id", empresaId)
       .eq("operacion", operacion)
       .eq("tipo_codigo", c.tipoCodigo)

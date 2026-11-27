@@ -5,6 +5,7 @@ import {
 } from "@/lib/plan/plan";
 import type { Asiento } from "./diario";
 import { balance, mayor, type SaldosIniciales } from "./indicadores";
+import { pesoEnUnidad } from "@/lib/unidades/unidades";
 
 export interface FilaSumasSaldos {
   codigo: string;
@@ -344,8 +345,7 @@ export function cajaDiaria(
 ) {
   const esCaja = (c: string) =>
     c.startsWith("1.1.01.") && (!cuentas.length || cuentas.includes(c));
-  const deLaUnidad = (a: Asiento) =>
-    unidad === undefined || (a.unidad ?? null) === unidad;
+  const deLaUnidad = (a: Asiento) => pesoEnUnidad(a, unidad) > 0;
   // El saldo inicial por unidad no se conoce: solo se usa el de inicio para toda la empresa.
   let inicial =
     unidad === undefined
@@ -357,9 +357,10 @@ export function cajaDiaria(
   for (const a of asientos) {
     if (a.fecha <= iniciales.fecha || a.fecha > hasta || !deLaUnidad(a))
       continue;
-    const neto = a.lineas
-      .filter((l) => esCaja(l.cuenta))
-      .reduce((s, l) => s + l.debe - l.haber, 0);
+    const neto =
+      a.lineas
+        .filter((l) => esCaja(l.cuenta))
+        .reduce((s, l) => s + l.debe - l.haber, 0) * pesoEnUnidad(a, unidad);
     if (Math.abs(neto) < 0.005) continue;
     if (a.fecha < desde) {
       inicial += neto;

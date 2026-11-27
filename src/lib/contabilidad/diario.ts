@@ -1,4 +1,4 @@
-import type { Comprobante } from "@/lib/arca/tipos";
+import type { Comprobante, Reparto } from "@/lib/arca/tipos";
 import type { FilaConciliacion } from "@/lib/bancos/conciliacion";
 import { generarAsiento, type LineaAsiento } from "@/lib/movimientos/asiento";
 import type { Movimiento } from "@/lib/movimientos/tipos";
@@ -6,6 +6,8 @@ import { nombreCuenta } from "@/lib/plan/plan";
 import {
   type ConfigUnidades,
   SIN_UNIDADES,
+  repartoDeCompra,
+  repartoDeMovimiento,
   unidadDeCompra,
   unidadDeCuenta,
   unidadDeMovimiento,
@@ -28,6 +30,8 @@ export interface Asiento {
   lineas: LineaAsiento[];
   /** Unidad de negocio; null = de toda la empresa (o compartido entre unidades). */
   unidad?: string | null;
+  /** Prorrateo entre unidades: cada una toma su porcentaje en los resultados por unidad. */
+  reparto?: Reparto | null;
 }
 
 // Cuentas por defecto mientras no haya una configuración por cliente o por proveedor.
@@ -156,6 +160,7 @@ export function generarDiario(f: FuentesDiario): Asiento[] {
     ...f.compras.map((c) => ({
       ...asientoCompra(c),
       unidad: unidadDeCompra(c, cfg),
+      reparto: repartoDeCompra(c, cfg),
     })),
     ...f.movimientos
       .filter((m) => m.estado !== "observado")
@@ -166,6 +171,7 @@ export function generarDiario(f: FuentesDiario): Asiento[] {
         descripcion: m.contraparte || m.nota || m.tipo,
         lineas: generarAsiento(m),
         unidad: unidadDeMovimiento(m, cfg),
+        reparto: repartoDeMovimiento(m, cfg),
       })),
     ...f.banco
       .map(({ fila, cuentaBanco }): Asiento | null => {

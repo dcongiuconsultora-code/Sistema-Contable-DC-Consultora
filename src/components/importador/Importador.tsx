@@ -61,7 +61,7 @@ import {
   Movimientos,
 } from "@/components/movimientos/Movimientos";
 import { type TicketCargado, Tickets } from "@/components/tickets/Tickets";
-import type { Comprobante } from "@/lib/arca/tipos";
+import type { Comprobante, Reparto } from "@/lib/arca/tipos";
 import type { Movimiento } from "@/lib/movimientos/tipos";
 import { LibroIva } from "./LibroIva";
 import { PanelLiquidacion } from "./PanelLiquidacion";
@@ -1011,7 +1011,11 @@ export function Importador({
       ];
 
   /** Unidad elegida a mano para una factura de compra (proveedores compartidos). */
-  const asignarFactura = (c: Comprobante, unidadId: string | null) => {
+  const asignarFactura = (
+    c: Comprobante,
+    unidadId: string | null,
+    reparto: Reparto | null = null,
+  ) => {
     const misma = (x: Comprobante) =>
       x.tipoCodigo === c.tipoCodigo &&
       x.puntoVenta === c.puntoVenta &&
@@ -1022,24 +1026,43 @@ export function Importador({
         ? {
             ...r,
             comprobantes: r.comprobantes.map((x) =>
-              misma(x) ? { ...x, unidad: unidadId } : x,
+              misma(x)
+                ? {
+                    ...x,
+                    unidad: reparto?.length ? null : unidadId,
+                    reparto: reparto?.length ? reparto : null,
+                  }
+                : x,
             ),
           }
         : r,
     );
     if (repo && empresaId)
       guardar(() =>
-        repo.asignarUnidadComprobante(empresaId, "compras", c, unidadId),
+        repo.asignarUnidadComprobante(
+          empresaId,
+          "compras",
+          c,
+          unidadId,
+          reparto,
+        ),
       );
   };
 
-  const asignarProveedor = (cuit: string, unidadId: string | null) => {
+  const asignarProveedor = (
+    cuit: string,
+    unidadId: string | null,
+    reparto: Reparto | null = null,
+  ) => {
     const proveedores = { ...unidades.proveedores };
+    const repartos = { ...(unidades.repartos ?? {}) };
     if (unidadId) proveedores[cuit] = unidadId;
     else delete proveedores[cuit];
-    setUnidades({ ...unidades, proveedores });
+    if (reparto?.length) repartos[cuit] = reparto;
+    else delete repartos[cuit];
+    setUnidades({ ...unidades, proveedores, repartos });
     if (empresaId)
-      guardar(() => repo!.asignarProveedor(empresaId, cuit, unidadId));
+      guardar(() => repo!.asignarProveedor(empresaId, cuit, unidadId, reparto));
   };
 
   const entradasMenu: EntradaMenu<Destino>[] = [
