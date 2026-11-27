@@ -108,7 +108,8 @@ type Seccion =
   | "caja"
   | "inventarios"
   | "cuentasBancarias"
-  | "planes";
+  | "planes"
+  | "unidades";
 
 // Saldos del último balance de la empresa de ejemplo (al 31/08/2026). El banco coincide con el
 // saldo inicial del resumen bancario de ejemplo; los sueldos a pagar son los de agosto.
@@ -1009,6 +1010,29 @@ export function Importador({
           : []),
       ];
 
+  /** Unidad elegida a mano para una factura de compra (proveedores compartidos). */
+  const asignarFactura = (c: Comprobante, unidadId: string | null) => {
+    const misma = (x: Comprobante) =>
+      x.tipoCodigo === c.tipoCodigo &&
+      x.puntoVenta === c.puntoVenta &&
+      x.numeroDesde === c.numeroDesde &&
+      x.cuitContraparte === c.cuitContraparte;
+    setCompras((r) =>
+      r
+        ? {
+            ...r,
+            comprobantes: r.comprobantes.map((x) =>
+              misma(x) ? { ...x, unidad: unidadId } : x,
+            ),
+          }
+        : r,
+    );
+    if (repo && empresaId)
+      guardar(() =>
+        repo.asignarUnidadComprobante(empresaId, "compras", c, unidadId),
+      );
+  };
+
   const asignarProveedor = (cuit: string, unidadId: string | null) => {
     const proveedores = { ...unidades.proveedores };
     if (unidadId) proveedores[cuit] = unidadId;
@@ -1129,6 +1153,7 @@ export function Importador({
         "caja",
         "cuentas",
         "cuentasBancarias",
+        "unidades",
       ].includes(seccion),
       grupos: [
         [
@@ -1174,8 +1199,8 @@ export function Importador({
           "Unidades de negocio",
           [
             {
-              texto: "Proveedores por unidad",
-              destino: { seccion: "arca", pestana: "unidades" },
+              texto: "Unidades de negocio (crear, corregir, asignar)",
+              destino: { seccion: "unidades" },
             },
           ],
         ],
@@ -1521,6 +1546,49 @@ export function Importador({
             }}
           />
         )}
+        {seccion === "unidades" && !cargando && (
+          <div className="space-y-5">
+            <section>
+              <h1 className="text-2xl font-semibold">Unidades de negocio</h1>
+              <p className="mt-1 max-w-3xl text-stone-600">
+                Para empresas que llevan cada negocio por separado (por ejemplo,
+                una fábrica y un local). Acá se crean, se corrigen o se eliminan
+                las unidades, y se indica a qué unidad le vende cada proveedor.
+              </p>
+            </section>
+            {esEstudio && conexion && (
+              <section className="rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm">
+                <h3 className="font-semibold">Las unidades de la empresa</h3>
+                <UnidadesEmpresa
+                  repo={conexion.repo}
+                  empresaId={conexion.empresa.id}
+                  onCambio={async () =>
+                    setUnidades(
+                      await conexion.repo.configUnidades(conexion.empresa.id),
+                    )
+                  }
+                />
+              </section>
+            )}
+            {unidades.unidades.length > 0 ? (
+              <AsignacionUnidades
+                unidades={unidades}
+                ventas={ventas?.comprobantes ?? []}
+                compras={[
+                  ...(compras?.comprobantes ?? []),
+                  ...ticketsPendientes,
+                ]}
+                onAsignarProveedor={asignarProveedor}
+                onAsignarFactura={asignarFactura}
+              />
+            ) : (
+              <p className="rounded-xl bg-stone-50 p-4 text-sm text-stone-600">
+                Cuando cargues una unidad, abajo vas a poder asignarle los
+                proveedores y ver las ventas de cada punto de venta.
+              </p>
+            )}
+          </div>
+        )}
         {seccion === "planes" && !cargando && (
           <PlanesPago
             planes={planes}
@@ -1836,35 +1904,15 @@ export function Importador({
                 <TablaDeducciones deducciones={deducciones} periodo={periodo} />
               )}
               {pestana === "unidades" && (
-                <div className="space-y-4">
-                  {esEstudio && conexion && (
-                    <section className="rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm">
-                      <h3 className="font-semibold">
-                        Unidades de negocio de la empresa
-                      </h3>
-                      <UnidadesEmpresa
-                        repo={conexion.repo}
-                        empresaId={conexion.empresa.id}
-                        onCambio={async () =>
-                          setUnidades(
-                            await conexion.repo.configUnidades(
-                              conexion.empresa.id,
-                            ),
-                          )
-                        }
-                      />
-                    </section>
-                  )}
-                  <AsignacionUnidades
-                    unidades={unidades}
-                    ventas={ventas?.comprobantes ?? []}
-                    compras={[
-                      ...(compras?.comprobantes ?? []),
-                      ...ticketsPendientes,
-                    ]}
-                    onAsignarProveedor={asignarProveedor}
-                  />
-                </div>
+                <AsignacionUnidades
+                  unidades={unidades}
+                  ventas={ventas?.comprobantes ?? []}
+                  compras={[
+                    ...(compras?.comprobantes ?? []),
+                    ...ticketsPendientes,
+                  ]}
+                  onAsignarProveedor={asignarProveedor}
+                />
               )}
               {pestana === "liquidacion" && !esMono && ivaPeriodo && (
                 <PanelLiquidacion

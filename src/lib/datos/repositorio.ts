@@ -1155,6 +1155,25 @@ export class Repositorio {
     }
   }
 
+  /** Elige la unidad de negocio de una factura (null: vuelve a la del proveedor). */
+  async asignarUnidadComprobante(
+    empresaId: string,
+    operacion: Operacion,
+    c: Comprobante,
+    unidadId: string | null,
+  ) {
+    const { error } = await this.db
+      .from("comprobantes")
+      .update({ unidad_id: unidadId })
+      .eq("empresa_id", empresaId)
+      .eq("operacion", operacion)
+      .eq("tipo_codigo", c.tipoCodigo)
+      .eq("punto_venta", c.puntoVenta)
+      .eq("numero_desde", c.numeroDesde)
+      .eq("cuit_contraparte", c.cuitContraparte);
+    fallar(error, "guardar la unidad de la factura");
+  }
+
   /** Quita un comprobante cargado (por ejemplo, uno duplicado). Solo el estudio. */
   async borrarComprobante(
     empresaId: string,

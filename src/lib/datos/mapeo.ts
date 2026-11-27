@@ -32,6 +32,8 @@ export interface FilaComprobante {
   total: number;
   computa_iva: boolean;
   advertencias: string[];
+  /** Unidad elegida a mano para esta factura (no se envía al importar, para no pisarla). */
+  unidad_id?: string | null;
 }
 
 export function comprobanteAFila(
@@ -106,6 +108,7 @@ export function filaAComprobante(
     total: num(f.total),
     computaIva: f.computa_iva,
     advertencias: f.advertencias ?? [],
+    unidad: f.unidad_id ?? undefined,
   };
 }
 

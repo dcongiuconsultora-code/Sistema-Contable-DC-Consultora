@@ -1,7 +1,8 @@
 "use client";
 
+import { Fragment, useState } from "react";
 import type { Comprobante } from "@/lib/arca/tipos";
-import { cuitConGuiones, pesos } from "@/lib/formato";
+import { cuitConGuiones, fechaCorta, pesos } from "@/lib/formato";
 import {
   type ConfigUnidades,
   nombreUnidad,
@@ -13,6 +14,8 @@ interface Props {
   ventas: Comprobante[];
   compras: Comprobante[];
   onAsignarProveedor: (cuit: string, unidadId: string | null) => void;
+  /** Elige la unidad de una factura puntual (proveedores que le venden a varias unidades). */
+  onAsignarFactura?: (c: Comprobante, unidadId: string | null) => void;
 }
 
 /** A qué unidad va cada proveedor, y qué puntos de venta todavía no tienen unidad. */
@@ -21,7 +24,9 @@ export function AsignacionUnidades({
   ventas,
   compras,
   onAsignarProveedor,
+  onAsignarFactura,
 }: Props) {
+  const [abierto, setAbierto] = useState<string | null>(null);
   const proveedores = new Map<
     string,
     { nombre: string; total: number; cantidad: number }
@@ -41,9 +46,11 @@ export function AsignacionUnidades({
   const lista = [...proveedores.entries()].sort(
     (a, b) => b[1].total - a[1].total,
   );
-  const sinAsignar = lista.filter(
-    ([cuit]) => !unidades.proveedores[cuit],
-  ).length;
+  // Pendiente: sin unidad de proveedor y con alguna factura sin unidad propia.
+  const pendiente = (cuit: string) =>
+    !unidades.proveedores[cuit] &&
+    compras.some((c) => c.cuitContraparte === cuit && !c.unidad);
+  const sinAsignar = lista.filter(([cuit]) => pendiente(cuit)).length;
 
   const puntosVenta = new Map<number, number>();
   for (const v of ventas)
@@ -54,8 +61,7 @@ export function AsignacionUnidades({
       <section className="h-fit rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm">
         <h3 className="font-semibold">Ventas por punto de venta</h3>
         <p className="mb-3 text-sm text-stone-500">
-          Se configuran en Mi estudio → tarjeta del cliente → ⋯ → Unidades de
-          negocio.
+          Los puntos de venta de cada unidad se cargan arriba.
         </p>
         {puntosVenta.size === 0 ? (
           <p className="text-sm text-stone-500">
@@ -117,46 +123,123 @@ export function AsignacionUnidades({
                 </tr>
               </thead>
               <tbody className="divide-y divide-stone-100">
-                {lista.map(([cuit, p]) => (
-                  <tr
-                    key={cuit}
-                    className={
-                      unidades.proveedores[cuit] ? undefined : "bg-amber-50/60"
-                    }
-                  >
-                    <td className="px-4 py-2">
-                      <div className="max-w-72 truncate font-medium">
-                        {p.nombre || "—"}
-                      </div>
-                      <div className="text-xs text-stone-500">
-                        {cuitConGuiones(cuit)}
-                      </div>
-                    </td>
-                    <td className="cifra px-4 py-2">
-                      {pesos(p.total)}
-                      <div className="text-xs text-stone-500">
-                        {p.cantidad} comprobantes
-                      </div>
-                    </td>
-                    <td className="px-4 py-2">
-                      <select
-                        aria-label={`Unidad de ${p.nombre}`}
-                        value={unidades.proveedores[cuit] ?? ""}
-                        onChange={(e) =>
-                          onAsignarProveedor(cuit, e.target.value || null)
+                {lista.map(([cuit, p]) => {
+                  const facturas = compras
+                    .filter((c) => c.cuitContraparte === cuit)
+                    .sort((a, b) => b.fecha.localeCompare(a.fecha));
+                  const aMano = facturas.filter((c) => c.unidad).length;
+                  return (
+                    <Fragment key={cuit}>
+                      <tr
+                        className={
+                          unidades.proveedores[cuit]
+                            ? undefined
+                            : "bg-amber-50/60"
                         }
-                        className="rounded-md border border-stone-300 bg-white px-2 py-1"
                       >
-                        <option value="">Sin asignar</option>
-                        {unidades.unidades.map((u) => (
-                          <option key={u.id} value={u.id}>
-                            {u.nombre}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
-                  </tr>
-                ))}
+                        <td className="px-4 py-2">
+                          <div className="max-w-72 truncate font-medium">
+                            {p.nombre || "—"}
+                          </div>
+                          <div className="text-xs text-stone-500">
+                            {cuitConGuiones(cuit)}
+                          </div>
+                          {onAsignarFactura && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setAbierto(abierto === cuit ? null : cuit)
+                              }
+                              className="mt-0.5 text-xs font-medium text-marca hover:underline"
+                            >
+                              {abierto === cuit
+                                ? "Ocultar facturas"
+                                : `Ver facturas${aMano ? ` (${aMano} con unidad propia)` : ""} · elegir unidad por factura`}
+                            </button>
+                          )}
+                        </td>
+                        <td className="cifra px-4 py-2">
+                          {pesos(p.total)}
+                          <div className="text-xs text-stone-500">
+                            {p.cantidad} comprobantes
+                          </div>
+                        </td>
+                        <td className="px-4 py-2">
+                          <select
+                            aria-label={`Unidad de ${p.nombre}`}
+                            value={unidades.proveedores[cuit] ?? ""}
+                            onChange={(e) =>
+                              onAsignarProveedor(cuit, e.target.value || null)
+                            }
+                            className="rounded-md border border-stone-300 bg-white px-2 py-1"
+                          >
+                            <option value="">Sin asignar</option>
+                            {unidades.unidades.map((u) => (
+                              <option key={u.id} value={u.id}>
+                                {u.nombre}
+                              </option>
+                            ))}
+                          </select>
+                        </td>
+                      </tr>
+
+                      {abierto === cuit && (
+                        <tr>
+                          <td colSpan={3} className="bg-stone-50 px-4 py-2">
+                            <p className="mb-2 text-xs text-stone-600">
+                              Elegí la unidad de cada factura. Las que dejes en
+                              “Como el proveedor” van a la unidad del proveedor
+                              (o quedan sin unidad si el proveedor no tiene).
+                            </p>
+                            <table className="w-full text-xs">
+                              <tbody className="divide-y divide-stone-200">
+                                {facturas.map((c) => (
+                                  <tr
+                                    key={`${c.tipoCodigo}-${c.puntoVenta}-${c.numeroDesde}`}
+                                  >
+                                    <td className="py-1 pr-2">
+                                      {fechaCorta(c.fecha)}
+                                    </td>
+                                    <td className="py-1 pr-2">
+                                      {c.tipoNombre}{" "}
+                                      {String(c.puntoVenta).padStart(5, "0")}-
+                                      {String(c.numeroDesde).padStart(8, "0")}
+                                    </td>
+                                    <td className="cifra py-1 pr-2">
+                                      {pesos(c.total)}
+                                    </td>
+                                    <td className="py-1">
+                                      <select
+                                        aria-label={`Unidad de la factura ${c.numeroDesde}`}
+                                        value={c.unidad ?? ""}
+                                        onChange={(e) =>
+                                          onAsignarFactura?.(
+                                            c,
+                                            e.target.value || null,
+                                          )
+                                        }
+                                        className="rounded-md border border-stone-300 bg-white px-1.5 py-0.5"
+                                      >
+                                        <option value="">
+                                          Como el proveedor
+                                        </option>
+                                        {unidades.unidades.map((u) => (
+                                          <option key={u.id} value={u.id}>
+                                            {u.nombre}
+                                          </option>
+                                        ))}
+                                      </select>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
+                  );
+                })}
               </tbody>
             </table>
           </div>
