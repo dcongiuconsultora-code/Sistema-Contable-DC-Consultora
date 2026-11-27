@@ -54,7 +54,8 @@ export function AsignacionUnidades({
       <section className="h-fit rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm">
         <h3 className="font-semibold">Ventas por punto de venta</h3>
         <p className="mb-3 text-sm text-stone-500">
-          Se configuran en Empresas → Unidades.
+          Se configuran en Mi estudio → tarjeta del cliente → ⋯ → Unidades de
+          negocio.
         </p>
         {puntosVenta.size === 0 ? (
           <p className="text-sm text-stone-500">

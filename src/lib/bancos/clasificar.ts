@@ -43,7 +43,10 @@ const REGLAS: Regla[] = [
     automatica: true,
   },
   {
-    patron: new RegExp(String.raw`\bINT(ERES(ES)?|\.)?\b.*${PRESTAMO}|${PRESTAMO}.*\bINT(ERES(ES)?|\.)?\b`, "i"),
+    patron: new RegExp(
+      String.raw`\bINT(ERES(ES)?|\.)?\b.*${PRESTAMO}|${PRESTAMO}.*\bINT(ERES(ES)?|\.)?\b`,
+      "i",
+    ),
     signo: -1,
     concepto: "Intereses del préstamo",
     cuenta: "5.4.01.001",
@@ -51,7 +54,10 @@ const REGLAS: Regla[] = [
     automatica: true,
   },
   {
-    patron: new RegExp(String.raw`SEGURO.*${PRESTAMO}|${PRESTAMO}.*SEGURO`, "i"),
+    patron: new RegExp(
+      String.raw`SEGURO.*${PRESTAMO}|${PRESTAMO}.*SEGURO`,
+      "i",
+    ),
     signo: -1,
     concepto: "Seguro del préstamo",
     cuenta: "5.3.01.015",

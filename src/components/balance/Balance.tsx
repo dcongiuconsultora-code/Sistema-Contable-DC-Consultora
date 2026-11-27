@@ -362,7 +362,7 @@ function BotonPdfBalance({
       }}
       className="rounded-md border border-marca px-4 py-2 font-medium text-marca hover:bg-marca-claro disabled:opacity-50"
     >
-      {armando ? "Armando el PDF…" : "⬇ PDF para presentar (con logo)"}
+      {armando ? "Armando el PDF…" : "⬇ Resumen para el cliente (PDF con logo)"}
     </button>
   );
 }
@@ -404,6 +404,7 @@ export function Balance({
   const [aviso, setAviso] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [descargando, setDescargando] = useState(false);
+  const [descargandoPdf, setDescargandoPdf] = useState(false);
 
   useEffect(() => {
     if (!cierre && iniciales.fecha) setCierre(cierreSugerido(iniciales.fecha));
@@ -500,33 +501,59 @@ export function Balance({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sucio, datos, existenciaFinal]);
 
+  /** El Excel del modelo RT 54 completo (se usa para bajarlo o para pasarlo a PDF). */
+  async function armarRT54(): Promise<ArrayBuffer> {
+    if (!estados) throw new Error("No hay estados calculados.");
+    await guardar();
+    const { armarExcelRT54, PLANTILLA_RT54 } =
+      await import("@/lib/contabilidad/exportar-rt54");
+    const respuesta = await fetch(PLANTILLA_RT54);
+    if (!respuesta.ok) throw new Error("No se encontró el modelo RT 54.");
+    return armarExcelRT54(
+      await respuesta.arrayBuffer(),
+      estados,
+      {
+        razonSocial: empresa.razon_social,
+        cuit: empresa.cuit,
+        actividad: datos.actividad || empresa.actividad,
+        domicilio:
+          datos.domicilio ||
+          [empresa.domicilio, empresa.localidad, empresa.provincia]
+            .filter(Boolean)
+            .join(", "),
+        ejercicioNumero: datos.ejercicioNumero,
+      },
+      asientos,
+      homogenea ? indices : null,
+    );
+  }
+
+  async function pdfRT54() {
+    if (!estados) return;
+    setDescargandoPdf(true);
+    setError(null);
+    try {
+      const { pdfDesdeExcel } = await import("@/lib/informes/excel-a-pdf");
+      const { descargar: bajar } = await import("@/lib/informes/informe");
+      const blob = await pdfDesdeExcel(await armarRT54(), {
+        pie: `${empresa.razon_social} · Estados contables al ${fechaCorta(cierre)} · Preparado por DC Consultora`,
+        excluir: (n) => /ajuste por inflaci/i.test(n),
+        cortarEn: /ACLARACI[OÓ]N SOBRE EL MODELO/i,
+      });
+      bajar(blob, `Estados contables ${empresa.razon_social} ${cierre}.pdf`);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setDescargandoPdf(false);
+    }
+  }
+
   async function descargar() {
     if (!estados) return;
     setDescargando(true);
     setError(null);
     try {
-      await guardar();
-      const { armarExcelRT54, PLANTILLA_RT54 } =
-        await import("@/lib/contabilidad/exportar-rt54");
-      const respuesta = await fetch(PLANTILLA_RT54);
-      if (!respuesta.ok) throw new Error("No se encontró el modelo RT 54.");
-      const archivo = await armarExcelRT54(
-        await respuesta.arrayBuffer(),
-        estados,
-        {
-          razonSocial: empresa.razon_social,
-          cuit: empresa.cuit,
-          actividad: datos.actividad || empresa.actividad,
-          domicilio:
-            datos.domicilio ||
-            [empresa.domicilio, empresa.localidad, empresa.provincia]
-              .filter(Boolean)
-              .join(", "),
-          ejercicioNumero: datos.ejercicioNumero,
-        },
-        asientos,
-        homogenea ? indices : null,
-      );
+      const archivo = await armarRT54();
       const url = URL.createObjectURL(
         new Blob([archivo], {
           type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -740,6 +767,16 @@ export function Balance({
               {descargando
                 ? "Armando el Excel…"
                 : "Descargar estados contables (Excel, modelo RT 54)"}
+            </button>
+            <button
+              type="button"
+              onClick={pdfRT54}
+              disabled={descargandoPdf}
+              className="rounded-md bg-marca px-4 py-2 font-medium text-white hover:opacity-90 disabled:opacity-50"
+            >
+              {descargandoPdf
+                ? "Armando el PDF…"
+                : "Descargar estados contables (PDF, modelo RT 54)"}
             </button>
             <BotonPdfBalance
               estados={estados}
