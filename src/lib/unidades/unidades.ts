@@ -8,6 +8,8 @@ export interface Unidad {
   puntosVenta: number[];
   /** Los movimientos de estas cuentas bancarias son de la unidad (si la cuenta no se comparte). */
   cuentasBancarias: string[];
+  /** La unidad lleva órdenes de trabajo (fabrica a pedido). */
+  ordenesTrabajo?: boolean;
 }
 
 export interface ConfigUnidades {

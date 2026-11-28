@@ -90,6 +90,7 @@ import {
   type LiquidacionGuardada,
 } from "@/lib/iva/liquidacion";
 import { nombrePeriodo } from "@/lib/formato";
+import { OrdenesTrabajo } from "@/components/ordenes/OrdenesTrabajo";
 import { type LectorTicket, leerConServidor } from "@/lib/tickets/lector";
 import {
   claveComprobante,
@@ -110,7 +111,8 @@ type Seccion =
   | "inventarios"
   | "cuentasBancarias"
   | "planes"
-  | "unidades";
+  | "unidades"
+  | "ordenes";
 
 // Saldos del último balance de la empresa de ejemplo (al 31/08/2026). El banco coincide con el
 // saldo inicial del resumen bancario de ejemplo; los sueldos a pagar son los de agosto.
@@ -361,6 +363,7 @@ export function Importador({
   );
   const [planes, setPlanes] = useState<PlanPago[]>([]);
   const [unidades, setUnidades] = useState<ConfigUnidades>(SIN_UNIDADES);
+  const unidadesConOrdenes = unidades.unidades.filter((u) => u.ordenesTrabajo);
   const [cuitElegido, setCuitElegido] = useState<string | null>(null);
   const cuitCliente =
     cuitElegido ??
@@ -1250,6 +1253,15 @@ export function Importador({
         ],
       ],
     },
+    ...(conexion && unidadesConOrdenes.length
+      ? [
+          {
+            texto: "Órdenes",
+            destino: { seccion: "ordenes" as const },
+            activo: seccion === "ordenes",
+          },
+        ]
+      : []),
     {
       texto: "Inventarios",
       activo: seccion === "inventarios",
@@ -1649,6 +1661,14 @@ export function Importador({
               </p>
             )}
           </div>
+        )}
+        {seccion === "ordenes" && !cargando && conexion && (
+          <OrdenesTrabajo
+            repo={conexion.repo}
+            empresaId={conexion.empresa.id}
+            empresa={conexion.empresa.razon_social}
+            unidades={unidadesConOrdenes}
+          />
         )}
         {seccion === "planes" && !cargando && (
           <PlanesPago

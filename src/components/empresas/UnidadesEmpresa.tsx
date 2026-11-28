@@ -40,12 +40,14 @@ function FilaUnidad({
   const [nombre, setNombre] = useState(unidad?.nombre ?? "");
   const [pv, setPv] = useState(unidad?.puntosVenta.join(", ") ?? "");
   const [ctas, setCtas] = useState(unidad?.cuentasBancarias.join(", ") ?? "");
+  const [ordenes, setOrdenes] = useState(!!unidad?.ordenesTrabajo);
   const [guardando, setGuardando] = useState(false);
   const cambiado =
     !unidad ||
     nombre !== unidad.nombre ||
     pv !== unidad.puntosVenta.join(", ") ||
-    ctas !== unidad.cuentasBancarias.join(", ");
+    ctas !== unidad.cuentasBancarias.join(", ") ||
+    ordenes !== !!unidad.ordenesTrabajo;
   const id = unidad?.id ?? "nueva";
   return (
     <form
@@ -58,12 +60,14 @@ function FilaUnidad({
           nombre,
           puntosVenta: numeros(pv),
           cuentasBancarias: cuentas(ctas),
+          ordenesTrabajo: ordenes,
         };
         // La fila para agregar se vacía enseguida, así se puede cargar la siguiente mientras guarda.
         if (!unidad) {
           setNombre("");
           setPv("");
           setCtas("");
+          setOrdenes(false);
         }
         setGuardando(true);
         await onGuardar(datos);
@@ -101,6 +105,15 @@ function FilaUnidad({
           placeholder="4-152-0960684459-7"
           className="mt-0.5 block w-full rounded-md border border-stone-300 px-2 py-1.5 text-sm tabular-nums"
         />
+      </label>
+      <label className="flex items-center gap-1.5 text-xs text-stone-600 sm:col-span-full sm:order-last">
+        <input
+          type="checkbox"
+          checked={ordenes}
+          onChange={(e) => setOrdenes(e.target.checked)}
+        />
+        Fabrica a pedido: lleva órdenes de trabajo (pedidos, materiales, pagos a
+        cuenta)
       </label>
       <div className="flex gap-1">
         <button

@@ -7,6 +7,8 @@ import type { SaldosIniciales } from "@/lib/contabilidad/indicadores";
 import type { Movimiento } from "@/lib/movimientos/tipos";
 import type { TicketExtraido } from "@/lib/tickets/esquema";
 import type { ConfigUnidades, Unidad } from "@/lib/unidades/unidades";
+import type { OrdenTrabajo } from "@/lib/ordenes/ordenes";
+import type { ClientePlanilla } from "@/lib/ordenes/planilla";
 import { INDICES_FACPCE, type Indices } from "@/lib/inflacion/indices";
 import type { CorreccionesAxi } from "@/lib/impuestos/axi";
 import type { Asiento } from "@/lib/contabilidad/diario";
@@ -167,6 +169,48 @@ async function todas<T>(
     filas.push(...(data ?? []));
     if (!data || data.length < 1000) return filas;
   }
+}
+
+function filaDeOrden(empresaId: string, o: OrdenTrabajo) {
+  return {
+    empresa_id: empresaId,
+    unidad_id: o.unidadId ?? null,
+    numero: o.numero.trim(),
+    fecha: o.fecha,
+    cliente: o.cliente.trim(),
+    tipo: o.tipo.trim(),
+    detalle: o.detalle.trim(),
+    cantidad: o.cantidad,
+    total: o.total,
+    iva_aparte: o.ivaAparte,
+    con_factura: o.conFactura,
+    factura: o.factura.trim(),
+    materiales: o.materiales,
+    plazo_dias: o.plazoDias,
+    estado: o.estado,
+    pagos: o.pagos,
+  };
+}
+
+function ordenDeFila(f: Record<string, unknown>): OrdenTrabajo {
+  return {
+    id: f.id as string,
+    unidadId: (f.unidad_id as string | null) ?? null,
+    numero: (f.numero as string) ?? "",
+    fecha: f.fecha as string,
+    cliente: (f.cliente as string) ?? "",
+    tipo: (f.tipo as string) ?? "",
+    detalle: (f.detalle as string) ?? "",
+    cantidad: Number(f.cantidad ?? 0),
+    total: Number(f.total ?? 0),
+    ivaAparte: Number(f.iva_aparte ?? 0),
+    conFactura: !!f.con_factura,
+    factura: (f.factura as string) ?? "",
+    materiales: Number(f.materiales ?? 0),
+    plazoDias: f.plazo_dias == null ? null : Number(f.plazo_dias),
+    estado: f.estado as OrdenTrabajo["estado"],
+    pagos: Array.isArray(f.pagos) ? (f.pagos as OrdenTrabajo["pagos"]) : [],
+  };
 }
 
 export class Repositorio {
@@ -1045,7 +1089,7 @@ export class Repositorio {
   async unidades(empresaId: string): Promise<Unidad[]> {
     const { data, error } = await this.db
       .from("unidades_negocio")
-      .select("id, nombre, puntos_venta, cuentas_bancarias")
+      .select("id, nombre, puntos_venta, cuentas_bancarias, ordenes_trabajo")
       .eq("empresa_id", empresaId)
       .order("orden")
       .order("nombre");
@@ -1055,6 +1099,7 @@ export class Repositorio {
       nombre: u.nombre,
       puntosVenta: u.puntos_venta ?? [],
       cuentasBancarias: u.cuentas_bancarias ?? [],
+      ordenesTrabajo: !!u.ordenes_trabajo,
     }));
   }
 
@@ -1090,6 +1135,7 @@ export class Repositorio {
       nombre: u.nombre.trim(),
       puntos_venta: u.puntosVenta,
       cuentas_bancarias: u.cuentasBancarias,
+      ordenes_trabajo: !!u.ordenesTrabajo,
     });
     fallar(error, "guardar la unidad de negocio");
   }
@@ -1198,6 +1244,82 @@ export class Repositorio {
         { onConflict: "empresa_id,tipo,nombre" },
       );
     fallar(error, "guardar el cliente");
+  }
+
+  /** Clientes con datos de contacto (los cargados a mano o desde la planilla de clientes). */
+  async fichasClientes(empresaId: string): Promise<ClientePlanilla[]> {
+    const { data, error } = await this.db
+      .from("contrapartes")
+      .select("nombre, cuit, domicilio, localidad, telefono, email")
+      .eq("empresa_id", empresaId)
+      .eq("tipo", "cliente")
+      .order("nombre");
+    fallar(error, "leer los clientes");
+    return (data ?? []) as ClientePlanilla[];
+  }
+
+  /** Carga (o actualiza) varios clientes con sus datos de contacto. */
+  async guardarFichasClientes(empresaId: string, lista: ClientePlanilla[]) {
+    for (let i = 0; i < lista.length; i += 500) {
+      const { error } = await this.db.from("contrapartes").upsert(
+        lista.slice(i, i + 500).map((c) => ({
+          empresa_id: empresaId,
+          tipo: "cliente",
+          ...c,
+          nombre: c.nombre.trim(),
+        })),
+        { onConflict: "empresa_id,tipo,nombre" },
+      );
+      fallar(error, "guardar los clientes");
+    }
+  }
+
+  // Órdenes de trabajo ---------------------------------------------------------------------------
+
+  async ordenesTrabajo(empresaId: string): Promise<OrdenTrabajo[]> {
+    const todas: OrdenTrabajo[] = [];
+    for (let desde = 0; ; desde += 1000) {
+      const { data, error } = await this.db
+        .from("ordenes_trabajo")
+        .select("*")
+        .eq("empresa_id", empresaId)
+        .order("fecha", { ascending: false })
+        .order("numero", { ascending: false })
+        .range(desde, desde + 999);
+      fallar(error, "leer las órdenes de trabajo");
+      todas.push(...(data ?? []).map(ordenDeFila));
+      if ((data ?? []).length < 1000) return todas;
+    }
+  }
+
+  async guardarOrden(empresaId: string, o: OrdenTrabajo): Promise<string> {
+    const { data, error } = await this.db
+      .from("ordenes_trabajo")
+      .upsert({ ...(o.id ? { id: o.id } : {}), ...filaDeOrden(empresaId, o) })
+      .select("id")
+      .single();
+    fallar(error, "guardar la orden de trabajo");
+    return data!.id;
+  }
+
+  async borrarOrden(id: string) {
+    const { error } = await this.db
+      .from("ordenes_trabajo")
+      .delete()
+      .eq("id", id);
+    fallar(error, "borrar la orden de trabajo");
+  }
+
+  /** Alta de muchas órdenes juntas (al pasar la planilla Excel). */
+  async importarOrdenes(empresaId: string, ordenes: OrdenTrabajo[]) {
+    for (let i = 0; i < ordenes.length; i += 500) {
+      const { error } = await this.db
+        .from("ordenes_trabajo")
+        .insert(
+          ordenes.slice(i, i + 500).map((o) => filaDeOrden(empresaId, o)),
+        );
+      fallar(error, "importar las órdenes de trabajo");
+    }
   }
 
   /** Elige la unidad de negocio de una factura (null: vuelve a la del proveedor). */
