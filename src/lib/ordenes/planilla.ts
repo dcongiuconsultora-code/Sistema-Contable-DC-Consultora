@@ -6,7 +6,6 @@ import {
   type OrdenTrabajo,
   type PagoOrden,
   cobrado,
-  fechaEntrega,
   manoDeObra,
   saldo,
   sinIva,
@@ -170,7 +169,6 @@ function leerTrabajos(ws: Worksheet): OrdenTrabajo[] {
         recibo: texto(v(p.recibo)),
       });
     }
-    const plazo = numero(v(c.ot));
     const factura = texto(v(c.factura));
     ordenes.push({
       numero: texto(v(c.pedido)),
@@ -185,7 +183,7 @@ function leerTrabajos(ws: Worksheet): OrdenTrabajo[] {
       conFactura: !!factura || (c.sinIva ? v(c.sinIva) !== null : false),
       factura,
       materiales: numero(v(c.materia)),
-      plazoDias: plazo > 0 ? Math.round(plazo) : null,
+      ot: texto(v(c.ot)),
       estado: estado(texto(v(c.estado))),
       pagos,
     });
@@ -327,8 +325,7 @@ export async function excelOrdenes(
     { header: "Sin IVA", width: 15, num: true },
     { header: "Materiales", width: 15, num: true },
     { header: "Mano de obra", width: 15, num: true },
-    { header: "Plazo (días)", width: 10, num: true },
-    { header: "Entrega", width: 11 },
+    { header: "OT", width: 8 },
     { header: "Estado", width: 12 },
   ];
   for (let i = 1; i <= maxPagos; i++)
@@ -372,8 +369,7 @@ export async function excelOrdenes(
       o.conFactura ? sinIva(o) : null,
       o.materiales,
       manoDeObra(o),
-      o.plazoDias,
-      f(fechaEntrega(o)),
+      o.ot,
       o.estado,
       ...pagos.flatMap((p) =>
         p ? [f(p.fecha), p.importe, p.recibo] : [null, null, null],
@@ -385,7 +381,7 @@ export async function excelOrdenes(
   columnas.forEach((c, i) => {
     const columna = ws.getColumn(i + 1);
     if (c.num) columna.numFmt = "#,##0.00;[Red]-#,##0.00";
-    else if (/^(Fecha|Entrega)/.test(c.header)) columna.numFmt = "dd/mm/yyyy";
+    else if (/^Fecha/.test(c.header)) columna.numFmt = "dd/mm/yyyy";
   });
   ws.autoFilter = {
     from: { row: 1, column: 1 },

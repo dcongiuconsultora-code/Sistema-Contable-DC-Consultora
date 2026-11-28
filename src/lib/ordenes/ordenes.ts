@@ -31,8 +31,8 @@ export interface OrdenTrabajo {
   conFactura: boolean;
   factura: string;
   materiales: number;
-  /** Columna OT de la planilla: días de plazo para entregar. */
-  plazoDias: number | null;
+  /** Número de orden de trabajo (columna OT de la planilla). */
+  ot: string;
   estado: EstadoOrden;
   pagos: PagoOrden[];
 }
@@ -86,21 +86,9 @@ export const manoDeObra = (o: OrdenTrabajo) => r2(o.total - o.materiales);
 export const sinIva = (o: OrdenTrabajo) =>
   o.conFactura ? r2(o.total / 1.21) : o.total;
 
-function sumarDias(fecha: string, dias: number) {
-  const d = new Date(`${fecha}T12:00:00`);
-  d.setDate(d.getDate() + dias);
-  return d.toISOString().slice(0, 10);
-}
-
-/** Fecha comprometida de entrega (fecha del pedido + plazo). */
-export const fechaEntrega = (o: OrdenTrabajo) =>
-  o.plazoDias ? sumarDias(o.fecha, o.plazoDias) : null;
-
-/** Sin terminar y con la fecha de entrega ya pasada. */
-export function atrasada(o: OrdenTrabajo, hoy: string) {
-  const entrega = fechaEntrega(o);
-  return o.estado !== "Terminado" && !!entrega && entrega < hoy;
-}
+/** Sigue abierta: sin terminar o con plata por cobrar (lo terminado y cobrado ya está cerrado). */
+export const enCurso = (o: OrdenTrabajo) =>
+  o.estado !== "Terminado" || saldo(o) > 1;
 
 /** Próximo número de pedido: AAMM de la fecha y el correlativo del año que sigue. */
 export function proximoNumero(ordenes: OrdenTrabajo[], fecha: string) {
@@ -195,7 +183,7 @@ export function nuevaOrden(ordenes: OrdenTrabajo[], hoy: string): OrdenTrabajo {
     conFactura: false,
     factura: "",
     materiales: 0,
-    plazoDias: null,
+    ot: "",
     estado: "No empezado",
     pagos: [],
   };

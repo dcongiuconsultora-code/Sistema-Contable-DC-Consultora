@@ -186,7 +186,7 @@ function filaDeOrden(empresaId: string, o: OrdenTrabajo) {
     con_factura: o.conFactura,
     factura: o.factura.trim(),
     materiales: o.materiales,
-    plazo_dias: o.plazoDias,
+    ot: o.ot.trim(),
     estado: o.estado,
     pagos: o.pagos,
   };
@@ -207,7 +207,7 @@ function ordenDeFila(f: Record<string, unknown>): OrdenTrabajo {
     conFactura: !!f.con_factura,
     factura: (f.factura as string) ?? "",
     materiales: Number(f.materiales ?? 0),
-    plazoDias: f.plazo_dias == null ? null : Number(f.plazo_dias),
+    ot: (f.ot as string) ?? "",
     estado: f.estado as OrdenTrabajo["estado"],
     pagos: Array.isArray(f.pagos) ? (f.pagos as OrdenTrabajo["pagos"]) : [],
   };

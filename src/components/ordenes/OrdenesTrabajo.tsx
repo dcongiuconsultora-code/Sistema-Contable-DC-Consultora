@@ -10,10 +10,9 @@ import {
   type EstadoOrden,
   type OrdenTrabajo,
   TIPOS_TRABAJO,
-  atrasada,
+  enCurso,
   claveOrden,
   cobrado,
-  fechaEntrega,
   manoDeObra,
   nuevaOrden,
   resumenPorMes,
@@ -41,7 +40,7 @@ const COLOR_ESTADO: Record<EstadoOrden, string> = {
 };
 
 type Vista = "ordenes" | "meses" | "saldos" | "clientes";
-type FiltroEstado = "todas" | "pendientes" | "atrasadas" | "con saldo";
+type FiltroEstado = "todas" | "en curso" | "pendientes" | "con saldo";
 
 /** "350.000" y "1.234,50" (como se escribe acá) o "1234.5". */
 export function aNumero(texto: string) {
@@ -197,13 +196,12 @@ function Formulario({
             />
           </label>
           <label className="block text-xs">
-            <span className="text-stone-500">Plazo de entrega (días, OT)</span>
-            <Numero
-              id="ot-plazo"
-              valor={o.plazoDias ?? 0}
-              onCambio={(n) =>
-                cambiar({ plazoDias: n > 0 ? Math.round(n) : null })
-              }
+            <span className="text-stone-500">OT (orden de trabajo)</span>
+            <input
+              id="ot-ot"
+              value={o.ot}
+              onChange={(e) => cambiar({ ot: e.target.value })}
+              className={`${campo} tabular-nums`}
             />
           </label>
           <label className="block text-xs">
@@ -221,9 +219,6 @@ function Formulario({
               ))}
             </select>
           </label>
-          <div className="text-xs text-stone-500 sm:self-end">
-            {fechaEntrega(o) && <>Entrega: {fechaCorta(fechaEntrega(o)!)}</>}
-          </div>
         </div>
 
         <div className="grid gap-3 rounded-xl bg-stone-50 p-3 sm:grid-cols-4">
@@ -492,7 +487,20 @@ function Importar({
     () => new Set(existentes.map(claveOrden)),
     [existentes],
   );
-  const nuevas = planilla?.ordenes.filter((o) => !yaEstan.has(claveOrden(o)));
+  const [cuales, setCuales] = useState<"curso" | "sinTerminar" | "todas">(
+    "curso",
+  );
+  const sinRepetir = planilla?.ordenes.filter(
+    (o) => !yaEstan.has(claveOrden(o)),
+  );
+  const sinTerminar = sinRepetir?.filter((o) => o.estado !== "Terminado");
+  const abiertas = sinRepetir?.filter(enCurso);
+  const nuevas =
+    cuales === "curso"
+      ? abiertas
+      : cuales === "sinTerminar"
+        ? sinTerminar
+        : sinRepetir;
   return (
     <Modal
       titulo="Pasar la planilla Excel al sistema"
@@ -544,8 +552,53 @@ function Importar({
               )}{" "}
               y <strong>{planilla.clientes.length}</strong> clientes.
             </p>
-            <p className="mt-1 text-stone-600">
-              Se van a agregar <strong>{nuevas.length}</strong> órdenes nuevas.
+            <fieldset className="mt-2 space-y-1.5">
+              <legend className="mb-1 font-medium">¿Qué órdenes traigo?</legend>
+              <label className="flex items-start gap-2">
+                <input
+                  type="radio"
+                  name="ot-cuales"
+                  value="curso"
+                  className="mt-1"
+                  checked={cuales === "curso"}
+                  onChange={() => setCuales("curso")}
+                />
+                <span>
+                  Las que siguen en curso: sin terminar o con saldo por cobrar (
+                  <strong>{abiertas?.length ?? 0}</strong>)
+                </span>
+              </label>
+              <label className="flex items-start gap-2">
+                <input
+                  type="radio"
+                  name="ot-cuales"
+                  value="sinTerminar"
+                  className="mt-1"
+                  checked={cuales === "sinTerminar"}
+                  onChange={() => setCuales("sinTerminar")}
+                />
+                <span>
+                  Solo las que no están terminadas (
+                  <strong>{sinTerminar?.length ?? 0}</strong>)
+                </span>
+              </label>
+              <label className="flex items-start gap-2">
+                <input
+                  type="radio"
+                  name="ot-cuales"
+                  value="todas"
+                  className="mt-1"
+                  checked={cuales === "todas"}
+                  onChange={() => setCuales("todas")}
+                />
+                <span>
+                  Todas, también las terminadas y cobradas (
+                  <strong>{sinRepetir?.length ?? 0}</strong>)
+                </span>
+              </label>
+            </fieldset>
+            <p className="mt-2 text-stone-600">
+              Se van a agregar <strong>{nuevas.length}</strong> órdenes.
             </p>
           </div>
         )}
@@ -676,7 +729,7 @@ export function OrdenesTrabajo({
     return lista.filter((o) => {
       if (mes && !o.fecha.startsWith(mes)) return false;
       if (filtro === "pendientes" && o.estado === "Terminado") return false;
-      if (filtro === "atrasadas" && !atrasada(o, hoy)) return false;
+      if (filtro === "en curso" && !enCurso(o)) return false;
       if (filtro === "con saldo" && saldo(o) <= 1) return false;
       if (
         q &&
@@ -692,7 +745,6 @@ export function OrdenesTrabajo({
   const mesActual = meses.find((m) => m.mes === hoy.slice(0, 7));
   const enProceso = lista.filter((o) => o.estado === "En proceso").length;
   const sinEmpezar = lista.filter((o) => o.estado === "No empezado").length;
-  const atrasadas = lista.filter((o) => atrasada(o, hoy)).length;
   const aCobrar = saldos.reduce((t, s) => t + s.saldo, 0);
 
   const guardar = async (o: OrdenTrabajo) => {
@@ -773,6 +825,11 @@ export function OrdenesTrabajo({
             Los pedidos de la fábrica: qué se pidió, cuánto sale, cuánto se va
             en materiales, en qué estado está y lo que pagó cada cliente.
           </p>
+          <p className="mt-2 max-w-3xl rounded-lg bg-sky-50 px-3 py-2 text-sm text-sky-900">
+            Es para control de la fábrica: no genera asientos ni se suma a la
+            contabilidad. Los cobros se siguen registrando como siempre (banco o
+            Cobros y pagos), así no se duplica nada.
+          </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <button
@@ -829,13 +886,12 @@ export function OrdenesTrabajo({
             <Tarjeta
               titulo="En proceso"
               valor={String(enProceso)}
-              nota={`${sinEmpezar} sin empezar`}
+              nota="Se están fabricando"
             />
             <Tarjeta
-              titulo="Atrasadas"
-              valor={String(atrasadas)}
-              nota="Pasó la fecha de entrega"
-              alerta={atrasadas > 0}
+              titulo="Sin empezar"
+              valor={String(sinEmpezar)}
+              nota="Pedidos que todavía no arrancaron"
             />
             <Tarjeta
               titulo="Falta cobrar"
@@ -880,7 +936,9 @@ export function OrdenesTrabajo({
                 >
                   <option value="todas">Todas</option>
                   <option value="pendientes">Sin terminar</option>
-                  <option value="atrasadas">Atrasadas</option>
+                  <option value="en curso">
+                    En curso (sin terminar o con saldo)
+                  </option>
                   <option value="con saldo">Con saldo a cobrar</option>
                 </select>
                 <select
@@ -922,7 +980,6 @@ export function OrdenesTrabajo({
                     </thead>
                     <tbody>
                       {ordenadas.slice(0, limite).map((o) => {
-                        const tarde = atrasada(o, hoy);
                         const debe = saldo(o);
                         return (
                           <tr
@@ -936,6 +993,11 @@ export function OrdenesTrabajo({
                               <div className="text-xs text-stone-500">
                                 {fechaCorta(o.fecha)}
                               </div>
+                              {o.ot && (
+                                <div className="text-xs text-stone-500">
+                                  OT {o.ot}
+                                </div>
+                              )}
                             </td>
                             <td className="py-2 pr-2">
                               <div className="font-medium">
@@ -950,14 +1012,6 @@ export function OrdenesTrabajo({
                                   .filter(Boolean)
                                   .join(" · ")}
                               </div>
-                              {fechaEntrega(o) && o.estado !== "Terminado" && (
-                                <div
-                                  className={`text-xs ${tarde ? "font-medium text-red-700" : "text-stone-500"}`}
-                                >
-                                  {tarde ? "Atrasada · " : ""}Entrega{" "}
-                                  {fechaCorta(fechaEntrega(o)!)}
-                                </div>
-                              )}
                             </td>
                             <td className="py-2 pr-2 text-right tabular-nums">
                               {$(o.total)}

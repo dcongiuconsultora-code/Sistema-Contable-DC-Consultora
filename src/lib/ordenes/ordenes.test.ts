@@ -1,9 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   type OrdenTrabajo,
-  atrasada,
+  enCurso,
   claveOrden,
-  fechaEntrega,
   manoDeObra,
   nuevaOrden,
   proximoNumero,
@@ -26,7 +25,7 @@ describe("órdenes de trabajo", () => {
       total: 121000,
       materiales: 50000,
       conFactura: true,
-      plazoDias: 15,
+      ot: "14",
       pagos: [
         { fecha: "2026-03-10", importe: 60000, recibo: "R-1" },
         { fecha: "2026-03-20", importe: 1000, recibo: "" },
@@ -35,9 +34,15 @@ describe("órdenes de trabajo", () => {
     expect(saldo(o)).toBe(60000);
     expect(manoDeObra(o)).toBe(71000);
     expect(sinIva(o)).toBe(100000);
-    expect(fechaEntrega(o)).toBe("2026-03-25");
-    expect(atrasada(o, "2026-03-26")).toBe(true);
-    expect(atrasada({ ...o, estado: "Terminado" }, "2026-03-26")).toBe(false);
+    expect(enCurso(o)).toBe(true);
+    expect(enCurso({ ...o, estado: "Terminado" })).toBe(true);
+    expect(
+      enCurso({
+        ...o,
+        estado: "Terminado",
+        pagos: [{ fecha: "2026-03-30", importe: 121000, recibo: "" }],
+      }),
+    ).toBe(false);
     expect(saldo({ ...o, ivaAparte: 5000 })).toBe(65000);
   });
 
@@ -218,7 +223,7 @@ describe("planilla de seguimiento", () => {
     expect(a).toMatchObject({
       numero: "2603-001",
       fecha: "2026-03-05",
-      plazoDias: 15,
+      ot: "15",
       estado: "En proceso",
       ivaAparte: 10000,
       conFactura: false,
