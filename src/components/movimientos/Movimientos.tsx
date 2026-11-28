@@ -54,6 +54,8 @@ interface Props {
   unidades?: ConfigUnidades;
   /** Cuentas bancarias y billeteras de la empresa. */
   cuentas?: CuentaBancaria[];
+  /** Guarda un cliente nuevo (que no está en ARCA) para elegirlo en los próximos cobros. */
+  onNuevoCliente?: (nombre: string, cuit: string) => Promise<void> | void;
 }
 
 export type Vista = "cliente" | "estudio";
@@ -70,6 +72,8 @@ function hoy() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
+export const CONSUMIDOR_FINAL = "Consumidor final";
+
 function nuevo(tipo: TipoMovimiento): Movimiento {
   return {
     id: crypto.randomUUID(),
@@ -77,7 +81,8 @@ function nuevo(tipo: TipoMovimiento): Movimiento {
     fecha: hoy(),
     importe: 0,
     medio: "banco_cc",
-    contraparte: "",
+    // En los cobros, por defecto: consumidor final (se cambia si es un cliente con nombre).
+    contraparte: tipo === "cobro" ? CONSUMIDOR_FINAL : "",
     cuitContraparte: "",
     nota: "",
     estado: "enviado",
@@ -137,6 +142,8 @@ function Formulario({
   cuentas,
   onGuardar,
   onCancelar,
+  onNuevoCliente,
+  porEstudio = false,
 }: {
   inicial: Movimiento;
   clientes: Contraparte[];
@@ -145,7 +152,10 @@ function Formulario({
   cuentas: CuentaBancaria[];
   onGuardar: (m: Movimiento) => void;
   onCancelar: () => void;
+  onNuevoCliente?: (nombre: string, cuit: string) => Promise<void> | void;
+  porEstudio?: boolean;
 }) {
+  const [clienteGuardado, setClienteGuardado] = useState<string | null>(null);
   const [m, setM] = useState(inicial);
   const [intento, setIntento] = useState(false);
   const cambiar = (c: Partial<Movimiento>) => setM({ ...m, ...c });
@@ -237,7 +247,8 @@ function Formulario({
             onGuardar({
               ...m,
               unidad: conUnidades ? unidadSugerida : undefined,
-              estado: "enviado",
+              // Lo que carga el estudio queda aprobado; lo del cliente, para revisar.
+              estado: porEstudio ? "aprobado" : "enviado",
               observacion: undefined,
             });
         }}
@@ -375,6 +386,48 @@ function Formulario({
                   </option>
                 ))}
               </datalist>
+              {m.tipo === "cobro" && (
+                <span className="mt-1 flex flex-wrap items-center gap-2 text-xs">
+                  {m.contraparte !== CONSUMIDOR_FINAL && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        cambiar({
+                          contraparte: CONSUMIDOR_FINAL,
+                          cuitContraparte: "",
+                        })
+                      }
+                      className="rounded-full bg-stone-100 px-2 py-0.5 text-stone-600 hover:bg-stone-200"
+                    >
+                      Consumidor final
+                    </button>
+                  )}
+                  {clienteGuardado === m.contraparte.trim() && (
+                    <span className="text-emerald-700">✓ Cliente guardado</span>
+                  )}
+                  {onNuevoCliente &&
+                    m.contraparte.trim() &&
+                    m.contraparte.trim() !== CONSUMIDOR_FINAL &&
+                    clienteGuardado !== m.contraparte.trim() &&
+                    !sugerencias.some(
+                      (x) =>
+                        x.nombre.toLowerCase() ===
+                        m.contraparte.trim().toLowerCase(),
+                    ) && (
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const nombre = m.contraparte.trim();
+                          await onNuevoCliente(nombre, m.cuitContraparte);
+                          setClienteGuardado(nombre);
+                        }}
+                        className="rounded-full border border-marca px-2 py-0.5 font-medium text-marca hover:bg-marca-claro"
+                      >
+                        ＋ Guardar “{m.contraparte.trim()}” como cliente nuevo
+                      </button>
+                    )}
+                </span>
+              )}
             </Etiqueta>
             <Etiqueta
               texto={
@@ -564,9 +617,11 @@ function Formulario({
             type="submit"
             className="rounded-md bg-marca px-5 py-2 font-medium text-white hover:opacity-90"
           >
-            {inicial.estado === "observado"
-              ? "Corregir y reenviar"
-              : "Enviar al estudio"}
+            {porEstudio
+              ? "Guardar"
+              : inicial.estado === "observado"
+                ? "Corregir y reenviar"
+                : "Enviar al estudio"}
           </button>
           <button
             type="button"
@@ -628,6 +683,7 @@ export function Movimientos({
   vistaFija,
   unidades = SIN_UNIDADES,
   cuentas = [],
+  onNuevoCliente,
 }: Props) {
   const [vistaElegida, setVista] = useState<Vista>("cliente");
   const vista = vistaFija ?? vistaElegida;
@@ -683,7 +739,7 @@ export function Movimientos({
         </p>
       </div>
 
-      {vista === "cliente" && !editando && (
+      {!editando && (
         <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
           {TIPOS.map((t) => (
             <button
@@ -718,6 +774,8 @@ export function Movimientos({
           cuentas={cuentas}
           onGuardar={guardar}
           onCancelar={() => setEditando(null)}
+          onNuevoCliente={onNuevoCliente}
+          porEstudio={vista === "estudio"}
         />
       )}
 

@@ -1167,6 +1167,39 @@ export class Repositorio {
     }
   }
 
+  /** Clientes y proveedores cargados a mano en la empresa (además de los de ARCA). */
+  async contrapartes(empresaId: string): Promise<{
+    clientes: { nombre: string; cuit: string }[];
+    proveedores: { nombre: string; cuit: string }[];
+  }> {
+    const { data, error } = await this.db
+      .from("contrapartes")
+      .select("tipo, nombre, cuit")
+      .eq("empresa_id", empresaId)
+      .order("nombre");
+    fallar(error, "leer los clientes y proveedores");
+    const de = (t: string) =>
+      (data ?? [])
+        .filter((x) => x.tipo === t)
+        .map((x) => ({ nombre: x.nombre, cuit: x.cuit }));
+    return { clientes: de("cliente"), proveedores: de("proveedor") };
+  }
+
+  async guardarContraparte(
+    empresaId: string,
+    tipo: "cliente" | "proveedor",
+    nombre: string,
+    cuit: string,
+  ) {
+    const { error } = await this.db
+      .from("contrapartes")
+      .upsert(
+        { empresa_id: empresaId, tipo, nombre: nombre.trim(), cuit },
+        { onConflict: "empresa_id,tipo,nombre" },
+      );
+    fallar(error, "guardar el cliente");
+  }
+
   /** Elige la unidad de negocio de una factura (null: vuelve a la del proveedor). */
   async asignarUnidadComprobante(
     empresaId: string,

@@ -57,6 +57,7 @@ import type { SaldosIniciales } from "@/lib/contabilidad/indicadores";
 import { CuentasCorrientes } from "@/components/cuentas/CuentasCorrientes";
 import { cuentasCorrientes } from "@/lib/cuentas/cuenta-corriente";
 import {
+  CONSUMIDOR_FINAL,
   type Contraparte,
   Movimientos,
 } from "@/components/movimientos/Movimientos";
@@ -154,6 +155,17 @@ function contrapartes(comprobantes: Comprobante[]): Contraparte[] {
       });
   }
   return [...vistas.values()].sort((a, b) => a.nombre.localeCompare(b.nombre));
+}
+
+/** Junta listas de clientes o proveedores sin repetir nombres (la primera manda). */
+function juntarContrapartes(...listas: Contraparte[][]): Contraparte[] {
+  const vistos = new Map<string, Contraparte>();
+  for (const l of listas)
+    for (const c of l) {
+      const k = c.nombre.trim().toLowerCase();
+      if (k && !vistos.has(k)) vistos.set(k, c);
+    }
+  return [...vistos.values()];
 }
 
 // Movimientos de ejemplo que coinciden con el resumen bancario de ejemplo.
@@ -335,6 +347,10 @@ export function Importador({
   >({});
   const [indicesIpc, setIndicesIpc] = useState<Indices>(INDICES_FACPCE);
   const [menuMovil, setMenuMovil] = useState(false);
+  const [propias, setPropias] = useState<{
+    clientes: Contraparte[];
+    proveedores: Contraparte[];
+  }>({ clientes: [], proveedores: [] });
   const [avisoImportacion, setAvisoImportacion] = useState<string | null>(null);
   const [iibbGuardadas, setIibbGuardadas] = useState<Record<string, DatosIibb>>(
     {},
@@ -412,6 +428,11 @@ export function Importador({
         setIvaGuardadas(await repo.liquidacionesIva(empresaId));
         setIibbGuardadas(
           await repo.liquidacionesIibb(empresaId).catch(() => ({})),
+        );
+        setPropias(
+          await repo
+            .contrapartes(empresaId)
+            .catch(() => ({ clientes: [], proveedores: [] })),
         );
         setGanancias(
           await repo
@@ -1484,8 +1505,25 @@ export function Importador({
             vistaFija={conexion?.rol}
             unidades={unidades}
             cuentas={cuentasBancarias.filter((c) => c.activa)}
-            clientes={contrapartes(ventas?.comprobantes ?? [])}
-            proveedores={contrapartes(compras?.comprobantes ?? [])}
+            clientes={juntarContrapartes(
+              [{ nombre: CONSUMIDOR_FINAL, cuit: "" }],
+              propias.clientes,
+              contrapartes(ventas?.comprobantes ?? []),
+            )}
+            proveedores={juntarContrapartes(
+              propias.proveedores,
+              contrapartes(compras?.comprobantes ?? []),
+            )}
+            onNuevoCliente={async (nombre, cuit) => {
+              setPropias((p) => ({
+                ...p,
+                clientes: [...p.clientes, { nombre, cuit }],
+              }));
+              if (repo && empresaId)
+                guardar(() =>
+                  repo.guardarContraparte(empresaId, "cliente", nombre, cuit),
+                );
+            }}
           />
         </div>
         <div hidden={seccion !== "cuentas"}>
